@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
+/*
+ * SIGMA+ design tokens.
+ * Dark-first premium technology palette: deep navy/graphite base,
+ * electric blue as the primary accent, ice/cyan for secondary accents,
+ * a restrained violet used sparingly for highlights only.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-void: #05070d;
+  --color-surface: #0b0f1a;
+  --color-surface-raised: #10162480;
+  --color-graphite: #171d2c;
+  --color-border: #232b3d;
+
+  --color-foreground: #f4f6fb;
+  --color-muted: #8b93a7;
+
+  --color-primary: #2e5eff;
+  --color-primary-bright: #5b8cff;
+  --color-ice: #c7d8ff;
+  --color-cyan: #22c7d9;
+  --color-violet: #7c6fff;
+
+  --background: var(--color-void);
+  --foreground: var(--color-foreground);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  --color-void: var(--color-void);
+  --color-surface: var(--color-surface);
+  --color-graphite: var(--color-graphite);
+  --color-border: var(--color-border);
+  --color-muted: var(--color-muted);
+
+  --color-primary: var(--color-primary);
+  --color-primary-bright: var(--color-primary-bright);
+  --color-ice: var(--color-ice);
+  --color-cyan: var(--color-cyan);
+  --color-violet: var(--color-violet);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: var(--color-primary);
+  color: var(--color-foreground);
 }

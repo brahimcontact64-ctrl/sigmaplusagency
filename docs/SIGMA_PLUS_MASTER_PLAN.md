@@ -1,7 +1,7 @@
 # SIGMA PLUS AGENCY — Master Plan
 
 Status: living document. Updated at the end of every phase.
-Last updated: 2026-08-30 (Phase 0 complete, Phase 1 in progress).
+Last updated: 2026-08-30 (Phase 0 and Phase 1 complete).
 
 ---
 
@@ -105,10 +105,56 @@ Phases 0–11 as specified are a multi-month build (agency site + CRM + AI consu
 
 ---
 
+## PHASE 1 — ARCHITECTURE, DESIGN TOKENS, BRANDING FOUNDATION, LOCALIZATION
+
+### Implemented
+
+- Scaffolded a fresh codebase with `create-next-app`: **Next.js 16.3.3** (App Router, Turbopack, React 19, TypeScript strict, `src/` layout, Tailwind CSS v4).
+- **i18n routing** with `next-intl` v4: `src/i18n/routing.ts`, `navigation.ts`, `request.ts`, `src/proxy.ts` (Next 16 renamed `middleware.ts` → `proxy.ts`; migrated correctly, confirmed the deprecation warning disappears after rebuild). Locales `fr / ar / en / de`, `fr` as default, `localePrefix: 'always'` so every route is explicit (`/fr`, `/ar`, `/en`, `/de`) and `/` 307-redirects to `/fr`. Verified live: all four locales return 200, `<html lang>` and `dir` are correct per locale (`dir="rtl"` on `/ar`, `dir="ltr"` elsewhere).
+- **Design tokens** in `src/app/globals.css` via Tailwind v4 `@theme`: dark-first electric-blue palette (`--color-void`, `--color-surface`, `--color-graphite`, `--color-border`, `--color-primary` #2E5EFF, `--color-primary-bright` #5B8CFF, `--color-ice`, `--color-cyan`, `--color-violet`), plus a global `prefers-reduced-motion` kill-switch.
+- **Architecture layering**: `src/domain` reserved for future business types, `src/lib` for data access/config (`site-config.ts`, `whatsapp.ts`, `utils.ts`), `src/components` for UI, `src/i18n` for locale plumbing — no business logic inside page components.
+- **Centralized WhatsApp link builder** (`src/lib/whatsapp.ts`) and **centralized site config** (`src/lib/site-config.ts`, env-driven via `.env.example`) — every CTA on the page goes through these, nothing hardcoded inline, matching the brief's requirement that the WhatsApp number be configurable in one place.
+- **SEO foundation**: per-locale `generateMetadata` (title/description from messages, canonical + `hreflang` alternates, OpenGraph, Twitter card), `robots.ts`, `sitemap.ts` enumerating all locales with alternates, and a `ProfessionalService` JSON-LD block on the homepage.
+- **Real homepage** (not the Phase 2 flagship 3D experience — a working, honest foundation page) with hero, services grid (6 services from the brief's catalogue), work grid (the 4 real projects recovered in the audit: SahEat, e-Vizza, Eleman Shoes, Dzenix), and a contact/WhatsApp section — fully translated (natively, not machine-translated) into all 4 languages from `messages/{fr,ar,en,de}.json`.
+- Component primitives: `Button` / `ButtonLink` (`class-variance-authority`), `SiteHeader`, `LanguageSwitcher` (client component, preserves current path on locale switch), `SiteFooter`.
+
+### Files changed
+
+New: `src/i18n/routing.ts`, `src/i18n/navigation.ts`, `src/i18n/request.ts`, `src/proxy.ts`, `messages/fr.json`, `messages/ar.json`, `messages/en.json`, `messages/de.json`, `src/app/[locale]/layout.tsx`, `src/app/[locale]/page.tsx`, `src/app/robots.ts`, `src/app/sitemap.ts`, `src/lib/site-config.ts`, `src/lib/whatsapp.ts`, `src/lib/utils.ts`, `src/components/ui/button.tsx`, `src/components/site-header.tsx`, `src/components/site-footer.tsx`, `src/components/language-switcher.tsx`, `.env.example`.
+Removed: default `create-next-app` `src/app/page.tsx` and `src/app/layout.tsx` (superseded by the `[locale]` segment, which is the standard next-intl structure).
+Modified: `next.config.ts` (next-intl plugin + `turbopack.root`), `src/app/globals.css` (design tokens).
+
+### Tests executed / results
+
+- `tsc --noEmit`: **pass**, 0 errors.
+- `eslint .`: **pass**, 0 errors, 0 warnings.
+- `next build`: **pass** — all 4 locale pages pre-render statically (SSG via `generateStaticParams`), `/robots.txt` and `/sitemap.xml` generate correctly, no warnings.
+- Manual browser verification (Playwright, since no `chromium-cli` was available in this environment): ran the dev server and captured real screenshots at desktop (1440×900) and mobile (390×844) viewports.
+  - `/fr` desktop: hero, services grid, work grid, and contact section all render correctly with the intended dark electric-blue theme. Zero browser console errors.
+  - `/ar` desktop: full RTL mirroring confirmed correct (nav order, logo position, text alignment, card layout all flip properly).
+  - **Bug found and fixed during this verification**: the phone number in the Arabic contact section rendered digit-group-reversed (`48 52 47 550 213+`) due to the browser's bidi algorithm reordering a Latin numeral string inside an RTL context. Fixed by wrapping phone/email in `<span dir="ltr">`; re-verified with a follow-up screenshot showing `+213 550 47 52 48` in correct order.
+  - `/fr` mobile: single-column responsive stacking confirmed, all CTAs full-width and tappable.
+
+### Known limitation carried forward (not fixed now, scope discipline)
+
+- No mobile hamburger menu yet — on small viewports the header only shows the logo and language switcher; Services/Work/Contact are still reachable by scrolling (they're anchor sections on one page) but not from an explicit mobile nav. Acceptable for this single-page Phase 1 foundation; revisit once Phase 3 introduces real multi-page navigation (service pages, case-study pages).
+
+### Remaining risks
+
+- The homepage is intentionally minimal (no 3D flagship hero, no scroll storytelling, no case-study depth) — this is the Phase 2 scope, not skipped, just not yet built.
+- Contact/testimonial/stat content flagged `NEEDS USER DATA` in the Phase 0 audit is still outstanding and will gate the Portfolio (Phase 3) and content-integrity of the homepage's future revisions.
+- `TypeScript ^5` was installed by `create-next-app` rather than the newly-released `typescript@7`; kept at `^5` deliberately since the wider ecosystem (ESLint config, Next's own tooling) targets 5.x — revisit once TS7 compatibility is broadly confirmed.
+
+### Next phase
+
+**Phase 2 — Homepage flagship experience**: the real hero (headline system, oversized typography, the SIGMA "+" interactive visual, scroll-based motion), replacing today's functional-but-modest hero, still built progressively (works with WebGL off / reduced-motion / low-power) per the brief's 3D and motion requirements.
+
+---
+
 ## ROADMAP / TODO
 
 - [x] Phase 0 — Audit (this document)
-- [ ] Phase 1 — Architecture, design tokens, branding foundation, i18n routing skeleton
+- [x] Phase 1 — Architecture, design tokens, branding foundation, i18n routing skeleton
 - [ ] Phase 2 — Homepage flagship experience
 - [ ] Phase 3 — Services + portfolio + case studies
 - [ ] Phase 4 — Project Builder + lead capture + WhatsApp

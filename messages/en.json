@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "title": "SIGMA+ Agency — Web, Mobile, SaaS & AI Studio",
+    "description": "SIGMA+ designs websites, mobile apps, SaaS platforms, and AI solutions for businesses in Algeria and worldwide."
+  },
+  "nav": {
+    "services": "Services",
+    "work": "Work",
+    "about": "About",
+    "contact": "Contact"
+  },
+  "hero": {
+    "eyebrow": "Web · Mobile · SaaS · AI · Automation",
+    "headline": "Digital products built to grow.",
+    "subheadline": "SIGMA+ designs and builds websites, apps, and platforms that move your business forward — in Algeria and beyond.",
+    "ctaPrimary": "Start a project",
+    "ctaSecondary": "See our work",
+    "ctaWhatsapp": "Chat on WhatsApp"
+  },
+  "services": {
+    "title": "Services",
+    "subtitle": "Complete solutions, from idea to production.",
+    "items": [
+      { "title": "Web Development", "description": "Custom websites, platforms, and web apps — fast and built to last." },
+      { "title": "Mobile Applications", "description": "Native or cross-platform iOS and Android apps built around your users." },
+      { "title": "E-commerce", "description": "Full online stores with secure payments and inventory management." },
+      { "title": "SaaS & Platforms", "description": "Business tools and SaaS products designed to scale with you." },
+      { "title": "AI & Automation", "description": "AI agents, assistants, and automations that save your team time." },
+      { "title": "SEO & Growth", "description": "A solid technical foundation so customers can find and choose you." }
+    ]
+  },
+  "work": {
+    "title": "Our Work",
+    "subtitle": "A selection of projects delivered for our clients.",
+    "viewProject": "View project",
+    "projects": [
+      { "name": "SahEat", "description": "Food delivery marketplace with mobile apps and an admin dashboard." },
+      { "name": "e-Vizza", "description": "AI-assisted SaaS platform for automating visa applications." },
+      { "name": "Eleman Shoes", "description": "E-commerce store with real-time inventory management." },
+      { "name": "Dzenix", "description": "Website and brand identity for a digital agency." }
+    ]
+  },
+  "contact": {
+    "title": "Ready to start your project?",
+    "subtitle": "Tell us what you need — we'll get back to you quickly.",
+    "whatsapp": "Chat on WhatsApp",
+    "emailLabel": "Email",
+    "phoneLabel": "Phone"
+  },
+  "footer": {
+    "tagline": "Digital studio — Algeria and beyond.",
+    "rights": "All rights reserved."
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "title": "SIGMA+ Agency — Web-, Mobile-, SaaS- & KI-Studio",
+    "description": "SIGMA+ entwickelt Websites, mobile Apps, SaaS-Plattformen und KI-Lösungen für Unternehmen in Algerien und weltweit."
+  },
+  "nav": {
+    "services": "Leistungen",
+    "work": "Projekte",
+    "about": "Über uns",
+    "contact": "Kontakt"
+  },
+  "hero": {
+    "eyebrow": "Web · Mobile · SaaS · KI · Automatisierung",
+    "headline": "Digitale Produkte, die mitwachsen.",
+    "subheadline": "SIGMA+ entwickelt Websites, Apps und Plattformen, die Ihr Unternehmen voranbringen — in Algerien und weltweit.",
+    "ctaPrimary": "Projekt starten",
+    "ctaSecondary": "Unsere Projekte ansehen",
+    "ctaWhatsapp": "Auf WhatsApp chatten"
+  },
+  "services": {
+    "title": "Leistungen",
+    "subtitle": "Komplettlösungen — von der Idee bis zum fertigen Produkt.",
+    "items": [
+      { "title": "Webentwicklung", "description": "Maßgeschneiderte Websites, Plattformen und Web-Apps — schnell und langlebig." },
+      { "title": "Mobile Apps", "description": "Native oder plattformübergreifende iOS- und Android-Apps für Ihre Nutzer." },
+      { "title": "E-Commerce", "description": "Komplette Onlineshops mit sicherer Zahlung und Lagerverwaltung." },
+      { "title": "SaaS & Plattformen", "description": "Business-Tools und SaaS-Produkte, die mit Ihrem Unternehmen wachsen." },
+      { "title": "KI & Automatisierung", "description": "KI-Agenten, Assistenten und Automatisierungen, die Ihrem Team Zeit sparen." },
+      { "title": "SEO & Wachstum", "description": "Eine solide technische Grundlage, damit Kunden Sie finden und wählen." }
+    ]
+  },
+  "work": {
+    "title": "Unsere Projekte",
+    "subtitle": "Eine Auswahl an Projekten, die wir für unsere Kunden umgesetzt haben.",
+    "viewProject": "Projekt ansehen",
+    "projects": [
+      { "name": "SahEat", "description": "Essenslieferungs-Marktplatz mit mobilen Apps und Admin-Dashboard." },
+      { "name": "e-Vizza", "description": "KI-gestützte SaaS-Plattform zur Automatisierung von Visumanträgen." },
+      { "name": "Eleman Shoes", "description": "E-Commerce-Shop mit Echtzeit-Lagerverwaltung." },
+      { "name": "Dzenix", "description": "Website und Markenidentität für eine Digitalagentur." }
+    ]
+  },
+  "contact": {
+    "title": "Bereit, Ihr Projekt zu starten?",
+    "subtitle": "Erzählen Sie uns von Ihrem Vorhaben — wir melden uns schnell zurück.",
+    "whatsapp": "Auf WhatsApp chatten",
+    "emailLabel": "E-Mail",
+    "phoneLabel": "Telefon"
+  },
+  "footer": {
+    "tagline": "Digitalstudio — aus Algerien in die Welt.",
+    "rights": "Alle Rechte vorbehalten."
+  }
+}
