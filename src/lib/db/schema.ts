@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, uuid, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, uuid, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const leads = pgTable(
   "leads",
@@ -78,3 +78,64 @@ export const leadActivities = pgTable(
   },
   (table) => [index("lead_activities_lead_id_idx").on(table.leadId)],
 );
+
+// --- Phase 5: admin / CRM foundation --------------------------------
+
+export const adminUsers = pgTable(
+  "admin_users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    emailNormalized: text("email_normalized").notNull(),
+    passwordHash: text("password_hash").notNull(),
+    name: text("name").notNull(),
+    role: text("role").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  },
+  (table) => [uniqueIndex("admin_users_email_normalized_idx").on(table.emailNormalized)],
+);
+
+export const leadNotes = pgTable(
+  "lead_notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    // Nullable + set null (not cascade): a note must survive the
+    // deletion of the admin account that wrote it — authorName is
+    // captured at write time so the note stays attributable either way.
+    authorId: uuid("author_id").references(() => adminUsers.id, { onDelete: "set null" }),
+    authorName: text("author_name").notNull(),
+    note: text("note").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("lead_notes_lead_id_idx").on(table.leadId)],
+);
+
+export const adminAuditLogs = pgTable(
+  "admin_audit_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorId: uuid("actor_id").references(() => adminUsers.id, { onDelete: "set null" }),
+    actorEmail: text("actor_email").notNull(),
+    action: text("action").notNull(),
+    targetType: text("target_type"),
+    targetId: text("target_id"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("admin_audit_logs_actor_id_idx").on(table.actorId),
+    index("admin_audit_logs_target_idx").on(table.targetType, table.targetId),
+  ],
+);
+
+export const siteSettings = pgTable("site_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedByEmail: text("updated_by_email"),
+});

@@ -29,8 +29,22 @@ export const LEAD_ACTIVITY_TYPES = [
   "contact_form_submitted",
   "project_request_submitted",
   "whatsapp_handoff_clicked",
+  "status_changed",
+  "internal_note_added",
 ] as const;
 export type LeadActivityType = (typeof LEAD_ACTIVITY_TYPES)[number];
+
+/**
+ * Status transition policy: every status currently allows moving to
+ * every other status (except itself). No workflow restrictions exist
+ * yet — this is intentional pending owner input on the real pipeline
+ * rules (see master plan Phase 5), not an oversight. The only thing
+ * enforced is that the target is one of the canonical statuses, so a
+ * bad request body can never write an arbitrary string into the column.
+ */
+export function isValidLeadStatus(value: unknown): value is LeadStatus {
+  return typeof value === "string" && (LEAD_STATUSES as readonly string[]).includes(value);
+}
 
 export type Attribution = {
   landingPage?: string;

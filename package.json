@@ -12,7 +12,8 @@
     "test:integration": "vitest run",
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "admin:create-user": "tsx scripts/create-admin-user.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
@@ -22,6 +23,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
+    "jose": "^6.1.0",
     "lucide-react": "^1.37.0",
     "motion": "^13.1.1",
     "nanoid": "^5.1.16",
@@ -45,6 +47,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "tailwindcss": "^4",
+    "tsx": "^4.20.7",
     "typescript": "^5",
     "vitest": "^4.1.11"
   }

@@ -46,3 +46,10 @@ class InMemoryRateLimiter implements RateLimiter {
 // real visitor retrying after a validation fix, tight enough to blunt
 // naive scripted abuse of a form with no CAPTCHA yet.
 export const submissionRateLimiter: RateLimiter = new InMemoryRateLimiter(5, 10 * 60 * 1000);
+
+// Admin login: 10 attempts / 15 minutes per IP, AND per attempted
+// email, so a distributed attacker still gets throttled per-account
+// even while rotating source IPs. Same in-memory caveat as above —
+// needs Redis before this runs on more than one instance.
+export const loginIpRateLimiter: RateLimiter = new InMemoryRateLimiter(10, 15 * 60 * 1000);
+export const loginEmailRateLimiter: RateLimiter = new InMemoryRateLimiter(10, 15 * 60 * 1000);

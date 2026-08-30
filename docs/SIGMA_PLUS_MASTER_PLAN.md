@@ -1,7 +1,7 @@
 # SIGMA PLUS AGENCY — Master Plan
 
 Status: living document. Updated at the end of every phase.
-Last updated: 2026-08-30 (Phase 0, Phase 1, Phase 2, Phase 3, and Phase 4 complete).
+Last updated: 2026-08-30 (Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5 complete).
 
 ---
 
@@ -410,6 +410,115 @@ Modified: `src/lib/actions/contact.ts` (migrated to lead-service, WhatsApp failu
 
 ---
 
+## PHASE 5 — ADMIN DASHBOARD + CRM + LEAD PIPELINE
+
+### Implemented
+
+A secured internal admin system on top of Phase 4's lead tables: cookie-session authentication, minimal RBAC, a dashboard driven entirely by real database aggregates, a searchable/filterable/paginated lead list, a full lead detail view (identity, contact, attribution, project requests with structured briefs, activity timeline, internal notes), a status-change pipeline with a Kanban board, a security/admin audit trail, a small CRM-scoped settings foundation, and CSV export with formula-injection sanitization. Nothing on the dashboard or lead list is fabricated — every figure is a live query result, and empty states render honestly when there's no data yet.
+
+### Auth architecture
+
+No third-party auth provider (Supabase Auth, Auth.js) was added — the "smallest production-suitable" option here was a custom cookie-session system built directly on the existing Postgres/Drizzle stack and Next's own [documented DAL pattern](node_modules/next/dist/docs/01-app/02-guides/authentication.md), which keeps admin auth in the same database as everything else instead of introducing a second system of record for a handful of internal accounts:
+
+- **Password hashing**: Node's built-in `crypto.scrypt` (`src/lib/auth/password.ts`) — no bcrypt/argon2 dependency needed. Stored as `saltHex:hashHex`; verified with `timingSafeEqual`.
+- **Sessions**: a signed JWT (`jose`, HS256) in an `httpOnly`, `sameSite=lax`, `secure`-in-production cookie, 12h expiry (`src/lib/auth/jwt.ts` + `session.ts`). `ADMIN_SESSION_SECRET` is required in production (throws at startup if missing, same policy as `DATABASE_URL`); in development an ephemeral key is generated per process so `npm run dev` works with zero setup.
+- **Two-tier check**, per Next's own guidance: `src/proxy.ts` does an *optimistic* check (JWT signature/expiry only, no DB call) to bounce unauthenticated requests to `/admin` before they render anything. `src/lib/auth/dal.ts`'s `requireActor()` — used in every protected layout, page, server action, and the CSV export route handler — does the *secure* check: it re-fetches the admin_users row by ID, so a demoted or deleted admin can't keep acting on a still-valid token.
+- **No signup UI, by design.** Admin accounts are provisioned out-of-band via `npm run admin:create-user -- --email=... --password=... --name="..." --role=OWNER` (`scripts/create-admin-user.ts`), which upserts by normalized email — re-running it with a new password is also the reset path.
+- **Login hardening**: Zod-validated credentials, honeypot-free (an internal login form doesn't need one) but rate-limited both by IP and by the attempted email (`loginIpRateLimiter`/`loginEmailRateLimiter`, 10/15min each), a constant-cost dummy password hash so a nonexistent-account lookup takes the same time as a wrong-password check (no user-enumeration timing signal), and generic "Invalid email or password" errors regardless of which was wrong.
+- **One real OWNER account was provisioned** for the owner (`brahimcontact64@gmail.com`) against the local dev database during this phase's verification — see the final report message for the one-time password (change it via the same seed command once you're ready).
+
+### RBAC
+
+`OWNER`, `ADMIN`, `SALES`, `EDITOR`, `VIEWER` (`src/domain/admin-user.ts`) — only `OWNER`/`ADMIN` are actually assignable via the seed script today; the other three exist so a future role-gated feature doesn't need a migration. `CRM_EDITOR_ROLES` (OWNER/ADMIN/SALES/EDITOR) gates status changes and notes; `SETTINGS_EDITOR_ROLES` (OWNER only) gates settings writes. Every server action re-checks the role server-side via `assertRole()` (`src/lib/auth/rbac.ts`) — a hidden UI control is never the authorization boundary, per the brief's explicit requirement. The settings page still *renders* a read-only view for non-OWNER roles rather than hiding the section outright, since seeing current configuration isn't sensitive even when editing it is.
+
+### Admin routes
+
+`/admin/*` lives as its own top-level route tree (`src/app/admin/`), a sibling to `src/app/[locale]/`, deliberately outside next-intl's routing — the admin UI is English-only and doesn't share the public site's locale prefixes. It has its own root layout (its own `<html>/<body>`, since Next.js requires that for a top-level segment with no shared parent layout). `src/proxy.ts` was extended to branch on `pathname.startsWith("/admin")` before deciding whether to hand off to next-intl's middleware at all — admin paths never enter next-intl's redirect logic.
+
+### Dashboard
+
+`src/app/admin/(protected)/page.tsx` + `CrmService.getDashboardMetrics()`: total leads, new leads (7d), total project requests, a WON counter, and three real grouped breakdowns (status/source/language) plus a project-type breakdown, rendered as a small dependency-free CSS bar chart (`BarList`) rather than pulling in a charting library for half a dozen numbers. Recent submissions and recent activity lists render an explicit empty state when there's no data — no placeholder numbers, no simulated trend lines.
+
+### Lead list / search / filter / pagination
+
+`src/app/admin/(protected)/leads/page.tsx` + `CrmRepository.listLeads()`: server-side filtering (search across reference/name/email/phone/company via `ilike`, plus status/source/project-type/language filters — project-type uses an `EXISTS` subquery against `project_requests` since a lead can have more than one), server-side sorting, and offset pagination (20/page) — nothing is fetched to the client and filtered in the browser. Filters are a plain `<form method="get">`, so the whole page works with zero client JS and is trivially linkable/bookmarkable. All query construction goes through Drizzle's parameterized query builder — no raw string concatenation, no injection surface.
+
+### Lead detail
+
+`src/app/admin/(protected)/leads/[id]/page.tsx`: identity, contact info, status control, attribution, every project request with its full structured brief and open questions, the activity timeline, and internal notes with an add-note form. The internal database UUID is shown once, labeled "Internal ID," in a dedicated Metadata section — the only place it's exposed, per the brief's "developer/debug context only" rule; everywhere else the public `SP-XXXXXX` reference is what's shown and linked.
+
+### Pipeline / status system
+
+Status changes go through `CrmService.changeLeadStatus()`, which validates the target against the canonical `LEAD_STATUSES` enum (rejecting anything else), rejects a no-op change, writes the new status, and — in the same operation — records a `status_changed` `LeadActivity` (previous status, new status, actor email) *and* an `admin_audit_logs` row. History is never overwritten, only appended to. **Transition policy**: every status currently allows moving to every other status (documented explicitly in `src/domain/lead.ts`) — no workflow restrictions exist yet, since the brief was explicit not to invent rigid business rules without owner input. The only enforcement is that the target must be a real status, so a malformed request can't write an arbitrary string into the column.
+
+The Pipeline board (`/admin/pipeline`) groups a bounded recent working set (500 leads, most-recently-updated first) into Kanban columns by status. Drag-and-drop was deliberately skipped per the brief's own "a select/menu update is acceptable if drag-and-drop adds unnecessary complexity" — each card has the same status `<select>` used on the detail page, which is keyboard-accessible by construction and needs no custom DnD/rollback logic.
+
+### Internal notes
+
+`LeadNote` (new `lead_notes` table): note text, author snapshot (`authorId` + `authorName`, FK `ON DELETE SET NULL` so a note survives the deletion of the account that wrote it), timestamp. Adding a note also writes an `internal_note_added` LeadActivity (with a 140-char preview) and an audit log row. Notes are never rendered anywhere outside `/admin` — no public API or page reads `lead_notes`.
+
+### Activity / audit system
+
+Two distinct trails, deliberately not merged:
+- **`lead_activities`** (Phase 4 table, extended with `status_changed` and `internal_note_added`) — the per-lead business timeline, shown on the lead detail page and in a global, paginated `/admin/activities` view.
+- **`admin_audit_logs`** (new table) — a system-wide security trail: `login`, `login_failed`, `logout`, `status_changed`, `note_added`, `settings_updated`. Actor is captured as both a FK (`ON DELETE SET NULL`) and a denormalized email snapshot, so the trail survives an account deletion. Surfaced as "Recent admin activity" on the Settings page, OWNER-only, rather than a separate nav item — it's a small enough volume for Phase 5 that a dedicated page would be premature.
+
+### Settings foundation
+
+`site_settings` (key/JSONB value table) + `SettingsService`, covering three keys: `company_identity`, `budget_range_labels`, `lead_source_labels` — each with its own Zod schema, validated before write. **Deliberately scoped down**: this is CRM-internal configuration only. It does **not** rewrite `src/lib/site-config.ts` or change anything on the public marketing site, which keeps reading its own `NEXT_PUBLIC_*` env vars for now, exactly as the brief allowed ("public/business configuration may later move into DB"). Wiring the two together — so an admin edit of the WhatsApp number actually changes the public site — is a Phase 6 candidate, not silently implied to already work. Every settings write is OWNER-only and produces a `settings_updated` audit row.
+
+### Database migrations
+
+One additive migration (`0002_daffy_switch.sql`): four new tables (`admin_users`, `lead_notes`, `admin_audit_logs`, `site_settings`) and two new enum-like columns (`lead_activities.type` already had room for the two new values — no column change needed, it was always free-text `type` validated at the application layer). No existing table was altered, no column dropped, no Phase 4 data touched. Verified applying cleanly to a fresh database via every test file's `beforeAll` (which runs all three migrations against a brand-new in-memory PGlite instance) and via the real dev database used for this phase's manual verification.
+
+### Security
+
+Every admin mutation (`changeLeadStatusAction`, `addLeadNoteAction`, `updateSettingAction`) calls `requireActor()` (DB-verified session) and then `assertRole()` — the actor is always the DB-verified session identity, **never** a value the browser could supply as an argument. Server Actions get CSRF protection from Next's built-in Origin-header check (no extra library needed). Route Handlers (the CSV export) repeat the same `requireActor()` check explicitly, since Route Handlers sit outside the protected layout tree and aren't covered by it. Rate limiting on login (see Auth architecture). No stack traces or raw SQL errors are ever returned to the browser — service-layer results are typed success/error unions, not thrown exceptions, for every expected failure mode.
+
+### CSV export
+
+`/admin/leads/export` (a Route Handler, auth-checked independently), respecting the current list filters, capped at 5,000 rows. `sanitizeCsvCell()` (`src/lib/services/csv-export.ts`) neutralizes spreadsheet formula injection: any cell starting with `=`, `+`, `-`, `@`, a tab, or a carriage return gets a leading `'` prefix before quoting, per the standard OWASP mitigation — verified with a dedicated test using real injection-style payloads.
+
+### Tests
+
+34 new Vitest tests across four files (`admin-auth.test.ts`, `crm-service.test.ts`, `settings-service.test.ts`, `csv-export.test.ts`), on top of Phase 4's 21 — **55 total, all passing**. Coverage: password hash/verify round-trip and rejection, session JWT round-trip/expiry/tamper rejection, RBAC role assertion, lead search/filter/pagination correctness, status-change success + activity/audit-log side effects + invalid-status/no-op/not-found rejection, note creation + side effects + empty/oversized/not-found rejection, dashboard aggregation reflecting real inserted rows (not fixed numbers), pipeline grouping by current status, settings validation (unknown key, invalid value, valid write + audit row), and CSV formula-injection sanitization. `requireActor()`/`assertRole` as re-exported from the DAL aren't imported directly in tests (that file pulls in `next/headers`, which — like `next-intl/server` in Phase 4 — only resolves inside Next's own bundler); the pure role-check logic was split into a dependency-free `src/lib/auth/rbac.ts` specifically so it stays unit-testable without fighting Vitest's module resolution, the same lesson learned in Phase 4.
+
+### Manual verification (no browser automation)
+
+Per the owner's standing policy (see "PROJECT POLICY" above), no Playwright/Cypress/any browser automation was used. Verification was a real, non-mocked script run against the actual local dev database (`.data/pglite-dev`, the same embedded Postgres the dev server uses) — not the test suite's isolated in-memory instance:
+1. Ran `npm run admin:create-user` for real, creating the owner's actual OWNER account.
+2. A scratch script (deleted after the run, no trace left in the repo) looked up that real account, created a real lead, changed its status through `CrmService`, added a note through `CrmService`, re-read the lead detail to confirm both the activity timeline and the note persisted, ran a dashboard aggregation and a search query against the live table, then deleted only the rows it created.
+3. All steps printed real IDs/references/counts confirming genuine round-trip persistence (output preserved in this session's log, not fabricated).
+
+A full click-through in an actual browser (login form → dashboard → lead list → detail → status change → logout) was **not** performed in this session — there was no non-automation-based browser tool available to drive it. This is called out explicitly rather than claimed; the owner should do one short manual pass before relying on this in daily use, which the acceptance criteria describe as an 8-step, non-blocking check.
+
+### Files changed (Phase 5)
+
+New: `src/domain/{admin-user,lead-note,audit-log,settings,admin-auth}.ts`; `src/lib/auth/{password,jwt,session,dal,rbac}.ts`; `src/lib/repositories/{admin-user-repository,crm-repository,audit-log-repository,settings-repository}.ts`; `src/lib/services/{crm-service,settings-service,csv-export}.ts`; `src/lib/actions/{admin-auth,admin-crm,admin-settings}.ts`; `src/lib/admin/format.ts`; `scripts/create-admin-user.ts`; `src/app/admin/**` (layout, login, protected group with dashboard/leads/leads/[id]/leads/export/pipeline/project-requests/activities/settings); `src/components/admin/**`; migration `0002_daffy_switch.sql`; four new Vitest test files. Modified: `src/domain/lead.ts` (two new activity types + `isValidLeadStatus`), `src/lib/db/schema.ts` (four new tables), `src/proxy.ts` (admin branch), `package.json` (`jose` dependency, `tsx` devDependency, `admin:create-user` script), `vitest.config.mts` (`hookTimeout` raised — three PGlite-backed test files now run concurrently and regularly exceeded the 10s default under load), `.env.example` (`ADMIN_SESSION_SECRET` + seed-script usage note).
+
+### Final verification results
+
+TypeScript (`tsc --noEmit`): clean. ESLint: clean. Vitest: **55/55 passing** (21 from Phase 4 + 34 new this phase). Production build (`next build`): succeeds; all `/admin/*` routes correctly compile as server-rendered (`ƒ`), `/admin/login` as static (`○`), the public `[locale]` tree unaffected. Migration verification: passes in every test run (fresh PGlite + all 3 migrations) and against the real dev database. Manual verification: see above.
+
+### Required production environment variables
+
+Everything from Phase 4, plus `ADMIN_SESSION_SECRET` (required — app refuses to start the admin session system without it in production, same policy as `DATABASE_URL`; generate with `openssl rand -base64 32`).
+
+### Known limitations
+
+- Pipeline board shows a capped recent working set (500 leads), not the full paginated dataset — fine at current volume, would need real pagination or virtualization at much larger scale.
+- Settings currently cover company identity + two label maps only; they don't yet feed back into the public site's own configuration (intentional Phase 5 scope boundary, see Settings foundation above).
+- No lead assignment / ownership field yet ("default lead assignment later" was explicitly out of scope this phase).
+- Status transitions are unrestricted (any status → any status) pending the owner's real workflow rules.
+- `SameSite=lax` on the session cookie is the standard trade-off Next's own docs use — it blocks cross-site script/fetch reads but still sends the cookie on a top-level GET navigation (e.g. the CSV export link), which is the accepted norm for an internal tool without a dedicated CSRF token on GET requests.
+- No browser-driven click-through was performed this session (see Manual verification) — recommend one short manual pass before daily use.
+
+### Next phase
+
+**Phase 6 — AI Consultant**, per the roadmap — plus, as a smaller candidate surfaced by this phase, actually wiring the new Settings foundation into the public site's contact/WhatsApp configuration instead of leaving it CRM-internal only.
+
+---
+
 ## ROADMAP / TODO
 
 - [x] Phase 0 — Audit (this document)
@@ -417,7 +526,7 @@ Modified: `src/lib/actions/contact.ts` (migrated to lead-service, WhatsApp failu
 - [x] Phase 2 — Flagship visual identity (hero, 3D object, motion system, scroll story, navigation)
 - [x] Phase 3 — Services + portfolio + case studies
 - [x] Phase 4 — Project Builder + lead capture + WhatsApp
-- [ ] Phase 5 — Admin + CRM
+- [x] Phase 5 — Admin + CRM
 - [ ] Phase 6 — AI Consultant
 - [ ] Phase 7 — Technical SEO foundation
 - [ ] Phase 8 — SIGMA SEO intelligence engine
