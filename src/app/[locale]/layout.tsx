@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { MotionConfig } from "motion/react";
 import "../globals.css";
 import { routing, rtlLocales, type Locale } from "@/i18n/routing";
 import { siteConfig } from "@/lib/site-config";
@@ -81,7 +82,9 @@ export default async function LocaleLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-void text-foreground">
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <MotionConfig reducedMotion="user">{children}</MotionConfig>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

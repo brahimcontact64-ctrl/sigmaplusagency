@@ -1,32 +1,28 @@
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
-import { LanguageSwitcher } from "@/components/language-switcher";
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { HeaderClient } from "./header-client";
 
 export async function SiteHeader({ locale }: { locale: string }) {
   const t = await getTranslations("nav");
+  const hero = await getTranslations("hero");
+
+  const nav = {
+    services: t("services"),
+    work: t("work"),
+    about: t("about"),
+    contact: t("contact"),
+    startProject: t("startProject"),
+  };
+
+  const whatsappHref = buildWhatsAppUrl(hero("ctaWhatsapp"));
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-void/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link href="/" className="text-lg font-bold tracking-tight">
-          SIGMA<span className="text-primary-bright">+</span>
-        </Link>
-
-        <nav className="hidden items-center gap-8 text-sm font-medium text-muted md:flex">
-          <Link href="/#services" className="hover:text-foreground transition-colors">
-            {t("services")}
-          </Link>
-          <Link href="/#work" className="hover:text-foreground transition-colors">
-            {t("work")}
-          </Link>
-          <Link href="/#contact" className="hover:text-foreground transition-colors">
-            {t("contact")}
-          </Link>
-        </nav>
-
-        <LanguageSwitcher currentLocale={locale} locales={routing.locales} />
-      </div>
-    </header>
+    <HeaderClient
+      locale={locale}
+      locales={routing.locales}
+      nav={nav}
+      whatsappHref={whatsappHref}
+    />
   );
 }

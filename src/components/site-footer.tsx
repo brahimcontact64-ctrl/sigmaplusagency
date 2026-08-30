@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { Wordmark } from "@/components/brand/wordmark";
 import { siteConfig } from "@/lib/site-config";
 
 export async function SiteFooter() {
@@ -9,10 +10,8 @@ export async function SiteFooter() {
     <footer className="border-t border-border">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="font-bold text-foreground">
-            SIGMA<span className="text-primary-bright">+</span>
-          </div>
-          <p>{t("tagline")}</p>
+          <Wordmark className="text-foreground" />
+          <p className="mt-2">{t("tagline")}</p>
         </div>
         <p>
           © {year} {siteConfig.legalName} — {t("rights")}

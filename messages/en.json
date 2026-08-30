@@ -6,19 +6,21 @@
   "nav": {
     "services": "Services",
     "work": "Work",
-    "about": "About",
-    "contact": "Contact"
+    "about": "Approach",
+    "contact": "Contact",
+    "startProject": "Start a project"
   },
   "hero": {
-    "eyebrow": "Web · Mobile · SaaS · AI · Automation",
-    "headline": "Digital products built to grow.",
+    "eyebrow": "Web · Mobile · SaaS · AI · Automation · E-commerce",
+    "headlineLine1": "We don't just build software.",
+    "headlineLine2": "We build digital advantage.",
     "subheadline": "SIGMA+ designs and builds websites, apps, and platforms that move your business forward — in Algeria and beyond.",
     "ctaPrimary": "Start a project",
-    "ctaSecondary": "See our work",
-    "ctaWhatsapp": "Chat on WhatsApp"
+    "ctaWhatsapp": "WhatsApp us",
+    "ctaWork": "View our work"
   },
   "services": {
-    "title": "Services",
+    "title": "What we build",
     "subtitle": "Complete solutions, from idea to production.",
     "items": [
       { "title": "Web Development", "description": "Custom websites, platforms, and web apps — fast and built to last." },
@@ -30,14 +32,25 @@
     ]
   },
   "work": {
-    "title": "Our Work",
+    "title": "Selected work",
     "subtitle": "A selection of projects delivered for our clients.",
     "viewProject": "View project",
     "projects": [
-      { "name": "SahEat", "description": "Food delivery marketplace with mobile apps and an admin dashboard." },
-      { "name": "e-Vizza", "description": "AI-assisted SaaS platform for automating visa applications." },
-      { "name": "Eleman Shoes", "description": "E-commerce store with real-time inventory management." },
-      { "name": "Dzenix", "description": "Website and brand identity for a digital agency." }
+      { "name": "SahEat", "tag": "Marketplace", "description": "Food delivery marketplace with mobile apps and an admin dashboard." },
+      { "name": "e-Vizza", "tag": "SaaS · AI", "description": "AI-assisted SaaS platform for automating visa applications." },
+      { "name": "Eleman Shoes", "tag": "E-commerce", "description": "E-commerce store with real-time inventory management." },
+      { "name": "Dzenix", "tag": "Site & brand", "description": "Website and brand identity for a digital agency." }
+    ]
+  },
+  "why": {
+    "title": "Why SIGMA+",
+    "subtitle": "A method, not promises.",
+    "items": [
+      { "title": "Strategy", "description": "We frame the right problem before writing a line of code." },
+      { "title": "Design", "description": "Clear interfaces, built around your users and your market." },
+      { "title": "Engineering", "description": "Robust, tested code that's production-ready — not a throwaway prototype." },
+      { "title": "AI", "description": "Agents and automations that genuinely lighten your team's workload." },
+      { "title": "Growth", "description": "A technical and SEO foundation built to last well past launch." }
     ]
   },
   "contact": {

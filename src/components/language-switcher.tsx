@@ -29,8 +29,8 @@ export function LanguageSwitcher({
           onClick={() => router.replace(pathname, { locale })}
           className={
             locale === currentLocale
-              ? "rounded-full bg-primary px-3 py-1 text-xs font-semibold text-foreground"
-              : "rounded-full px-3 py-1 text-xs font-semibold text-muted hover:text-foreground"
+              ? "rounded-full bg-primary px-3 py-1 text-xs font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-bright"
+              : "rounded-full px-3 py-1 text-xs font-semibold text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-bright"
           }
         >
           {LABELS[locale] ?? locale.toUpperCase()}

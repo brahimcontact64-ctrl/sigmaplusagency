@@ -6,19 +6,21 @@
   "nav": {
     "services": "Services",
     "work": "Réalisations",
-    "about": "À propos",
-    "contact": "Contact"
+    "about": "Approche",
+    "contact": "Contact",
+    "startProject": "Démarrer un projet"
   },
   "hero": {
-    "eyebrow": "Web · Mobile · SaaS · IA · Automatisation",
-    "headline": "Des produits digitaux pensés pour grandir.",
+    "eyebrow": "Web · Mobile · SaaS · IA · Automatisation · E-commerce",
+    "headlineLine1": "Nous ne codons pas juste des logiciels.",
+    "headlineLine2": "Nous construisons votre avantage digital.",
     "subheadline": "SIGMA+ conçoit et développe des sites, applications et plateformes qui font avancer votre activité — en Algérie et au-delà.",
     "ctaPrimary": "Démarrer un projet",
-    "ctaSecondary": "Voir nos réalisations",
-    "ctaWhatsapp": "Discuter sur WhatsApp"
+    "ctaWhatsapp": "Contactez-nous sur WhatsApp",
+    "ctaWork": "Voir nos réalisations"
   },
   "services": {
-    "title": "Nos services",
+    "title": "Ce que nous construisons",
     "subtitle": "Des solutions complètes, de l'idée au produit en production.",
     "items": [
       { "title": "Développement web", "description": "Sites vitrines, plateformes et applications web sur mesure, rapides et optimisés." },
@@ -34,10 +36,21 @@
     "subtitle": "Une sélection de projets livrés pour nos clients.",
     "viewProject": "Voir le projet",
     "projects": [
-      { "name": "SahEat", "description": "Marketplace de livraison de repas avec applications mobiles et tableau de bord d'administration." },
-      { "name": "e-Vizza", "description": "Plateforme SaaS d'automatisation de demandes de visa, assistée par IA." },
-      { "name": "Eleman Shoes", "description": "Boutique e-commerce avec gestion des stocks en temps réel." },
-      { "name": "Dzenix", "description": "Site web et identité de marque pour une agence digitale." }
+      { "name": "SahEat", "tag": "Marketplace", "description": "Marketplace de livraison de repas avec applications mobiles et tableau de bord d'administration." },
+      { "name": "e-Vizza", "tag": "SaaS · IA", "description": "Plateforme SaaS d'automatisation de demandes de visa, assistée par IA." },
+      { "name": "Eleman Shoes", "tag": "E-commerce", "description": "Boutique e-commerce avec gestion des stocks en temps réel." },
+      { "name": "Dzenix", "tag": "Site & marque", "description": "Site web et identité de marque pour une agence digitale." }
+    ]
+  },
+  "why": {
+    "title": "Pourquoi SIGMA+",
+    "subtitle": "Une méthode, pas des promesses.",
+    "items": [
+      { "title": "Stratégie", "description": "Nous cadrons le bon problème avant d'écrire une ligne de code." },
+      { "title": "Design", "description": "Des interfaces claires, pensées pour vos utilisateurs et votre marché." },
+      { "title": "Ingénierie", "description": "Un code robuste, testé et prêt pour la production — pas un prototype jetable." },
+      { "title": "IA", "description": "Des agents et automatisations qui allègent réellement le travail de vos équipes." },
+      { "title": "Croissance", "description": "Une fondation technique et SEO solide pour durer au-delà du lancement." }
     ]
   },
   "contact": {

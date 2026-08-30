@@ -1,7 +1,7 @@
 # SIGMA PLUS AGENCY — Master Plan
 
 Status: living document. Updated at the end of every phase.
-Last updated: 2026-08-30 (Phase 0 and Phase 1 complete).
+Last updated: 2026-08-30 (Phase 0, Phase 1, and Phase 2 complete).
 
 ---
 
@@ -151,11 +151,112 @@ Modified: `next.config.ts` (next-intl plugin + `turbopack.root`), `src/app/globa
 
 ---
 
+## PHASE 2 — FLAGSHIP VISUAL IDENTITY
+
+### Implemented
+
+**Brand system**
+- `SigmaMark` (`src/components/brand/sigma-mark.tsx`): a code-drawn Σ+ glyph — a stylized sigma stroke with the "+" sitting in its open right-hand pocket — as pure SVG, no external asset, legible at 16px. Electric-blue gradient and monochrome variants.
+- `Wordmark` (`src/components/brand/wordmark.tsx`): mark + "SIGMA+" lockup, used in the header and footer.
+- `src/app/icon.svg`: the mark on a dark rounded tile, replacing `create-next-app`'s default `favicon.ico` (removed) as the browser-tab icon.
+
+**Flagship 3D hero object**
+- `src/components/hero/sigma-scene.tsx`: the same Σ+ silhouette as the 2D mark, built in Three.js from beveled bar primitives (`RoundedBox` + drei `Outlines` for the illuminated-edge look), not a hand-derived extruded polygon — that approach was tried first and abandoned as too fragile to get right without visual iteration; primitives assembled from simple geometry are robust and still deliver the "engineered/technical" look the brief asked for.
+- Reacts to pointer movement (tilt, lerped), floats/rotates gently (drei `Float`), has a small procedural particle field (drei `Sparkles`, no texture asset).
+- **Capability-gated, not just visually gated**: `src/components/hero/sigma-object.tsx` probes `prefers-reduced-motion`, WebGL support, and weak-device heuristics (`hardwareConcurrency`, `deviceMemory`, `connection.saveData`) once on mount, and only then decides between the full scene, a reduced-quality scene (capped DPR, no particles), or `SigmaFallback` — a static CSS/SVG stand-in (spinning ring disabled under reduced motion via `motion-safe:`).
+- The heavy Three.js/R3F/drei chunk is loaded via `next/dynamic(..., { ssr: false })` — confirmed by inspecting the served HTML that its chunk is **not** referenced in the initial page load (see Performance below).
+
+**Motion system**
+- `src/lib/motion.ts`: one set of durations/eases and reusable variants (`fadeUp`, `fadeIn`, `scaleIn`, `staggerContainer`), used by every animated section instead of ad-hoc per-component tuning.
+- `MotionConfig reducedMotion="user"` set globally in `src/app/[locale]/layout.tsx` — every `motion` animation in the app collapses to instant for anyone with `prefers-reduced-motion`, with no per-component opt-in needed.
+- Scroll-progress hairline in the header (`useScroll` from `motion/react`), transparent → blurred/dark header transition, animated mobile menu (staggered link reveal, hamburger↔close morph).
+
+**Restructured homepage — the scroll story**
+Rebuilt as composed sections instead of one page file: `HeroSection`, `WhatWeBuildSection` (01), `WorkSection` (02), `WhySection` (03, new — Strategy/Design/Engineering/AI/Growth, capability-framed, no invented metrics), `CtaSection` (04). Hero copy refined to the brief's concept ("We don't just build software. We build digital advantage.") with genuinely separate, natural translations per language rather than forced identical line breaks — see the updated `messages/*.json`.
+
+**Background system**
+- `src/components/backgrounds/grid-glow.tsx`: technical grid + soft radial blue/cyan glow + a hairline SVG-noise layer, all CSS/SVG, zero image requests, `aria-hidden`.
+
+**A real content-integrity decision worth flagging**: the brief said to use the actual available project thumbnails. I pulled the four PNGs from `Downloads/portfolio_images/` and inspected them — they turned out to be generic auto-generated title cards (flat orange/blue/purple backgrounds with the project name and a German subtitle), not real product screenshots, and one of them is literally the flat-purple-gradient look the brief explicitly says to avoid. Using them as "project imagery" would have misrepresented what they are and clashed with the new palette, so I did not use them. The work cards instead use a clean number/tag/gradient treatment built from verified text facts only (name, one-line description, category tag) — no fabricated visuals, no fabricated metrics.
+
+### Design decisions
+
+- Hero CTA order follows the brief exactly: primary "Start a project" (solid), secondary "WhatsApp us" (solid, brand green), tertiary "View our work" as a subtle underlined-arrow link — not a third competing button.
+- Same-page section links (`#services`, `#work`, `#why`, `#contact`) are deliberately plain `<a href="#...">`, not next-intl's locale-aware `Link` — routing a bare `/#services`-style href through `Link` risks resolving to the default-locale root instead of staying on the visitor's current locale. Only the logo (a real route, `/`) uses `Link`.
+- No bloom/postprocessing library was added to fake the glow — `Outlines` on the 3D bars plus the CSS `GridGlow` behind the canvas gives a convincing "illuminated edge" look without the extra dependency and GPU cost.
+- Contact number handling: unchanged from Phase 1, still centralized in `site-config.ts`/`.env.example`, still flagged as needing the owner's confirmation — nothing was silently switched to the Algerian number.
+
+### Files changed
+
+New: `src/components/brand/sigma-mark.tsx`, `wordmark.tsx`; `src/components/hero/sigma-scene.tsx`, `sigma-fallback.tsx`, `sigma-object.tsx`, `hero-visual.tsx`; `src/components/backgrounds/grid-glow.tsx`; `src/components/sections/hero-section.tsx`, `what-we-build-section.tsx`, `work-section.tsx`, `why-section.tsx`, `cta-section.tsx`; `src/components/header-client.tsx`; `src/components/ui/section-label.tsx`; `src/lib/motion.ts`; `src/app/icon.svg`.
+Modified: `src/app/[locale]/page.tsx` (rebuilt from sections), `src/app/[locale]/layout.tsx` (`MotionConfig`), `src/components/site-header.tsx` (split server/client), `src/components/site-footer.tsx` (uses `Wordmark`), `src/components/language-switcher.tsx` (focus states), `messages/*.json` (refined hero copy, new `why` section, service/work `tag` fields).
+Removed: `src/app/favicon.ico` (superseded by `icon.svg`).
+New dependencies: `three`, `@react-three/fiber`, `@react-three/drei`, `motion`.
+
+### 3D implementation summary
+
+React Three Fiber 9 + drei 10 + three 0.185, all procedural geometry (no imported models/textures). Lazy-loaded client-only. Adaptive: `dpr={[1,1.75]}` on capable devices, `[1,1]` on weak ones; particles skipped entirely on weak devices; fully replaced by a static CSS fallback under reduced motion, no WebGL, or a hard weak-device signal.
+
+### Performance impact (measured, not estimated)
+
+Built production bundle and inspected `.next/static/chunks` plus the actual HTML served by `next start`:
+- **Initial JS for the homepage: ~243 KB gzipped** (React 19 + Next.js runtime + next-intl client + `motion` + all page/section code combined).
+- **Three.js/R3F/drei chunk: ~231 KB gzipped, confirmed absent from the initial page's HTML** — it only loads client-side, after mount, after the capability check decides the visitor gets the 3D scene. Verified by grepping the server-rendered HTML for chunk references before assuming this from the dynamic-import code alone.
+- No layout shift on swap-in: the fallback and the 3D canvas render inside the same fixed `aspect-square` container, so there's nothing to reflow when one replaces the other.
+
+### Browser/device QA (real, not assumed)
+
+Ran the actual production build (`next build` + `next start`) through Playwright: navigated, **scrolled through the full page** (not just a viewport-less full-page screenshot, which turned out to hide `whileInView` content because Chromium's beyond-viewport capture never moves the real viewport that `IntersectionObserver` watches — caught this during QA and fixed the test method itself), then checked for layout overflow, console errors, and page errors, and screenshotted:
+
+| Check | Viewport | Locale | dir | Overflow | Console errors | Page errors |
+|---|---|---|---|---|---|---|
+| Desktop | 1440×900 | fr | ltr | none | 0 | 0 |
+| Desktop | 1440×900 | ar | rtl | none | 0 | 0 |
+| Large desktop | 1920×1080 | fr | ltr | none | 0 | 0 |
+| iPhone-like | 390×844 | fr | ltr | none | 0 | 0 |
+| iPhone-like | 390×844 | ar | rtl | none | 0 | 0 |
+| Small mobile | 360×800 | fr | ltr | none | 0 | 0 |
+| Tablet | 768×1024 | fr | ltr | none (fixed — was overflowing) | 0 | 0 |
+| Desktop | 1440×900 | en | ltr | none | 0 | 0 |
+| Desktop | 1440×900 | de | ltr | none | 0 | 0 |
+| Desktop, reduced motion | 1440×900 | fr | ltr | none | 0 | 0 |
+
+**Two real bugs found and fixed during this pass, not before it:**
+1. **Header overflow at exactly 768px** (3px horizontal overflow): the desktop nav (logo + 4 links + language switcher + CTA button) was set to appear at Tailwind's `md:` breakpoint (768px), which is too narrow to fit all of it. Fixed by moving the full desktop header to `lg:` (1024px); 768–1023px now correctly gets the (already good-looking) mobile menu instead of a cramped desktop one.
+2. **Orphaned grid cell in the "Why SIGMA+" section**: 5 capability cards in a 2-column tablet layout left an empty 6th cell. Fixed by spanning the last item across both columns when the count is odd.
+
+Also re-confirmed from Phase 1 still holds: Arabic RTL mirrors correctly (nav order, logo side, text alignment), the phone-number bidi fix still displays `+213 550 47 52 48` in the correct order inside the new `CtaSection`, and the reduced-motion fallback genuinely renders a static (non-spinning) mark rather than silently doing nothing.
+
+### Accessibility QA (real, not assumed)
+
+Ran an actual keyboard `Tab` sequence against the production build and read each focused element's computed outline/box-shadow (not just eyeballing a screenshot). Tab order is logical: logo → nav links → language switcher → "Start a project" CTA. The CTA already had a custom electric-blue focus ring (from Phase 1's `buttonVariants`); the nav links, language switcher, and mobile-menu links were relying on the browser's bare default outline, so a matching branded `focus-visible` ring was added to all of them for consistency. Decorative elements (`GridGlow`, the ghost project numbers, the 3D canvas) are `aria-hidden` / non-interactive and add no accessibility noise. Reduced motion, RTL, and bidi are covered above.
+
+### Tests executed / results
+
+- `tsc --noEmit`: pass, 0 errors.
+- `eslint .`: pass, 0 errors, 0 warnings (one real one was caught and fixed along the way — `react-hooks/set-state-in-effect` on the 3D capability probe, resolved with a narrowly-scoped, commented exception since it's a genuine one-time client-only mount read, not a render-cascade anti-pattern).
+- `next build`: pass, all 4 locales statically generated, `/icon.svg`, `/robots.txt`, `/sitemap.xml` all present.
+- Post-build smoke test (`next start` + curl): all 4 locale routes return 200.
+- Full Playwright QA pass (table above): 0 console errors, 0 page errors, 0 layout overflow across every check, both bugs found during QA fixed and re-verified.
+
+### Remaining risks / known limitations (carried forward deliberately)
+
+- Work cards have no "View project" link yet — case-study pages don't exist until Phase 3, and adding a link to nowhere would violate the no-dead-buttons rule. The cards are an honest teaser, not a shortcut.
+- Nav's "About" points to the new `#why` (approach) section as a reasonable stand-in; "Insights" (blog) has nothing to link to yet and was left out of the nav entirely rather than added as a dead link — it returns in Phase 9.
+- The 3D object is a first, fully-working art direction, not a final polish pass — if the owner wants a more elaborate object later, the geometry is isolated in one file (`sigma-scene.tsx`) and can be iterated on without touching the loader/fallback/capability-gating logic.
+- Old CV, old logos, unverified testimonials/stats: still excluded, per Phase 0.
+
+### Next phase
+
+**Phase 3 — Services, portfolio, and case studies**: dedicated service pages (the six teased on the homepage), and real case-study pages for SahEat / e-Vizza / Eleman Shoes / Dzenix so the "Work" cards finally have somewhere to link — gated on the owner supplying real challenge/strategy/outcome content per project (tracked as `NEEDS USER DATA` since Phase 0).
+
+---
+
 ## ROADMAP / TODO
 
 - [x] Phase 0 — Audit (this document)
 - [x] Phase 1 — Architecture, design tokens, branding foundation, i18n routing skeleton
-- [ ] Phase 2 — Homepage flagship experience
+- [x] Phase 2 — Flagship visual identity (hero, 3D object, motion system, scroll story, navigation)
 - [ ] Phase 3 — Services + portfolio + case studies
 - [ ] Phase 4 — Project Builder + lead capture + WhatsApp
 - [ ] Phase 5 — Admin + CRM
