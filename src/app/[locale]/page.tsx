@@ -82,7 +82,7 @@ export default async function HomePage({
       <SiteHeader locale={locale} />
 
       <main className="flex-1">
-        <HeroSection hero={heroCopy} whatsappHref={heroWhatsappUrl} />
+        <HeroSection hero={heroCopy} whatsappHref={heroWhatsappUrl} startProjectHref={`/${locale}/start-project`} />
 
         <WhatWeBuildSection
           title={services("title")}
@@ -105,6 +105,8 @@ export default async function HomePage({
           subtitle={contact("subtitle")}
           whatsappLabel={contact("whatsapp")}
           whatsappHref={contactWhatsappUrl}
+          startProjectLabel={hero("ctaPrimary")}
+          startProjectHref={`/${locale}/start-project`}
         />
       </main>
 

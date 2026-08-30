@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local embedded dev database (PGlite) — never real production data
+/.data/
+
 # claude code local runtime state
 .claude/
 

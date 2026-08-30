@@ -217,7 +217,7 @@ export default async function ServiceDetailPage({
             <h2 className="text-2xl font-bold sm:text-3xl">{t("ctaTitle")}</h2>
             <p className="mt-2 text-muted">{t("ctaSubtitle")}</p>
             <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <ButtonLink href={`/${locale}/contact`} size="lg">
+              <ButtonLink href={`/${locale}/start-project`} size="lg">
                 <Rocket className="size-5" />
                 {t("startProjectCta")}
               </ButtonLink>

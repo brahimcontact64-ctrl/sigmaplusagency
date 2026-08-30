@@ -51,6 +51,12 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
     budgetOptions: string[];
   };
   const successCopy = t.raw("success") as { title: string; description: string; cta: string };
+  const errorsCopy = t.raw("errors") as {
+    validation_error: string;
+    rate_limited: string;
+    db_unavailable: string;
+    unexpected: string;
+  };
 
   const whatsappUrl = buildWhatsAppUrl();
 
@@ -68,7 +74,13 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
         <div className="mx-auto max-w-4xl px-6 pb-24">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
             <div className="lg:col-span-3">
-              <ContactForm locale={locale} labels={form} success={successCopy} errorMessage={t("error")} />
+              <ContactForm
+                locale={locale}
+                labels={form}
+                success={successCopy}
+                errors={errorsCopy}
+                whatsappFallbackUrl={whatsappUrl}
+              />
             </div>
 
             <aside className="space-y-4 lg:col-span-2">

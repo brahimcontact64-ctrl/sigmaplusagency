@@ -24,7 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   entries.push(entry(Object.fromEntries(routing.locales.map((l) => [l, ""]))));
 
   // Static top-level pages (fixed segment name across all locales)
-  for (const segment of ["/services", "/work", "/about", "/contact"]) {
+  for (const segment of ["/services", "/work", "/about", "/contact", "/start-project"]) {
     entries.push(entry(Object.fromEntries(routing.locales.map((l) => [l, segment]))));
   }
 

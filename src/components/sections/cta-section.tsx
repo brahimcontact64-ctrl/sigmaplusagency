@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { MessageCircle, Mail, Phone } from "lucide-react";
+import { MessageCircle, Mail, Phone, Rocket } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionLabel } from "@/components/ui/section-label";
 import { GridGlow } from "@/components/backgrounds/grid-glow";
@@ -13,11 +13,15 @@ export function CtaSection({
   subtitle,
   whatsappLabel,
   whatsappHref,
+  startProjectLabel,
+  startProjectHref,
 }: {
   title: string;
   subtitle: string;
   whatsappLabel: string;
   whatsappHref: string;
+  startProjectLabel: string;
+  startProjectHref: string;
 }) {
   return (
     <section id="contact" className="relative overflow-hidden px-6 py-20 sm:py-28">
@@ -40,14 +44,17 @@ export function CtaSection({
           {subtitle}
         </motion.p>
 
-        <motion.div variants={fadeUp}>
+        <motion.div variants={fadeUp} className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <ButtonLink href={startProjectHref} size="lg">
+            <Rocket className="size-5" />
+            {startProjectLabel}
+          </ButtonLink>
           <ButtonLink
             href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
             variant="whatsapp"
             size="lg"
-            className="mt-8"
           >
             <MessageCircle className="size-5" />
             {whatsappLabel}

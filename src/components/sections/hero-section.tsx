@@ -20,9 +20,11 @@ type HeroCopy = {
 export function HeroSection({
   hero,
   whatsappHref,
+  startProjectHref,
 }: {
   hero: HeroCopy;
   whatsappHref: string;
+  startProjectHref: string;
 }) {
   return (
     <section className="relative overflow-hidden px-6 pb-16 pt-16 sm:pb-24 sm:pt-20">
@@ -56,7 +58,7 @@ export function HeroSection({
           </motion.p>
 
           <motion.div variants={fadeUp} className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
-            <ButtonLink href="#contact" size="lg" className="justify-center">
+            <ButtonLink href={startProjectHref} size="lg" className="justify-center">
               <Rocket className="size-5" />
               {hero.ctaPrimary}
             </ButtonLink>

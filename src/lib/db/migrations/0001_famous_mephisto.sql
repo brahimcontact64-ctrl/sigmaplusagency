@@ -1,0 +1,1 @@
+CREATE INDEX "project_requests_lead_id_idx" ON "project_requests" USING btree ("lead_id");

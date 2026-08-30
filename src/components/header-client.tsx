@@ -41,9 +41,9 @@ export function HeaderClient({
 
   // ButtonLink renders a plain <a>, not the locale-aware <Link/>, so a
   // real cross-page route needs the locale prefix built in manually.
-  // "contact" is a fixed, non-localized top-level segment (see routing
-  // notes in the master plan), so this is safe for every locale.
-  const contactHref = `/${locale}/contact`;
+  // "start-project" is a fixed, non-localized top-level segment (see
+  // routing notes in the master plan), so this is safe for every locale.
+  const startProjectHref = `/${locale}/start-project`;
 
   useEffect(() => {
     let ticking = false;
@@ -106,7 +106,7 @@ export function HeaderClient({
 
         <div className="hidden items-center gap-3 lg:flex">
           <LanguageSwitcher currentLocale={locale} locales={locales} />
-          <ButtonLink href={contactHref} size="md">
+          <ButtonLink href={startProjectHref} size="md">
             {nav.startProject}
           </ButtonLink>
         </div>
@@ -162,7 +162,7 @@ export function HeaderClient({
                 <div className="mb-2 flex justify-center">
                   <LanguageSwitcher currentLocale={locale} locales={locales} />
                 </div>
-                <ButtonLink href={contactHref} size="lg" onClick={() => setMenuOpen(false)}>
+                <ButtonLink href={startProjectHref} size="lg" onClick={() => setMenuOpen(false)}>
                   {nav.startProject}
                 </ButtonLink>
                 <ButtonLink

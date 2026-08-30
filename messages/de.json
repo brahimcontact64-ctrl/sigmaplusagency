@@ -141,11 +141,17 @@
       "budgetOptions": ["Unter 1.000 €", "1.000 € – 5.000 €", "5.000 € – 15.000 €", "Über 15.000 €", "Noch offen"]
     },
     "success": {
-      "title": "Nachricht erhalten.",
-      "description": "Wir haben noch keine automatischen Antworten eingerichtet — für eine schnelle Rückmeldung setzen Sie das Gespräch auf WhatsApp fort.",
+      "title": "Anfrage gespeichert.",
+      "description": "Ihre Anfrage wurde gespeichert. Wir haben noch keine automatischen Antworten eingerichtet — für eine schnelle Rückmeldung setzen Sie das Gespräch auf WhatsApp fort.",
       "cta": "Auf WhatsApp fortsetzen"
     },
-    "error": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut oder schreiben Sie uns direkt auf WhatsApp."
+    "errors": {
+      "validation_error": "Einige Felder sind ungültig. Bitte überprüfen Sie das Formular.",
+      "rate_limited": "Zu viele Versuche in kurzer Zeit. Bitte versuchen Sie es in ein paar Minuten erneut oder schreiben Sie uns direkt auf WhatsApp.",
+      "db_unavailable": "Unser Speichersystem ist vorübergehend nicht verfügbar. Ihre Nachricht wurde nicht gespeichert — bitte versuchen Sie es erneut oder kontaktieren Sie uns direkt auf WhatsApp, damit nichts verloren geht.",
+      "unexpected": "Etwas ist schiefgelaufen und Ihre Nachricht wurde nicht gespeichert. Bitte versuchen Sie es erneut oder schreiben Sie uns direkt auf WhatsApp."
+    },
+    "whatsappSummary": "Hallo SIGMA+, ich habe gerade das Kontaktformular abgeschickt.\n\nName: {name}\nProjektart: {projectType}\nReferenz: {reference}"
   },
   "notFound": {
     "title": "Seite nicht gefunden",
@@ -159,5 +165,157 @@
   "footer": {
     "tagline": "Digitalstudio — aus Algerien in die Welt.",
     "rights": "Alle Rechte vorbehalten."
+  },
+  "projectBuilder": {
+    "meta": {
+      "title": "Projekt starten — SIGMA+",
+      "description": "Beschreiben Sie Ihr Projekt in wenigen Schritten und erhalten Sie ein passendes Angebot."
+    },
+    "hero": {
+      "eyebrow": "Geführte Beratung",
+      "title": "Starten wir Ihr Projekt.",
+      "subtitle": "Ein paar Fragen, um Ihren Bedarf zu verstehen — dauert etwa 3 Minuten."
+    },
+    "nav": {
+      "stepLabel": "Schritt {current} von {total}",
+      "back": "Zurück",
+      "next": "Weiter",
+      "edit": "Bearbeiten"
+    },
+    "steps": {
+      "whatToBuild": { "title": "Was möchten Sie bauen?", "subtitle": "Wählen Sie die passendste Option." },
+      "goals": { "title": "Was ist Ihr Hauptziel?", "subtitle": "Wählen Sie alles Zutreffende aus." },
+      "capabilities": { "title": "Welche Funktionen brauchen Sie?", "subtitle": "Wählen Sie, was relevant erscheint — Sie können später verfeinern." },
+      "platforms": { "title": "Auf welchen Plattformen?", "subtitle": "Wählen Sie alles Zutreffende aus." },
+      "businessState": { "title": "Wo stehen Sie aktuell?", "subtitle": "Das hilft uns, den Ausgangspunkt einzuordnen.", "currentWebsiteLabel": "Aktuelle Website oder App (optional)" },
+      "timeline": { "title": "Welchen Zeitrahmen wünschen Sie?", "subtitle": "Eine grobe Schätzung genügt." },
+      "budget": { "title": "Wie hoch ist Ihr geschätztes Budget?", "subtitle": "Dies bleibt unverbindlich — keine Verpflichtung an dieser Stelle." },
+      "contact": { "title": "Wie erreichen wir Sie?", "subtitle": "Ihre Angaben bleiben vertraulich." },
+      "message": { "title": "Möchten Sie noch etwas ergänzen?", "subtitle": "Optional, aber hilfreich.", "placeholder": "Erzählen Sie uns von Ihrem Projekt, Ihren Rahmenbedingungen oder was Sie beschäftigt..." }
+    },
+    "whatToBuild": {
+      "website": "Website",
+      "ecommerce": "Onlineshop",
+      "mobile-app": "Mobile App",
+      "saas-platform": "SaaS / Plattform",
+      "ai-agent": "KI-Agent",
+      "voice-ai": "Voice AI",
+      "automation": "Automatisierung",
+      "internal-system": "Internes System",
+      "not-sure": "Noch nicht sicher"
+    },
+    "goals": {
+      "generate-leads": "Leads generieren",
+      "sell-products": "Produkte verkaufen",
+      "take-bookings": "Buchungen entgegennehmen",
+      "receive-orders": "Bestellungen erhalten",
+      "automate-operations": "Abläufe automatisieren",
+      "launch-mvp": "Ein MVP starten",
+      "improve-existing-product": "Ein bestehendes Produkt verbessern",
+      "build-internal-software": "Internes Tool bauen",
+      "reduce-manual-work": "Manuelle Arbeit reduzieren",
+      "improve-customer-support": "Kundensupport verbessern",
+      "other": "Sonstiges"
+    },
+    "capabilities": {
+      "admin-dashboard": "Admin-Dashboard",
+      "payments": "Zahlungen",
+      "whatsapp-integration": "WhatsApp-Integration",
+      "ai-features": "KI-Funktionen",
+      "authentication": "Authentifizierung",
+      "multilingual": "Mehrsprachig",
+      "booking": "Buchung",
+      "maps-location": "Karten / Standort",
+      "notifications": "Benachrichtigungen",
+      "mobile-apps": "Mobile Apps",
+      "analytics": "Statistiken",
+      "seo": "SEO",
+      "api-integration": "API-Integration",
+      "crm": "CRM",
+      "inventory": "Lagerverwaltung",
+      "delivery-integration": "Lieferintegration",
+      "other": "Sonstiges"
+    },
+    "platforms": {
+      "web": "Web",
+      "ios": "iOS",
+      "android": "Android",
+      "tablet": "Tablet",
+      "desktop": "Desktop",
+      "multiple": "Mehrere Plattformen",
+      "not-sure": "Noch nicht sicher"
+    },
+    "businessState": {
+      "new-idea": "Neue Idee",
+      "existing-business": "Bestehendes Unternehmen",
+      "existing-product-to-improve": "Bestehendes Produkt zu verbessern",
+      "existing-process-to-automate": "Bestehender Prozess zu automatisieren"
+    },
+    "timeline": {
+      "asap": "So schnell wie möglich",
+      "within-1-month": "Innerhalb eines Monats",
+      "1-3-months": "1–3 Monate",
+      "3-6-months": "3–6 Monate",
+      "6-plus-months": "6+ Monate",
+      "flexible": "Flexibel / Noch nicht sicher"
+    },
+    "budget": {
+      "under-1000": "Unter 1.000 €",
+      "1000-5000": "1.000 € – 5.000 €",
+      "5000-15000": "5.000 € – 15.000 €",
+      "15000-plus": "Über 15.000 €",
+      "not-sure": "Noch nicht sicher"
+    },
+    "contact": {
+      "name": "Name",
+      "email": "E-Mail",
+      "phone": "Telefon (optional)",
+      "company": "Unternehmen (optional)",
+      "country": "Land (optional)",
+      "preferredContactMethod": "Bevorzugter Kontaktweg",
+      "preferredContactOptions": { "whatsapp": "WhatsApp", "phone": "Telefon", "email": "E-Mail" }
+    },
+    "summary": {
+      "title": "Ihre Projektübersicht",
+      "subtitle": "Prüfen Sie die Angaben vor dem Absenden — Sie können noch alles bearbeiten.",
+      "projectLabel": "Projekt",
+      "goalsLabel": "Ziele",
+      "capabilitiesLabel": "Funktionen",
+      "platformsLabel": "Plattformen",
+      "businessLabel": "Kontext",
+      "timelineLabel": "Zeitrahmen",
+      "budgetLabel": "Budget",
+      "contactLabel": "Kontakt",
+      "messageLabel": "Nachricht",
+      "submit": "Anfrage senden",
+      "submitting": "Wird gesendet...",
+      "privacyNote": "Diese Angaben werden ausschließlich zur Prüfung und Beantwortung Ihrer Projektanfrage verwendet."
+    },
+    "success": {
+      "title": "Ihre Anfrage wurde gespeichert.",
+      "description": "Wir prüfen sie. Für eine schnellere Rückmeldung setzen Sie direkt auf WhatsApp fort.",
+      "cta": "Auf WhatsApp fortsetzen",
+      "backHome": "Zurück zur Startseite",
+      "viewWork": "Unsere Projekte ansehen"
+    },
+    "errors": {
+      "validation_error": "Einige Angaben sind ungültig. Bitte überprüfen Sie Ihre Antworten.",
+      "rate_limited": "Zu viele Versuche in kurzer Zeit. Bitte versuchen Sie es in ein paar Minuten erneut oder schreiben Sie uns direkt auf WhatsApp.",
+      "db_unavailable": "Unser Speichersystem ist vorübergehend nicht verfügbar. Ihre Anfrage wurde nicht gespeichert — bitte versuchen Sie es erneut oder kontaktieren Sie uns direkt auf WhatsApp, damit nichts verloren geht.",
+      "unexpected": "Etwas ist schiefgelaufen und Ihre Anfrage wurde nicht gespeichert. Bitte versuchen Sie es erneut oder schreiben Sie uns direkt auf WhatsApp."
+    },
+    "whatsappSummary": "Hallo SIGMA+,\nich habe gerade eine Projektanfrage gesendet.\n\nProjekt: {projectType}\nZiel: {goal}\nFunktionen: {capabilities}\nZeitrahmen: {timeline}\nReferenz: {reference}",
+    "brief": {
+      "openQuestions": {
+        "clarifyProjectType": "Den genauen Projekttyp mit dem Kunden klären.",
+        "clarifyPlatforms": "Zielplattformen vor der Umfangsplanung bestätigen.",
+        "confirmBudget": "Budget besprechen, bevor eine Schätzung angeboten wird.",
+        "getCurrentWebsite": "URL oder Zugang zur bestehenden Website/Produkt einholen.",
+        "clarifyOther": "Klären, was der Kunde mit „Sonstiges“ meint."
+      }
+    },
+    "draftRestored": "Ihr bisheriger Fortschritt wurde wiederhergestellt.",
+    "retry": "Erneut versuchen",
+    "startOver": "Von vorne beginnen"
   }
 }

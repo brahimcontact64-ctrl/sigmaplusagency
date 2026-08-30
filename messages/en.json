@@ -141,11 +141,17 @@
       "budgetOptions": ["Under $1,000", "$1,000 – $5,000", "$5,000 – $15,000", "Over $15,000", "Not sure yet"]
     },
     "success": {
-      "title": "Message received.",
-      "description": "We don't have automated replies set up yet — for a fast response, continue the conversation on WhatsApp.",
+      "title": "Request received.",
+      "description": "Your request has been saved. We don't have automated replies set up yet — for a fast response, continue on WhatsApp.",
       "cta": "Continue on WhatsApp"
     },
-    "error": "Something went wrong. Please try again or reach us directly on WhatsApp."
+    "errors": {
+      "validation_error": "Some fields are invalid. Please check the form.",
+      "rate_limited": "Too many attempts in a short time. Please try again in a few minutes, or reach us directly on WhatsApp.",
+      "db_unavailable": "Our saving system is temporarily unavailable. Your message was not saved — please try again, or contact us directly on WhatsApp so nothing is lost.",
+      "unexpected": "Something went wrong and your message was not saved. Please try again or reach us directly on WhatsApp."
+    },
+    "whatsappSummary": "Hi SIGMA+, I just submitted the contact form.\n\nName: {name}\nProject type: {projectType}\nReference: {reference}"
   },
   "notFound": {
     "title": "Page not found",
@@ -159,5 +165,157 @@
   "footer": {
     "tagline": "Digital studio — Algeria and beyond.",
     "rights": "All rights reserved."
+  },
+  "projectBuilder": {
+    "meta": {
+      "title": "Start a Project — SIGMA+",
+      "description": "Describe your project in a few steps and get a tailored proposal."
+    },
+    "hero": {
+      "eyebrow": "Guided consultation",
+      "title": "Let's start your project.",
+      "subtitle": "A few questions to understand your needs — takes about 3 minutes."
+    },
+    "nav": {
+      "stepLabel": "Step {current} of {total}",
+      "back": "Back",
+      "next": "Continue",
+      "edit": "Edit"
+    },
+    "steps": {
+      "whatToBuild": { "title": "What do you want to build?", "subtitle": "Pick the option closest to your project." },
+      "goals": { "title": "What's your main goal?", "subtitle": "Select everything that applies." },
+      "capabilities": { "title": "What capabilities do you need?", "subtitle": "Select what feels relevant — you can refine this later." },
+      "platforms": { "title": "Which platforms?", "subtitle": "Select everything that applies." },
+      "businessState": { "title": "Where are you starting from?", "subtitle": "This helps us frame the starting point.", "currentWebsiteLabel": "Current website or app (optional)" },
+      "timeline": { "title": "What's your desired timeline?", "subtitle": "A rough estimate is fine." },
+      "budget": { "title": "What's your estimated budget?", "subtitle": "This stays indicative — no commitment at this stage." },
+      "contact": { "title": "How can we reach you?", "subtitle": "Your details stay confidential." },
+      "message": { "title": "Anything else to add?", "subtitle": "Optional, but helpful.", "placeholder": "Tell us about your project, constraints, or anything on your mind..." }
+    },
+    "whatToBuild": {
+      "website": "Website",
+      "ecommerce": "Online store",
+      "mobile-app": "Mobile app",
+      "saas-platform": "SaaS / Platform",
+      "ai-agent": "AI agent",
+      "voice-ai": "Voice AI",
+      "automation": "Automation",
+      "internal-system": "Internal system",
+      "not-sure": "Not sure yet"
+    },
+    "goals": {
+      "generate-leads": "Generate leads",
+      "sell-products": "Sell products",
+      "take-bookings": "Take bookings",
+      "receive-orders": "Receive orders",
+      "automate-operations": "Automate operations",
+      "launch-mvp": "Launch an MVP",
+      "improve-existing-product": "Improve an existing product",
+      "build-internal-software": "Build internal software",
+      "reduce-manual-work": "Reduce manual work",
+      "improve-customer-support": "Improve customer support",
+      "other": "Other"
+    },
+    "capabilities": {
+      "admin-dashboard": "Admin dashboard",
+      "payments": "Payments",
+      "whatsapp-integration": "WhatsApp integration",
+      "ai-features": "AI features",
+      "authentication": "Authentication",
+      "multilingual": "Multilingual",
+      "booking": "Booking",
+      "maps-location": "Maps / Location",
+      "notifications": "Notifications",
+      "mobile-apps": "Mobile apps",
+      "analytics": "Analytics",
+      "seo": "SEO",
+      "api-integration": "API integration",
+      "crm": "CRM",
+      "inventory": "Inventory",
+      "delivery-integration": "Delivery integration",
+      "other": "Other"
+    },
+    "platforms": {
+      "web": "Web",
+      "ios": "iOS",
+      "android": "Android",
+      "tablet": "Tablet",
+      "desktop": "Desktop",
+      "multiple": "Multiple platforms",
+      "not-sure": "Not sure yet"
+    },
+    "businessState": {
+      "new-idea": "New idea",
+      "existing-business": "Existing business",
+      "existing-product-to-improve": "Existing product to improve",
+      "existing-process-to-automate": "Existing process to automate"
+    },
+    "timeline": {
+      "asap": "As soon as possible",
+      "within-1-month": "Within 1 month",
+      "1-3-months": "1–3 months",
+      "3-6-months": "3–6 months",
+      "6-plus-months": "6+ months",
+      "flexible": "Flexible / Not sure"
+    },
+    "budget": {
+      "under-1000": "Under €1,000",
+      "1000-5000": "€1,000 – €5,000",
+      "5000-15000": "€5,000 – €15,000",
+      "15000-plus": "Over €15,000",
+      "not-sure": "Not sure yet"
+    },
+    "contact": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone (optional)",
+      "company": "Company (optional)",
+      "country": "Country (optional)",
+      "preferredContactMethod": "Preferred contact method",
+      "preferredContactOptions": { "whatsapp": "WhatsApp", "phone": "Phone", "email": "Email" }
+    },
+    "summary": {
+      "title": "Your project summary",
+      "subtitle": "Review the details before sending — you can still edit anything.",
+      "projectLabel": "Project",
+      "goalsLabel": "Goals",
+      "capabilitiesLabel": "Capabilities",
+      "platformsLabel": "Platforms",
+      "businessLabel": "Context",
+      "timelineLabel": "Timeline",
+      "budgetLabel": "Budget",
+      "contactLabel": "Contact",
+      "messageLabel": "Message",
+      "submit": "Send my request",
+      "submitting": "Sending...",
+      "privacyNote": "This information is used only to review and respond to your project request."
+    },
+    "success": {
+      "title": "Your request has been saved.",
+      "description": "We'll review it. For a faster response, continue directly on WhatsApp.",
+      "cta": "Continue on WhatsApp",
+      "backHome": "Back to homepage",
+      "viewWork": "See our work"
+    },
+    "errors": {
+      "validation_error": "Some information is invalid. Please check your answers.",
+      "rate_limited": "Too many attempts in a short time. Please try again in a few minutes, or reach us directly on WhatsApp.",
+      "db_unavailable": "Our saving system is temporarily unavailable. Your request was not saved — please try again, or contact us directly on WhatsApp so nothing is lost.",
+      "unexpected": "Something went wrong and your request was not saved. Please try again or reach us directly on WhatsApp."
+    },
+    "whatsappSummary": "Hello SIGMA+,\nI just submitted a project request.\n\nProject: {projectType}\nGoal: {goal}\nFeatures: {capabilities}\nTimeline: {timeline}\nReference: {reference}",
+    "brief": {
+      "openQuestions": {
+        "clarifyProjectType": "Clarify the exact project type with the client.",
+        "clarifyPlatforms": "Confirm target platforms before scoping.",
+        "confirmBudget": "Discuss budget before proposing an estimate.",
+        "getCurrentWebsite": "Get the URL or access to the existing site/product.",
+        "clarifyOther": "Clarify what the client means by \"Other\"."
+      }
+    },
+    "draftRestored": "Your previous progress has been restored.",
+    "retry": "Try again",
+    "startOver": "Start over"
   }
 }
