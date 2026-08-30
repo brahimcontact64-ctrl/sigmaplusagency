@@ -8,7 +8,8 @@
     "work": "أعمالنا",
     "about": "منهجيتنا",
     "contact": "اتصل بنا",
-    "startProject": "ابدأ مشروعك"
+    "startProject": "ابدأ مشروعك",
+    "aiConsultant": "تحدث مع SIGMA AI"
   },
   "breadcrumbs": {
     "home": "الرئيسية",
@@ -317,5 +318,35 @@
     "draftRestored": "تم استعادة تقدمك السابق.",
     "retry": "إعادة المحاولة",
     "startOver": "البدء من جديد"
+  },
+  "aiConsultant": {
+    "meta": {
+      "title": "تحدث مع SIGMA AI — SIGMA+ Agency",
+      "description": "صف مشروعك لـ SIGMA AI واحصل على رأي أول واضح وصادق حول النطاق والخدمات والخطوات التالية."
+    },
+    "hero": {
+      "eyebrow": "استشارة بالذكاء الاصطناعي",
+      "title": "تحدث مع SIGMA AI",
+      "subtitle": "مساعد ذكاء اصطناعي يساعدك على تحديد ملامح مشروعك — اطرح أسئلتك، احصل على توصيات بالخدمات المناسبة، وتابع نحو Project Builder عندما تكون جاهزًا."
+    },
+    "disclaimer": "SIGMA AI مساعد آلي وليس عضوًا في فريق SIGMA+. لا يمكنه تقديم التزامات نهائية أو أسعار دقيقة.",
+    "placeholder": "صف مشروعك لـ SIGMA AI…",
+    "send": "إرسال",
+    "suggestedLabel": "لست متأكدًا من أين تبدأ؟ جرّب:",
+    "suggested": [
+      "أحتاج إلى موقع إلكتروني لعملي",
+      "أريد إنشاء تطبيق للهاتف",
+      "لست متأكدًا بعد مما أحتاجه",
+      "كم سيكلف مشروع كهذا؟"
+    ],
+    "continueBuilder": "المتابعة عبر Project Builder",
+    "requestProposal": "طلب عرض",
+    "unavailableTitle": "SIGMA AI غير متاح مؤقتًا.",
+    "errorGeneric": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    "rateLimited": "لقد أرسلت عددًا كبيرًا من الرسائل — يرجى التمهّل قليلًا.",
+    "limitReached": "وصلت هذه المحادثة إلى الحد الأقصى لطولها. ابدأ محادثة جديدة، أو تابع عبر Project Builder.",
+    "expired": "انتهت صلاحية هذه المحادثة. يرجى بدء محادثة جديدة.",
+    "proposalSuccessTitle": "شكرًا، تم الاستلام.",
+    "proposalSuccessBody": "رقمك المرجعي هو {reference}. سيتواصل معك فريق SIGMA+ قريبًا."
   }
 }

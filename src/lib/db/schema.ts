@@ -139,3 +139,45 @@ export const siteSettings = pgTable("site_settings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   updatedByEmail: text("updated_by_email"),
 });
+
+// --- Phase 6: SIGMA AI consultant ------------------------------------
+
+export const aiConversations = pgTable(
+  "ai_conversations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Anonymous, browser-generated identifier (localStorage) — how an
+    // unauthenticated visitor's conversation is scoped/resumed without
+    // requiring an account. Not PII on its own.
+    sessionId: text("session_id").notNull(),
+    locale: text("locale").notNull(),
+    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+    projectRequestId: uuid("project_request_id").references(() => projectRequests.id, { onDelete: "set null" }),
+    status: text("status").notNull().default("active"),
+    qualificationState: jsonb("qualification_state").notNull(),
+    summary: text("summary"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("ai_conversations_session_id_idx").on(table.sessionId),
+    index("ai_conversations_lead_id_idx").on(table.leadId),
+  ],
+);
+
+export const aiMessages = pgTable(
+  "ai_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => aiConversations.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    // Already-limited, safe content only (see AI_LIMITS.maxMessageLength
+    // and the assistant's own output cap) — never raw provider
+    // request/response payloads, never internal CRM data.
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("ai_messages_conversation_id_idx").on(table.conversationId)],
+);

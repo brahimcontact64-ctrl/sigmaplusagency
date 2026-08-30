@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { useTranslations, useLocale } from "next-intl";
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -59,6 +60,8 @@ function isStepValid(stepId: StepId, data: BuilderFormData): boolean {
 export function ProjectBuilder() {
   const t = useTranslations("projectBuilder");
   const locale = useLocale() as Locale;
+  const searchParams = useSearchParams();
+  const fromAiHandoff = searchParams.get("from") === "ai";
 
   const [stepIndex, setStepIndex] = useState(0);
   const [data, setData] = useState<BuilderFormData>(EMPTY_FORM_DATA);
@@ -86,25 +89,52 @@ export function ProjectBuilder() {
       return { draft, restoredIndex };
     }
 
-    const restored = restoreDraft();
-    if (restored) {
-      const { draft, restoredIndex } = restored;
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount-only localStorage read, not a render cascade
-      setData((prev) => ({
-        ...prev,
-        projectType: (draft.projectType as BuilderFormData["projectType"]) ?? prev.projectType,
-        goals: (draft.goals as BuilderFormData["goals"]) ?? prev.goals,
-        capabilities: (draft.capabilities as BuilderFormData["capabilities"]) ?? prev.capabilities,
-        platforms: (draft.platforms as BuilderFormData["platforms"]) ?? prev.platforms,
-        businessState: (draft.businessState as BuilderFormData["businessState"]) ?? prev.businessState,
-        currentWebsite: draft.currentWebsite ?? prev.currentWebsite,
-        timeline: (draft.timeline as BuilderFormData["timeline"]) ?? prev.timeline,
-        budgetRange: draft.budgetRange ?? prev.budgetRange,
-      }));
-      if (restoredIndex !== null) setStepIndex(restoredIndex);
-      setDraftNotice(true);
+    // A one-time AI-consultant handoff (see /ai-consultant) takes
+    // priority over any stale localStorage draft — arriving here via
+    // "Continue with Project Builder" is a deliberate action and
+    // shouldn't be silently overridden by unrelated earlier browsing.
+    // The prefill never touches the URL or a server round trip: it's
+    // read once from sessionStorage (same-origin, same-tab only) and
+    // immediately cleared so a page refresh falls back to normal draft
+    // behavior instead of re-applying it.
+    let appliedAiHandoff = false;
+    if (fromAiHandoff) {
+      try {
+        const raw = window.sessionStorage.getItem("sigma_ai_handoff");
+        if (raw) {
+          const prefill = JSON.parse(raw) as Partial<BuilderFormData>;
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount-only sessionStorage read, not a render cascade
+          setData((prev) => ({ ...prev, ...prefill }));
+          window.sessionStorage.removeItem("sigma_ai_handoff");
+          setDraftNotice(false);
+          appliedAiHandoff = true;
+        }
+      } catch {
+        // malformed/tampered sessionStorage value — ignore and fall through to normal draft restore
+      }
+    }
+
+    if (!appliedAiHandoff) {
+      const restored = restoreDraft();
+      if (restored) {
+        const { draft, restoredIndex } = restored;
+        setData((prev) => ({
+          ...prev,
+          projectType: (draft.projectType as BuilderFormData["projectType"]) ?? prev.projectType,
+          goals: (draft.goals as BuilderFormData["goals"]) ?? prev.goals,
+          capabilities: (draft.capabilities as BuilderFormData["capabilities"]) ?? prev.capabilities,
+          platforms: (draft.platforms as BuilderFormData["platforms"]) ?? prev.platforms,
+          businessState: (draft.businessState as BuilderFormData["businessState"]) ?? prev.businessState,
+          currentWebsite: draft.currentWebsite ?? prev.currentWebsite,
+          timeline: (draft.timeline as BuilderFormData["timeline"]) ?? prev.timeline,
+          budgetRange: draft.budgetRange ?? prev.budgetRange,
+        }));
+        if (restoredIndex !== null) setStepIndex(restoredIndex);
+        setDraftNotice(true);
+      }
     }
     track("project_builder_viewed");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: only the initial URL param value should ever trigger this, not later navigation changes
   }, []);
 
   useEffect(() => {

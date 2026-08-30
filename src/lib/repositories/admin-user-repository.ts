@@ -30,6 +30,7 @@ export interface AdminUserRepository {
   /** Upsert by normalized email — lets the seed script double as a password-reset tool. */
   upsert(input: NewAdminUserInput): Promise<AdminUser>;
   recordLogin(id: string): Promise<void>;
+  updatePassword(id: string, passwordHash: string): Promise<void>;
 }
 
 export class DrizzleAdminUserRepository implements AdminUserRepository {
@@ -74,6 +75,11 @@ export class DrizzleAdminUserRepository implements AdminUserRepository {
   async recordLogin(id: string): Promise<void> {
     const db = await this.getDbInstance();
     await db.update(adminUsers).set({ lastLoginAt: new Date() }).where(eq(adminUsers.id, id));
+  }
+
+  async updatePassword(id: string, passwordHash: string): Promise<void> {
+    const db = await this.getDbInstance();
+    await db.update(adminUsers).set({ passwordHash, updatedAt: new Date() }).where(eq(adminUsers.id, id));
   }
 }
 

@@ -1,10 +1,11 @@
 import { getTranslations } from "next-intl/server";
 import { Wordmark } from "@/components/brand/wordmark";
-import { siteConfig } from "@/lib/site-config";
+import { getEffectiveSiteConfig } from "@/lib/effective-config";
 
 export async function SiteFooter() {
   const t = await getTranslations("footer");
   const year = new Date().getFullYear();
+  const config = await getEffectiveSiteConfig();
 
   return (
     <footer className="border-t border-border">
@@ -14,7 +15,7 @@ export async function SiteFooter() {
           <p className="mt-2">{t("tagline")}</p>
         </div>
         <p>
-          © {year} {siteConfig.legalName} — {t("rights")}
+          © {year} {config.legalName} — {t("rights")}
         </p>
       </div>
     </footer>

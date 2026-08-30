@@ -6,7 +6,6 @@ import { ButtonLink } from "@/components/ui/button";
 import { SectionLabel } from "@/components/ui/section-label";
 import { GridGlow } from "@/components/backgrounds/grid-glow";
 import { fadeUp, staggerContainer, viewportOnce } from "@/lib/motion";
-import { siteConfig } from "@/lib/site-config";
 
 export function CtaSection({
   title,
@@ -15,6 +14,8 @@ export function CtaSection({
   whatsappHref,
   startProjectLabel,
   startProjectHref,
+  contactPhone,
+  contactEmail,
 }: {
   title: string;
   subtitle: string;
@@ -22,6 +23,8 @@ export function CtaSection({
   whatsappHref: string;
   startProjectLabel: string;
   startProjectHref: string;
+  contactPhone: string;
+  contactEmail: string;
 }) {
   return (
     <section id="contact" className="relative overflow-hidden px-6 py-20 sm:py-28">
@@ -67,11 +70,11 @@ export function CtaSection({
         >
           <span className="flex items-center gap-2">
             <Phone className="size-4" />
-            <span dir="ltr">{siteConfig.contactPhone}</span>
+            <span dir="ltr">{contactPhone}</span>
           </span>
           <span className="flex items-center gap-2">
             <Mail className="size-4" />
-            <span dir="ltr">{siteConfig.contactEmail}</span>
+            <span dir="ltr">{contactEmail}</span>
           </span>
         </motion.div>
       </motion.div>

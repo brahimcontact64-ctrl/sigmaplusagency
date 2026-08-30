@@ -20,6 +20,13 @@ export const ANALYTICS_EVENTS = [
   "whatsapp_handoff_clicked",
   "contact_form_submitted",
   "contact_form_failed",
+  "ai_consultant_viewed",
+  "ai_consultation_started",
+  "ai_message_sent",
+  "ai_qualification_updated",
+  "ai_builder_handoff",
+  "ai_contact_requested",
+  "ai_error",
 ] as const;
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];
 

@@ -8,7 +8,8 @@
     "work": "Projekte",
     "about": "Ansatz",
     "contact": "Kontakt",
-    "startProject": "Projekt starten"
+    "startProject": "Projekt starten",
+    "aiConsultant": "Mit SIGMA AI sprechen"
   },
   "breadcrumbs": {
     "home": "Start",
@@ -317,5 +318,35 @@
     "draftRestored": "Ihr bisheriger Fortschritt wurde wiederhergestellt.",
     "retry": "Erneut versuchen",
     "startOver": "Von vorne beginnen"
+  },
+  "aiConsultant": {
+    "meta": {
+      "title": "Mit SIGMA AI sprechen — SIGMA+ Agency",
+      "description": "Beschreiben Sie SIGMA AI Ihr Projekt und erhalten Sie eine klare, ehrliche erste Einschätzung zu Umfang, Leistungen und nächsten Schritten."
+    },
+    "hero": {
+      "eyebrow": "KI-Beratung",
+      "title": "Mit SIGMA AI sprechen",
+      "subtitle": "Ein KI-Assistent, der Ihr Projekt mit Ihnen umreißt — stellen Sie Fragen, erhalten Sie Serviceempfehlungen und wechseln Sie jederzeit in den Project Builder."
+    },
+    "disclaimer": "SIGMA AI ist ein automatisierter Assistent, kein Mitglied des SIGMA+ Teams. Er kann keine verbindlichen Zusagen oder genauen Kostenvoranschläge machen.",
+    "placeholder": "Beschreiben Sie SIGMA AI Ihr Projekt…",
+    "send": "Senden",
+    "suggestedLabel": "Nicht sicher, wo Sie anfangen sollen? Versuchen Sie:",
+    "suggested": [
+      "Ich brauche eine Website für mein Unternehmen",
+      "Ich möchte eine mobile App entwickeln",
+      "Ich weiß noch nicht genau, was ich brauche",
+      "Was würde ein solches Projekt kosten?"
+    ],
+    "continueBuilder": "Weiter mit dem Project Builder",
+    "requestProposal": "Angebot anfordern",
+    "unavailableTitle": "SIGMA AI ist vorübergehend nicht verfügbar.",
+    "errorGeneric": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+    "rateLimited": "Sie haben sehr viele Nachrichten gesendet — bitte etwas langsamer.",
+    "limitReached": "Diese Unterhaltung hat ihre Längenbegrenzung erreicht. Starten Sie eine neue oder fahren Sie über den Project Builder fort.",
+    "expired": "Diese Unterhaltung ist abgelaufen. Bitte starten Sie eine neue.",
+    "proposalSuccessTitle": "Danke, das haben wir erhalten.",
+    "proposalSuccessBody": "Ihre Referenz lautet {reference}. Das SIGMA+ Team meldet sich in Kürze."
   }
 }

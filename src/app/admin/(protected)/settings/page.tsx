@@ -3,6 +3,7 @@ import { getSettingsService } from "@/lib/services/settings-service";
 import { getCrmService } from "@/lib/services/crm-service";
 import { SettingsCompanyForm } from "@/components/admin/settings-company-form";
 import { SettingsLabelMapForm } from "@/components/admin/settings-label-map-form";
+import { ChangePasswordForm } from "@/components/admin/change-password-form";
 import { formatDateTime } from "@/lib/admin/format";
 import { SETTINGS_EDITOR_ROLES } from "@/domain/admin-user";
 import { BUDGET_RANGE_IDS } from "@/config/budget-ranges";
@@ -20,12 +21,16 @@ export default async function AdminSettingsPage() {
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
         <p className="mt-1 text-sm text-muted">
-          CRM-internal configuration. This does not change the public marketing site yet — see the master plan for why.
+          Company identity feeds the public site (see below). Budget/source labels remain CRM-internal for now — see the master plan.
         </p>
         {!canEdit && <p className="mt-2 text-sm text-amber-400">Your role ({actor.role}) can view but not edit settings.</p>}
       </div>
 
-      <Section title="Company identity" hint="Reference only for now — the public site still reads its own environment variables.">
+      <Section title="Account security" hint="Applies only to your own account.">
+        <ChangePasswordForm />
+      </Section>
+
+      <Section title="Company identity" hint="Feeds the public site's header, footer, and WhatsApp links (falls back to environment variables when unset).">
         {canEdit ? (
           <SettingsCompanyForm initial={settings.company_identity} />
         ) : (

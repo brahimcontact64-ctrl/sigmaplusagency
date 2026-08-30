@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { routing } from "@/i18n/routing";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { getEffectiveWhatsAppUrl } from "@/lib/effective-config";
 import { HeaderClient } from "./header-client";
 
 export async function SiteHeader({ locale }: { locale: string }) {
@@ -13,9 +13,10 @@ export async function SiteHeader({ locale }: { locale: string }) {
     about: t("about"),
     contact: t("contact"),
     startProject: t("startProject"),
+    aiConsultant: t("aiConsultant"),
   };
 
-  const whatsappHref = buildWhatsAppUrl(hero("ctaWhatsapp"));
+  const whatsappHref = await getEffectiveWhatsAppUrl(hero("ctaWhatsapp"));
 
   return (
     <HeaderClient

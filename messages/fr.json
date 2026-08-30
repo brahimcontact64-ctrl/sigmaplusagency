@@ -8,7 +8,8 @@
     "work": "Réalisations",
     "about": "Approche",
     "contact": "Contact",
-    "startProject": "Démarrer un projet"
+    "startProject": "Démarrer un projet",
+    "aiConsultant": "Parler à SIGMA AI"
   },
   "breadcrumbs": {
     "home": "Accueil",
@@ -317,5 +318,35 @@
     "draftRestored": "Votre progression précédente a été restaurée.",
     "retry": "Réessayer",
     "startOver": "Recommencer"
+  },
+  "aiConsultant": {
+    "meta": {
+      "title": "Parler à SIGMA AI — SIGMA+ Agency",
+      "description": "Décrivez votre projet à SIGMA AI et obtenez un premier avis clair et honnête sur le périmètre, les services et les prochaines étapes."
+    },
+    "hero": {
+      "eyebrow": "Consultation IA",
+      "title": "Parler à SIGMA AI",
+      "subtitle": "Un assistant IA qui aide à cadrer votre projet — posez vos questions, obtenez des recommandations de services, et poursuivez vers le Project Builder quand vous êtes prêt."
+    },
+    "disclaimer": "SIGMA AI est un assistant automatisé, pas un membre de l'équipe SIGMA+. Il ne peut pas prendre d'engagement contractuel ni donner de devis exact.",
+    "placeholder": "Décrivez votre projet à SIGMA AI…",
+    "send": "Envoyer",
+    "suggestedLabel": "Pas sûr par où commencer ? Essayez :",
+    "suggested": [
+      "J'ai besoin d'un site web pour mon entreprise",
+      "Je veux créer une application mobile",
+      "Je ne sais pas encore ce dont j'ai besoin",
+      "Combien coûterait un projet comme celui-ci ?"
+    ],
+    "continueBuilder": "Continuer avec le Project Builder",
+    "requestProposal": "Demander une proposition",
+    "unavailableTitle": "SIGMA AI est temporairement indisponible.",
+    "errorGeneric": "Une erreur est survenue. Veuillez réessayer.",
+    "rateLimited": "Vous avez envoyé beaucoup de messages — merci de ralentir un peu.",
+    "limitReached": "Cette conversation a atteint sa limite de longueur. Démarrez-en une nouvelle, ou poursuivez via le Project Builder.",
+    "expired": "Cette conversation a expiré. Veuillez en démarrer une nouvelle.",
+    "proposalSuccessTitle": "Merci, c'est bien reçu.",
+    "proposalSuccessBody": "Votre référence est {reference}. L'équipe SIGMA+ vous recontactera prochainement."
   }
 }

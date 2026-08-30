@@ -31,6 +31,11 @@ export const LEAD_ACTIVITY_TYPES = [
   "whatsapp_handoff_clicked",
   "status_changed",
   "internal_note_added",
+  "ai_consultation_started",
+  "ai_qualification_completed",
+  "ai_brief_confirmed",
+  "ai_handoff_to_builder",
+  "ai_lead_created",
 ] as const;
 export type LeadActivityType = (typeof LEAD_ACTIVITY_TYPES)[number];
 

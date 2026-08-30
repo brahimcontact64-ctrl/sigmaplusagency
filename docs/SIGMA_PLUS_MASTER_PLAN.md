@@ -1,7 +1,7 @@
 # SIGMA PLUS AGENCY — Master Plan
 
 Status: living document. Updated at the end of every phase.
-Last updated: 2026-08-30 (Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, and Phase 5 complete).
+Last updated: 2026-08-31 (Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and Phase 6 complete).
 
 ---
 
@@ -519,6 +519,132 @@ Everything from Phase 4, plus `ADMIN_SESSION_SECRET` (required — app refuses t
 
 ---
 
+## PHASE 6 — SIGMA AI CONSULTANT + CRM QUALIFICATION + SETTINGS INTEGRATION
+
+### 0. Mandatory security cleanup (done first, before any feature work)
+
+The temporary OWNER password printed at the end of the Phase 5 report was treated as exposed per the owner's instruction. Searched: all tracked files (`git grep` across every commit — no match), the full working tree (no match), and every memory file this session maintains (no match). It appears in exactly one place outside the local dev database's one-way scrypt hash: this session's own raw conversation transcript (a harness-managed log outside this project's repo and outside anything an agent edits — not a "docs/memory/log artifact" in the sense the instruction meant, the same way a terminal's scrollback isn't). Nothing needed to be scrubbed from tracked or memory storage because nothing was ever written there. The owner's real OWNER account was **not** rotated or deleted automatically, per instruction — **the owner should set a new password before any real/production use**, via the same seed command used to create it. No password appears anywhere in this report or will appear in future ones.
+
+A password-change capability was added to Admin → Settings ("Account security", available to every authenticated role for their own account): requires the current password, validates the new one server-side (12+ chars, at least one letter and one digit — `src/domain/admin-auth.ts`'s `newPasswordSchema`), hashes it with the existing scrypt service, deletes the current session and forces re-login, and records a `password_changed` audit entry (`src/lib/services/account-service.ts`, unit-tested in isolation from cookies/redirects the same way crm-service/settings-service are). Neither password is ever logged, in this feature or anywhere else in the codebase.
+
+### AI architecture
+
+SIGMA AI is a real qualification layer, not a decorative widget: it identifies itself as an AI on every page (never as Brahim or a human), asks only the follow-up questions a given answer actually calls for, grounds every factual claim in the same typed content layer the public site itself renders, and only ever produces text — it holds no tool/function-calling capability and cannot touch the database itself, so a prompt-injection attempt can change what it *says*, never what it *does*. Every actual mutation (a lead getting created) is a separate, explicit, code-gated step downstream of the conversation, never something the model can trigger.
+
+Three cleanly separated concerns, per the brief:
+- **`AIProvider`** (`src/lib/ai/provider.ts`) — the only interface the rest of the app depends on. `AnthropicProvider` (`src/lib/ai/anthropic-provider.ts`) is the sole real implementation; no fake second provider was built for appearance's sake, since the brief was explicit not to.
+- **`AIConversationService`** (`src/lib/services/ai-conversation-service.ts`) — owns the conversational turn: builds a cost-bounded prompt (recent turns + a rolling summary instead of the full transcript) and streams the reply.
+- **`QualificationService`** (`src/lib/services/ai-qualification-service.ts`) — a separate, non-streamed, JSON-only extraction call after each turn. A parse failure here can never break the visible chat; on any failure it just returns the qualification state unchanged.
+
+### Provider / model configuration
+
+`ANTHROPIC_API_KEY` (server-only, never sent to the client) and `AI_MODEL` (defaults to `claude-sonnet-5`) are the only configuration surface, both read once in `src/lib/ai/get-provider.ts`. The model name is never accepted from a request body — `getAIProvider()` is the single source of truth for "AI unavailable" (returns `null` with no key configured), checked before any chat request does anything else and again server-side when the `/ai-consultant` page decides what to render.
+
+### No-API-key fallback (verified for real, not just in theory)
+
+This dev environment has no `ANTHROPIC_API_KEY` configured, so the fallback path described here is exactly what's live at this moment, not a hypothetical: the `/ai-consultant` page renders a genuine unavailable state (`UnavailableNotice`) pointing to the Project Builder, WhatsApp, and Contact page — no fake response is ever generated. Everything else (services, Project Builder, Contact, WhatsApp, CRM) is provably unaffected, since none of it depends on `src/lib/ai/*` at all.
+
+### Streaming
+
+The chat route (`src/app/api/ai/consultant/route.ts`, POST) streams Server-Sent Events over a hand-rolled `ReadableStream` — no client dependency needed for a `token`/`qualification`/`error`/`done` event set this small. `AbortController`/`request.signal` is threaded through to the Anthropic SDK call itself, so clicking "stop" in the UI actually cancels the upstream request (real cost control, not just a UI-side truncation). The client (`src/lib/ai/chat-client.ts`) parses the SSE frames manually and appends tokens progressively; the composer disables re-submission while a reply is streaming.
+
+### Qualification domain model — inferred vs. confirmed
+
+`src/domain/ai-qualification.ts`: every extracted field (`QualificationField<T>`) carries `{ value, confidence, sourceMessageId }`, where `confidence` is `INFERRED` or `USER_CONFIRMED`. **Everything an extraction pass writes is `INFERRED` — never anything else, regardless of how confident the model's own phrasing sounds.** A field already `USER_CONFIRMED` is frozen against being silently overwritten by a later inference (`mergeInferredQualification`, unit-tested for exactly this). The AI Consultant panel's `QualificationCard` visually marks every unconfirmed field as an "AI guess," lets the visitor edit any scalar field inline (which immediately marks it confirmed, since they just said so directly), and has a single "This looks right, confirm" action that promotes every currently-populated field to `USER_CONFIRMED` at once (`confirmAllInferred`) before either handoff path. The extraction schema itself is the first guardrail against a fabricated value: every canonical-ID field is validated against the same Zod enums the Project Builder uses (`PROJECT_TYPES`, `PROJECT_GOALS`, etc.) — a value the model invents that isn't one of these is dropped, not stored.
+
+### Qualification strategy
+
+No fixed 20-question script — the system prompt (`src/lib/ai/system-prompt.ts`) instructs the model to ask only what's actually useful and to prioritize clarifying the product before asking about budget. Extraction runs as its own call after every turn rather than interleaving structured output with the conversational reply, keeping the two failure domains independent.
+
+### Project Builder handoff
+
+"Continue with Project Builder" never touches the URL or makes a server round trip for the handoff itself: the qualification state (filtered down to `ProjectBuilderPrefill` — canonical IDs only, re-validated against the same enums a second time in `qualification-to-builder.ts` as defense-in-depth against tampering) is written once to `sessionStorage`, the visitor is routed to `/start-project?from=ai`, and `ProjectBuilder` reads and immediately clears that entry on mount — a page refresh afterward behaves exactly like a normal fresh visit. Every prefilled value remains fully editable through the Project Builder's existing step navigation and summary screen, unchanged from Phase 4.
+
+### AI → Lead / CRM integration
+
+**Opening the AI consultant never creates a lead.** A real lead is only created when the visitor explicitly clicks "Request a proposal" and submits their contact details (`requestAiProposalAction`, `src/lib/actions/ai-consultant.ts`), which goes through **the exact same `submitProjectRequest()` Phase 4 built** — `qualificationToSubmitInput()` maps whatever the AI actually gathered onto a full `SubmitProjectRequestInput`, defaulting anything missing to the same honest neutral values (`not-sure`/`flexible`/`new-idea`/empty arrays) the Contact-page minimal-brief path already uses. No second, bypassing write path into `leads`/`project_requests` exists. On success, the conversation is linked to the new lead (`ai_conversations.leadId`, status `converted`) and a short, honest retrospective trail is written to that lead's own timeline — `ai_consultation_started`, `ai_qualification_completed` (only if qualification actually reached the same "minimal" bar the Builder handoff button uses), `ai_brief_confirmed` (only if the visitor used the confirm action), `ai_lead_created` — never one entry per chat message. `ai_handoff_to_builder` is logged only in the (rarer) case a conversation already has a linked lead when the visitor also opens the Builder from it.
+
+### Conversation persistence
+
+Two additive tables (migration `0003_striped_lady_mastermind.sql`): `ai_conversations` (sessionId, locale, nullable `leadId`/`projectRequestId`, status, the current `qualificationState` JSONB snapshot, an optional rolling `summary`) and `ai_messages` (role, content, `conversationId`). No separate qualification-snapshot-history table was built — the brief listed it as a "possible" table, not required, and a single current-state JSONB column is the simplest design that satisfies every actual acceptance criterion; a full audit history of every qualification revision would be a reasonable but currently unjustified addition. `sessionId` is an anonymous, browser-generated (`crypto.randomUUID()`, localStorage) identifier — not an auth mechanism, just enough to scope/resume a conversation and to rate-limit abuse per-session as well as per-IP.
+
+### Admin AI view
+
+Lead Detail shows an "AI Consultation" section when one exists (`AiConsultationSection`): the AI-generated summary (explicitly labeled as AI-generated, never presented as the client's own wording), client-confirmed fields only, AI-recommended services, open questions, and the full transcript inside a collapsed `<details>` — never dumped inline into the main page.
+
+### Public settings integration (closing the Phase 5 gap)
+
+`site_settings.company_identity` now actually feeds the public site through one canonical accessor, `getEffectiveSiteConfig()` (`src/lib/effective-config.ts`): DB value overrides the `NEXT_PUBLIC_*`-env-based `siteConfig` default per field, falling back cleanly if a field is unset *or if the database itself is unreachable* (verified for real — this dev environment has no `DATABASE_URL`, so every static page built during `next build` exercised the exact "DB unavailable, fall back to env" branch and produced a fully correct site regardless; see the build log). Cached via `unstable_cache` (5 min TTL, tag-invalidated), with `updateSettingAction` calling `revalidateTag` (Next 16 changed this to require a cache-life-profile second argument — see gotchas below) immediately after a `company_identity` write so an admin's change is visible right away rather than waiting out the TTL. The pure "override merged over defaults" logic lives in a separate, Next-cache-free module (`src/lib/site-config-merge.ts`) specifically so it stays unit-testable, mirroring the `rbac.ts` split from Phase 5.
+
+### WhatsApp — one canonical resolution path
+
+`getEffectiveWhatsAppUrl()` (same file) is now the one function every user-facing entry point calls: header, footer, homepage hero/CTA, Contact page, and both post-submission WhatsApp-summary builders (`buildProjectRequestWhatsAppUrl`/`buildContactWhatsAppUrl`). The old `buildWhatsAppUrl()` (`src/lib/whatsapp.ts`) still exists and is still used, but only as the deliberate last-resort, DB-independent fallback for the two spots that already needed one (a WhatsApp-link-construction failure *after* a successful Phase-4 submission) — it was never removed because that fallback must keep working even if the database itself is the thing that's down.
+
+### Budget range configuration
+
+Budget range labels remain CRM-internal only this phase (Phase 5's `budget_range_labels` setting), now actually consumable via the same effective-config pattern — but not retrofitted into the public, multilingual Project Builder UI, since doing so properly needs a locale dimension the current flat label map doesn't have, and forcing it in now would risk regressing the four-language Project Builder for a lower-priority win. Canonical budget IDs stored on historical `ProjectRequest` rows are untouched either way. Documented, per the brief's own allowance, as the deliberate remaining step rather than something silently skipped.
+
+### Rate limiting / cost controls
+
+AI endpoints get their own, stricter limiters (`aiMessageSessionRateLimiter`: 20/10min per session, `aiMessageIpRateLimiter`: 40/10min per IP) on top of the existing in-memory abstraction — same documented "needs Redis before horizontal scaling" caveat as every other limiter in this codebase. Server-enforced, independent of anything the UI does: max message length (2000 chars, rejected by Zod before the request is even processed), max conversation length (60 messages, then the client is told to start fresh or continue via the Builder), a 24h conversation expiry, and a hard `max_tokens` cap (700) on every model call. History sent to the model is capped to the most recent 16 turns; a rolling AI-generated summary (regenerated every 12 messages once the window is exceeded) substitutes for the trimmed-off older turns, so a long conversation's cost doesn't grow unbounded.
+
+### Privacy / PII controls
+
+No unrelated CRM data (internal notes, audit logs, other leads) is ever sent to the AI provider — the system prompt is built from static public content plus the current conversation only. Contact details are collected exactly once, only after the visitor explicitly asks for a proposal, with an explicit statement of purpose in the capture form. Analytics events (`ai_consultant_viewed`, `ai_consultation_started`, `ai_message_sent`, `ai_qualification_updated`, `ai_builder_handoff`, `ai_contact_requested`, `ai_error`) carry no message text, email, phone, or name — booleans/IDs/counts only, same rule Phase 4 established.
+
+### Prompt-injection defense
+
+The system prompt explicitly instructs the model to ignore any user-message instruction asking it to reveal its own prompt, reveal secrets, claim database access, or bypass the pricing/commitment rules — but the real enforcement, per the brief's own framing, is architectural: the model has no tools, no database access, and no ability to author anything except the text shown in the chat bubble and the JSON consumed by the (separately validated) extraction schema. There is no code path by which conversation text can become an authorization decision.
+
+### Database migrations
+
+One additive migration (`admin_users`/`lead_notes`/`admin_audit_logs`/`site_settings` from Phase 5 untouched): `ai_conversations`, `ai_messages`. No existing table altered, no Phase 4/5 data touched — verified against a fresh database in every test run and against the real dev database via a scratch script (see Manual verification).
+
+### Tests
+
+55 new Vitest tests across 10 files — the mandatory security-cleanup password-change service (current-password check, weak-password rejection, mismatch rejection, hash update + audit entry), qualification merge/confirm/minimal-bar logic (pure domain), extraction against a fake provider (valid JSON, prose-wrapped JSON, invented canonical IDs rejected, malformed JSON, provider failure — all fall back safely), conversation-service prompt trimming and summary-update triggering, the AI conversation repository (session-ownership enforcement, message ordering/counting, qualification/summary persistence, lead-linking including the real FK constraint), the chat-request Zod schema (UUID/locale/length/strict-mode rejection) and the two new rate limiters, the effective-config merge logic, the Project-Builder-prefill mapping (including a simulated tampered-sessionStorage value being dropped, not passed through), the qualification-to-lead mapping (defaults, AI-gathered values, summary labeling, attribution passthrough), and a real end-to-end run of an AI-sourced submission through the actual `submitProjectRequest()` (not a mock of it). **110 total tests passing** (55 carried forward from Phase 4/5 + 55 new this phase).
+
+### Manual verification (no browser automation)
+
+Per the durable owner policy, no Playwright/Cypress/browser automation was used. Two real, non-mocked checks:
+1. **Production build** (`next build`, no `DATABASE_URL` set) — every static page for every locale built successfully while genuinely exercising the "settings DB unreachable → fall back to env `siteConfig`" branch for real (visible in the build log), not simulated. `/ai-consultant` compiled correctly per locale; `/api/ai/consultant` compiled as a dynamic route; `/admin/login` is now correctly dynamic (it reads a `passwordChanged` search param).
+2. **A scratch script** (deleted after the run, no trace left) against the real local dev database: created a conversation, streamed a reply through a fake provider, ran real qualification extraction and persistence, then — separately, via a proper Vitest integration test rather than fighting the same `next-intl`-outside-Next limitation Phase 4 already documented — verified the AI-sourced submission travels through the actual `submitProjectRequest()` end to end, including a real database row for the resulting lead and the conversation correctly linking back to it.
+
+A real browser click-through (open `/ai-consultant`, hold a conversation, confirm qualification, hand off to the Builder, see the prefilled values) was **not** performed this session, for the same reason as Phase 5: no non-automation browser tool was available. Recommend one short manual pass before relying on this daily, ideally once `ANTHROPIC_API_KEY` is configured so the real conversational behavior (including Arabic/Darija handling) can be judged directly rather than only through its unavailable-state fallback.
+
+### New technical gotchas found this phase (also added to persistent memory for future sessions)
+
+- **Next 16 changed `revalidateTag`'s signature** — it now requires a second "cache profile" argument (e.g. `revalidateTag(tag, "max")`); the old one-argument call throws a type error. `updateTag(tag)` (single-argument, Server-Action-only) is the newer, narrower alternative for "read-your-own-writes" — not used here since `unstable_cache` (the legacy, still-supported caching primitive this codebase uses) pairs with `revalidateTag`, not `updateTag`.
+- **The `server-only` npm package isn't actually installed in this project** (not a dependency, not in `node_modules`) — Next's own bundler resolves the specifier internally regardless, but that means any file that `import "server-only"` (directly or transitively) cannot be loaded from a plain `tsx` script outside Next, not just Vitest. Confirmed by hand this phase: `src/lib/ai/get-provider.ts` (which has this import) failed with `MODULE_NOT_FOUND` from a standalone smoke script, which is *stricter* than the already-known Vitest behavior (which at least resolves the module before its guarded throw). Same underlying lesson as Phase 5's `server-only`/Vitest split, now confirmed to also block ad hoc verification scripts, not just the test runner.
+- **Vitest concurrency vs. PGlite**: with 16 integration test files (Phase 6), running them all fully parallel occasionally blew past even the Phase-5-raised 30s hook timeout under load. Capped via `maxWorkers: 4` in `vitest.config.mts` rather than raising the timeout further — a bounded number of concurrent PGlite instances is a more scalable fix than an ever-increasing timeout as the suite keeps growing.
+
+### Files changed (Phase 6)
+
+New: `src/domain/{ai-conversation,ai-qualification,ai-chat,ai-lead-capture}.ts`; `src/lib/ai/{provider,anthropic-provider,get-provider,knowledge,system-prompt,session-id,chat-client,qualification-to-builder,qualification-to-project-request}.ts`; `src/lib/repositories/ai-conversation-repository.ts`; `src/lib/services/{ai-conversation-service,ai-qualification-service,account-service}.ts`; `src/lib/actions/ai-consultant.ts`; `src/lib/effective-config.ts` + `src/lib/site-config-merge.ts`; `src/app/api/ai/consultant/route.ts`; `src/app/[locale]/ai-consultant/page.tsx`; `src/components/ai-consultant/**`; `src/components/admin/{ai-consultation-section,change-password-form}.tsx`; migration `0003_striped_lady_mastermind.sql`; 9 new Vitest test files. Modified: `src/domain/{lead,audit-log,admin-auth}.ts` (new activity/audit types, password schema), `src/lib/db/schema.ts` (two new tables), `src/lib/actions/admin-auth.ts` (`changePasswordAction`), `src/lib/repositories/admin-user-repository.ts` (`updatePassword`), `src/lib/actions/admin-settings.ts` (cache invalidation), `src/lib/integrations/analytics.ts` (new AI events), `src/lib/security/rate-limit.ts` (AI limiters), `src/lib/whatsapp.ts`/`src/lib/services/whatsapp-summary.ts` (doc-comment + effective-config wiring), `src/components/{site-header,site-footer,header-client}.tsx` + `src/app/[locale]/{page,contact/page}.tsx` + `src/components/sections/cta-section.tsx` (effective-config wiring, nav entry point), `src/components/project-builder/{project-builder,types}.tsx` (sessionStorage AI handoff), `src/app/[locale]/start-project/page.tsx` (Suspense boundary for `useSearchParams`), `src/app/admin/(protected)/{settings/page.tsx,leads/[id]/page.tsx}` (password form, AI section), all four `messages/*.json` (new `aiConsultant` namespace + nav key), `vitest.config.mts` (`maxWorkers`), `.env.example` (`ANTHROPIC_API_KEY`, `AI_MODEL`).
+
+### Final verification results
+
+TypeScript (`tsc --noEmit`): clean. ESLint: clean. Vitest: **110/110 passing** (55 carried forward + 55 new this phase, confirmed stable across repeated runs). Production build (`next build`): succeeds; `/ai-consultant` and `/admin/*` compile correctly, `/api/ai/consultant` compiles as a dynamic Route Handler. Migration verification: passes in every test run (fresh PGlite + all 4 migrations) and against the real dev database via the scratch script described above.
+
+### Required production environment variables
+
+Everything from Phases 4-5, plus `ANTHROPIC_API_KEY` (optional — omitting it keeps the AI Consultant in its honest unavailable state; everything else on the site is unaffected) and `AI_MODEL` (optional, defaults to `claude-sonnet-5`).
+
+### Known limitations
+
+- No browser click-through was performed this session (see Manual verification) — recommend one short pass, ideally with a real API key configured, before relying on this daily.
+- Budget range labels remain CRM-internal only; not wired into the public multilingual Project Builder UI this phase (see Budget range configuration above) — documented as the deliberate remaining step, not an oversight.
+- No qualification-history/audit table — only the current merged state is retained per conversation, not a revision-by-revision log (a reasonable scope trim; nothing in the acceptance criteria required it).
+- AI cost controls are real but conservative estimates (16-turn window, 700-token replies, 60-message/24h conversation caps) — worth revisiting once real usage data exists.
+- Rate limiting remains in-memory/single-process, same standing caveat as every other limiter in this codebase.
+- The owner's OWNER account still has the Phase-5-issued temporary password until it's changed via the new Account Security section or the seed script — this is flagged, not silently left as-is.
+
+### Next phase
+
+**Phase 7 — Technical SEO foundation**, per the roadmap.
+
+---
+
 ## ROADMAP / TODO
 
 - [x] Phase 0 — Audit (this document)
@@ -527,7 +653,7 @@ Everything from Phase 4, plus `ADMIN_SESSION_SECRET` (required — app refuses t
 - [x] Phase 3 — Services + portfolio + case studies
 - [x] Phase 4 — Project Builder + lead capture + WhatsApp
 - [x] Phase 5 — Admin + CRM
-- [ ] Phase 6 — AI Consultant
+- [x] Phase 6 — AI Consultant
 - [ ] Phase 7 — Technical SEO foundation
 - [ ] Phase 8 — SIGMA SEO intelligence engine
 - [ ] Phase 9 — Blog/content platform

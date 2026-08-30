@@ -6,8 +6,8 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ButtonLink } from "@/components/ui/button";
 import { ContactForm } from "@/components/contact/contact-form";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { siteConfig } from "@/lib/site-config";
+import { getEffectiveSiteConfig, getEffectiveWhatsAppUrl } from "@/lib/effective-config";
 import { routing, type Locale } from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -58,7 +58,8 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
     unexpected: string;
   };
 
-  const whatsappUrl = buildWhatsAppUrl();
+  const effectiveConfig = await getEffectiveSiteConfig();
+  const whatsappUrl = await getEffectiveWhatsAppUrl();
 
   return (
     <>
@@ -99,11 +100,11 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
               <div className="rounded-2xl border border-border bg-surface p-6 text-sm text-muted">
                 <div className="flex items-center gap-2">
                   <Phone className="size-4" />
-                  <span dir="ltr">{siteConfig.contactPhone}</span>
+                  <span dir="ltr">{effectiveConfig.contactPhone}</span>
                 </div>
                 <div className="mt-3 flex items-center gap-2">
                   <Mail className="size-4" />
-                  <span dir="ltr">{siteConfig.contactEmail}</span>
+                  <span dir="ltr">{effectiveConfig.contactEmail}</span>
                 </div>
               </div>
             </aside>

@@ -53,3 +53,10 @@ export const submissionRateLimiter: RateLimiter = new InMemoryRateLimiter(5, 10 
 // needs Redis before this runs on more than one instance.
 export const loginIpRateLimiter: RateLimiter = new InMemoryRateLimiter(10, 15 * 60 * 1000);
 export const loginEmailRateLimiter: RateLimiter = new InMemoryRateLimiter(10, 15 * 60 * 1000);
+
+// AI consultant: each message is a real provider API call with a real
+// cost, so this is deliberately tighter than the plain-form limiter
+// above. Per-session AND per-IP so one browser session can't just get
+// a fresh sessionId to reset its own limit.
+export const aiMessageSessionRateLimiter: RateLimiter = new InMemoryRateLimiter(20, 10 * 60 * 1000);
+export const aiMessageIpRateLimiter: RateLimiter = new InMemoryRateLimiter(40, 10 * 60 * 1000);

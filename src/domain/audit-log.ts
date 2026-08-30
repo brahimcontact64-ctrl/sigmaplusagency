@@ -11,6 +11,7 @@ export const AUDIT_ACTIONS = [
   "status_changed",
   "note_added",
   "settings_updated",
+  "password_changed",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

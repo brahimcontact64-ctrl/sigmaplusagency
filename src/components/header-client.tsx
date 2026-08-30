@@ -15,6 +15,7 @@ type Nav = {
   about: string;
   contact: string;
   startProject: string;
+  aiConsultant: string;
 };
 
 const NAV_LINKS: { key: keyof Nav; href: string }[] = [
@@ -41,9 +42,11 @@ export function HeaderClient({
 
   // ButtonLink renders a plain <a>, not the locale-aware <Link/>, so a
   // real cross-page route needs the locale prefix built in manually.
-  // "start-project" is a fixed, non-localized top-level segment (see
-  // routing notes in the master plan), so this is safe for every locale.
+  // "start-project"/"ai-consultant" are fixed, non-localized top-level
+  // segments (see routing notes in the master plan), so this is safe
+  // for every locale.
   const startProjectHref = `/${locale}/start-project`;
+  const aiConsultantHref = `/${locale}/ai-consultant`;
 
   useEffect(() => {
     let ticking = false;
@@ -106,6 +109,9 @@ export function HeaderClient({
 
         <div className="hidden items-center gap-3 lg:flex">
           <LanguageSwitcher currentLocale={locale} locales={locales} />
+          <ButtonLink href={aiConsultantHref} variant="outline" size="md">
+            {nav.aiConsultant}
+          </ButtonLink>
           <ButtonLink href={startProjectHref} size="md">
             {nav.startProject}
           </ButtonLink>
@@ -164,6 +170,9 @@ export function HeaderClient({
                 </div>
                 <ButtonLink href={startProjectHref} size="lg" onClick={() => setMenuOpen(false)}>
                   {nav.startProject}
+                </ButtonLink>
+                <ButtonLink href={aiConsultantHref} variant="outline" size="lg" onClick={() => setMenuOpen(false)}>
+                  {nav.aiConsultant}
                 </ButtonLink>
                 <ButtonLink
                   href={whatsappHref}

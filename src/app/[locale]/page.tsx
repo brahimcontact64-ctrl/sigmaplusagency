@@ -6,8 +6,7 @@ import { WhatWeBuildSection } from "@/components/sections/what-we-build-section"
 import { WorkSection } from "@/components/sections/work-section";
 import { WhySection } from "@/components/sections/why-section";
 import { CtaSection } from "@/components/sections/cta-section";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
-import { siteConfig } from "@/lib/site-config";
+import { getEffectiveSiteConfig, getEffectiveWhatsAppUrl } from "@/lib/effective-config";
 import { getServiceContent } from "@/content/services";
 import { getAllProjectIds, getCaseStudyContent } from "@/content/case-studies";
 import type { Locale } from "@/i18n/routing";
@@ -59,16 +58,17 @@ export default async function HomePage({
 
   const whyItems = why.raw("items") as { title: string; description: string }[];
 
-  const heroWhatsappUrl = buildWhatsAppUrl(`${hero("headlineLine1")} ${hero("headlineLine2")}`);
-  const contactWhatsappUrl = buildWhatsAppUrl(contact("title"));
+  const effectiveConfig = await getEffectiveSiteConfig();
+  const heroWhatsappUrl = await getEffectiveWhatsAppUrl(`${hero("headlineLine1")} ${hero("headlineLine2")}`);
+  const contactWhatsappUrl = await getEffectiveWhatsAppUrl(contact("title"));
 
   const organizationJsonLd = {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
-    name: siteConfig.legalName,
-    url: siteConfig.url,
-    email: siteConfig.contactEmail,
-    telephone: siteConfig.contactPhone,
+    name: effectiveConfig.legalName,
+    url: effectiveConfig.url,
+    email: effectiveConfig.contactEmail,
+    telephone: effectiveConfig.contactPhone,
     areaServed: ["DZ", "FR", "DE", "AE"],
     availableLanguage: ["fr", "ar", "en", "de"],
   };
@@ -107,6 +107,8 @@ export default async function HomePage({
           whatsappHref={contactWhatsappUrl}
           startProjectLabel={hero("ctaPrimary")}
           startProjectHref={`/${locale}/start-project`}
+          contactPhone={effectiveConfig.contactPhone}
+          contactEmail={effectiveConfig.contactEmail}
         />
       </main>
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -47,7 +48,9 @@ export default async function StartProjectPage({ params }: { params: Promise<{ l
         />
 
         <div className="mx-auto max-w-3xl px-6 pb-24">
-          <ProjectBuilder />
+          <Suspense fallback={null}>
+            <ProjectBuilder />
+          </Suspense>
         </div>
       </main>
       <SiteFooter />

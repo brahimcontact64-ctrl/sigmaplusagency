@@ -8,7 +8,8 @@
     "work": "Work",
     "about": "Approach",
     "contact": "Contact",
-    "startProject": "Start a project"
+    "startProject": "Start a project",
+    "aiConsultant": "Talk to SIGMA AI"
   },
   "breadcrumbs": {
     "home": "Home",
@@ -317,5 +318,35 @@
     "draftRestored": "Your previous progress has been restored.",
     "retry": "Try again",
     "startOver": "Start over"
+  },
+  "aiConsultant": {
+    "meta": {
+      "title": "Talk to SIGMA AI — SIGMA+ Agency",
+      "description": "Describe your project to SIGMA AI and get a clear, honest first read on scope, services, and next steps."
+    },
+    "hero": {
+      "eyebrow": "AI Consultation",
+      "title": "Talk to SIGMA AI",
+      "subtitle": "An AI assistant that helps shape your project brief — ask questions, get service recommendations, and continue into the Project Builder whenever you're ready."
+    },
+    "disclaimer": "SIGMA AI is an automated assistant, not a member of the SIGMA+ team. It can't make binding commitments or exact quotes.",
+    "placeholder": "Tell SIGMA AI about your project…",
+    "send": "Send",
+    "suggestedLabel": "Not sure where to start? Try:",
+    "suggested": [
+      "I need a website for my business",
+      "I want to build a mobile app",
+      "I'm not sure what I need yet",
+      "How much would a project like this cost?"
+    ],
+    "continueBuilder": "Continue with Project Builder",
+    "requestProposal": "Request a proposal",
+    "unavailableTitle": "SIGMA AI is temporarily unavailable.",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "rateLimited": "You've sent a lot of messages — please slow down a little.",
+    "limitReached": "This conversation has reached its length limit. Start a new one, or continue via the Project Builder.",
+    "expired": "This conversation has expired. Please start a new one.",
+    "proposalSuccessTitle": "Thanks — we've got it.",
+    "proposalSuccessBody": "Your reference is {reference}. The SIGMA+ team will follow up shortly."
   }
 }

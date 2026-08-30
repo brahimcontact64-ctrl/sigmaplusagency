@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import { getCrmService } from "@/lib/services/crm-service";
+import { getAiConversationRepository } from "@/lib/repositories/ai-conversation-repository";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { LeadStatusSelect } from "@/components/admin/lead-status-select";
 import { LeadNoteForm } from "@/components/admin/lead-note-form";
 import { EmptyState } from "@/components/admin/empty-state";
+import { AiConsultationSection } from "@/components/admin/ai-consultation-section";
 import { formatDateTime, activityLabel } from "@/lib/admin/format";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -18,6 +20,10 @@ export default async function AdminLeadDetailPage({ params }: { params: Promise<
   if (!detail) notFound();
 
   const { lead, projectRequests, activities, notes } = detail;
+
+  const aiConversation = await getAiConversationRepository().findByLeadId(lead.id);
+  const aiMessages = aiConversation ? await getAiConversationRepository().listMessages(aiConversation.id) : [];
+
   const attribution = [
     ["Landing page", lead.landingPage],
     ["Referrer", lead.referrer],
@@ -119,6 +125,8 @@ export default async function AdminLeadDetailPage({ params }: { params: Promise<
           </div>
         )}
       </Section>
+
+      {aiConversation && <AiConsultationSection conversation={aiConversation} messages={aiMessages} />}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Section title="Activity timeline">

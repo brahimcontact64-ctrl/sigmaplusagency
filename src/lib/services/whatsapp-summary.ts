@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import type { Locale } from "@/i18n/routing";
 import type { StructuredBrief } from "@/domain/project-request";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { getEffectiveWhatsAppUrl } from "@/lib/effective-config";
 
 /**
  * The WhatsApp continuation message after a successful Project Builder
@@ -26,7 +26,7 @@ export async function buildProjectRequestWhatsAppUrl(
     reference,
   });
 
-  return buildWhatsAppUrl(message);
+  return getEffectiveWhatsAppUrl(message);
 }
 
 /** Same idea for the Contact page, whose data shape is simpler (no structured brief). */
@@ -40,5 +40,5 @@ export async function buildContactWhatsAppUrl(
     projectType: params.projectType || "—",
     reference: params.reference,
   });
-  return buildWhatsAppUrl(message);
+  return getEffectiveWhatsAppUrl(message);
 }
