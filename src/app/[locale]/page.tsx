@@ -8,17 +8,31 @@ import { WhySection } from "@/components/sections/why-section";
 import { CtaSection } from "@/components/sections/cta-section";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { siteConfig } from "@/lib/site-config";
+import { getServiceContent } from "@/content/services";
+import { getAllProjectIds, getCaseStudyContent } from "@/content/case-studies";
+import type { Locale } from "@/i18n/routing";
+import type { ServiceId } from "@/domain/service";
+
+const HOMEPAGE_SERVICE_IDS: ServiceId[] = [
+  "web-development",
+  "mobile-applications",
+  "ecommerce",
+  "saas-platforms",
+  "ai-agents",
+  "seo-growth",
+];
 
 export default async function HomePage({
   params,
 }: {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: Locale }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
 
   const hero = await getTranslations("hero");
   const services = await getTranslations("services");
+  const servicesPage = await getTranslations("servicesPage");
   const work = await getTranslations("work");
   const why = await getTranslations("why");
   const contact = await getTranslations("contact");
@@ -33,8 +47,16 @@ export default async function HomePage({
     ctaWork: hero("ctaWork"),
   };
 
-  const serviceItems = services.raw("items") as { title: string; description: string }[];
-  const projects = work.raw("projects") as { name: string; tag: string; description: string }[];
+  const serviceItems = HOMEPAGE_SERVICE_IDS.map((id) => {
+    const content = getServiceContent(locale, id);
+    return { slug: content.slug, title: content.title, description: content.positioning };
+  });
+
+  const projectItems = getAllProjectIds().map((id) => {
+    const content = getCaseStudyContent(locale, id);
+    return { slug: content.slug, name: content.name, tag: content.tag, description: content.summary };
+  });
+
   const whyItems = why.raw("items") as { title: string; description: string }[];
 
   const heroWhatsappUrl = buildWhatsAppUrl(`${hero("headlineLine1")} ${hero("headlineLine2")}`);
@@ -65,10 +87,16 @@ export default async function HomePage({
         <WhatWeBuildSection
           title={services("title")}
           subtitle={services("subtitle")}
+          seeAllLabel={servicesPage("seeAll")}
           items={serviceItems}
         />
 
-        <WorkSection title={work("title")} subtitle={work("subtitle")} projects={projects} />
+        <WorkSection
+          title={work("title")}
+          subtitle={work("subtitle")}
+          viewProjectLabel={work("viewProject")}
+          projects={projectItems}
+        />
 
         <WhySection title={why("title")} subtitle={why("subtitle")} items={whyItems} />
 

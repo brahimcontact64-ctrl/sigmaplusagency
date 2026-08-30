@@ -1,7 +1,7 @@
 # SIGMA PLUS AGENCY — Master Plan
 
 Status: living document. Updated at the end of every phase.
-Last updated: 2026-08-30 (Phase 0, Phase 1, and Phase 2 complete).
+Last updated: 2026-08-30 (Phase 0, Phase 1, Phase 2, and Phase 3 complete).
 
 ---
 
@@ -252,12 +252,80 @@ Ran an actual keyboard `Tab` sequence against the production build and read each
 
 ---
 
+## PHASE 3 — SERVICES, CASE STUDIES, AND REAL CONTENT ARCHITECTURE
+
+### Implemented
+
+**Typed content layer, not JSX-embedded copy.** `src/domain/service.ts` and `src/domain/case-study.ts` define the data models (`ServiceContent`, `ServiceMeta`, `CaseStudyContent`, `CaseStudyMeta`, `ContentStatus`). `src/content/services/{fr,en,ar,de}.ts` and `src/content/case-studies/{fr,en,ar,de}.ts` hold the per-locale prose; `meta.ts` in each holds locale-independent facts (technologies, cross-links, verified project facts). This is designed so a future database/CMS migration (explicitly foreshadowed for later phases) replaces the content files without touching the page components — pages only ever call `getServiceContent()` / `getCaseStudyContent()` and friends.
+
+**All 12 planned services now have full pages**: Web Development, Mobile Applications, E-commerce, SaaS & Platforms, AI Agents, Voice AI, Automation, UI/UX Design, SEO & Growth, Backend & API, Cloud & Infrastructure, Maintenance & Support. Each has a unique, specific (not templated-filler) positioning, description, problems/deliverables/capabilities lists, a real technology list, relevant industries, and 2–3 FAQ entries — written natively in all four languages, not machine-translated. Services are grouped into four categories (Build / Intelligence / Experience / Infrastructure) on a new editorial `/services` index instead of a flat 12-card grid.
+
+**Localized slugs, stable internal IDs.** Every service and project has one stable `ServiceId`/`ProjectId` used internally, and a per-locale `slug` used in URLs — e.g. `web-development` → `/fr/services/developpement-web`, `/en/services/web-development`, `/de/services/webentwicklung`, `/ar/services/تطوير-الويب`. The `/services` and `/work` segment names themselves stay literal across locales (matching the brief's own examples); only the leaf slug localizes.
+
+**Four real case-study pages** (SahEat, e-Vizza, Eleman Shoes, Dzenix), each showing only what Phase 0's audit actually verified: what the product is, its core functionality, industry, platforms, and which SIGMA+ services it involved. Challenge/strategy/implementation/outcome sections are coded to render conditionally and are simply **absent** right now — not filled with "coming soon" — because none of that narrative was ever verified. `docs/CASE_STUDY_OWNER_INPUT.md` documents exactly what's needed per project to unlock those sections later, with zero blocking on this phase.
+
+**No fake screenshots.** Every case study uses a small `ProjectVisual` component: a decorative browser-chrome frame showing the project's name in its own accent color — explicitly not presented as a real screenshot, since none exist (the old site's thumbnails were already rejected in Phase 2 for the same reason).
+
+**About and Contact pages.** About states SIGMA+'s honest positioning (a digital product studio, not "X years in business" or invented team size) plus a real seven-stage process (Discover → Define → Design → Build → Test → Launch → Improve). Contact has a full Zod + React Hook Form form (name, company, email, phone, project type, budget, timeline, message) with a real server-action boundary (`src/lib/actions/contact.ts`) — see "Content integrity" below for exactly what it does and doesn't claim.
+
+**Contextual WhatsApp messages, centralized.** `whatsappTemplates.service` / `.project` in each locale's messages file are interpolated with the specific service or project name (e.g. "I saw your SahEat project and would like to discuss something similar") and built through the existing single `buildWhatsAppUrl()` helper — no per-component hardcoded message strings.
+
+**SEO**: every service and case-study page has unique title/description/canonical/hreflang via `generateMetadata`, `Service` and `CreativeWork` JSON-LD respectively, `BreadcrumbList` JSON-LD on every inner page (via the new `Breadcrumbs` component), and `FAQPage` JSON-LD on service pages with FAQs. `sitemap.ts` now enumerates all 89 real routes (home, services index, 48 service-detail pages, work index, 16 case-study pages, about, contact) across all 4 locales with correct per-locale `alternates.languages`.
+
+**Internal linking**: homepage service/work cards now link to their real detail pages (previously decorative only); service pages link to related services and related projects (matched by shared `ServiceId` tags — no manual curation drift); case-study pages link to their related services and to the next project in sequence; every inner page has breadcrumbs back to Home and its index.
+
+**Two real bugs found during this phase's QA and fixed, not shipped:**
+
+1. **Arabic-slug pages were serving HTTP 404 despite rendering correct content.** Root cause, confirmed by tracing the exact `params.slug` value Next.js/Turbopack 16.3.3 passes during the `generateStaticParams`-driven prerender pass: for non-ASCII dynamic segments, the value arrives **still percent-encoded** (`%D8%AA%D8%B7...`) instead of decoded, even though the output HTML filename on disk is correctly decoded. This is a framework-level inconsistency, not a mistake in this codebase's own logic (verified by comparing raw Unicode codepoints between the source content and the decoded URL — they were byte-identical). Fixed defensively in `src/lib/slug.ts`'s `matchesSlug()`, used by both `getServiceBySlug` and `getProjectBySlug`: try an exact match first, fall back to matching against `decodeURIComponent(requested)`. Confirmed fixed: all Arabic service/project URLs now return 200 with correct per-locale hreflang alternates.
+2. **next-intl's automatic `Link` response header was emitting wrong hreflang alternates** — it naively swaps the locale segment on the current pathname, which breaks the moment locales have different slugs for the same content (exactly our case). Disabled via `alternateLinks: false` in `src/i18n/routing.ts`, since the correct per-locale alternates are already emitted via `generateMetadata`'s `alternates.languages` → real `<link rel="alternate">` tags in the HTML head.
+
+### Content integrity — what's verified vs. not
+
+Per the audit's `KEEP / EXPAND / NEEDS_OWNER_INPUT` framework: service copy describes SIGMA+'s general capabilities (real, generalizable claims about what the studio can build) — this is expand-safe. Case-study copy is strictly limited to facts recoverable from Phase 0's audit (product type, category, core functionality, which services applied). No client results, no metrics, no "years of experience," no team size, no invented client quotes, no fake screenshots appear anywhere in Phase 3. The Contact form's server action does **not** claim the message was received into a working CRM pipeline — its success state explicitly says no automated system exists yet and offers WhatsApp as the real, functional continuation path (server-side, it currently only logs the lead — a clearly marked placeholder for Phase 5's actual persistence).
+
+### SEO implementation
+
+Per-page unique metadata (no duplicated templates), canonical URLs, correct per-locale hreflang (verified for both Latin and Arabic slugs after the bug fix above), `BreadcrumbList` + `Service`/`CreativeWork`/`FAQPage` structured data, and a sitemap covering all 89 real routes. No keyword stuffing, no doorway pages, no fabricated local-SEO city pages — the Algeria-relevant framing (WhatsApp-first flows, Arabic/French bilingual businesses, mobile-first audiences) is woven into service copy naturally rather than mechanically repeating "Algérie."
+
+### Files changed
+
+New: `src/domain/service.ts`, `src/domain/case-study.ts`, `src/domain/contact.ts`; `src/content/services/{fr,en,ar,de,meta,index}.ts`; `src/content/case-studies/{fr,en,ar,de,meta,index}.ts`; `src/lib/slug.ts`, `src/lib/actions/contact.ts`; `src/components/ui/{breadcrumbs,page-hero,faq-accordion}.tsx`; `src/components/case-study/project-visual.tsx`; `src/components/contact/contact-form.tsx`; `src/app/[locale]/services/page.tsx` + `[slug]/page.tsx`; `src/app/[locale]/work/page.tsx` + `[slug]/page.tsx`; `src/app/[locale]/about/page.tsx`; `src/app/[locale]/contact/page.tsx`; `src/app/[locale]/not-found.tsx`; `docs/CASE_STUDY_OWNER_INPUT.md`.
+Modified: `src/i18n/routing.ts` (`alternateLinks: false`), `src/app/sitemap.ts` (all new routes), `src/components/header-client.tsx` (nav now points to real pages instead of homepage anchors — a necessary consequence of dedicated pages existing now), `src/components/sections/{what-we-build,work}-section.tsx` (now link to real pages, sourced from the content layer instead of duplicated homepage-only copy), `src/app/[locale]/page.tsx` (homepage sourced from content layer), all four `messages/*.json` (new `servicesPage`, `serviceDetail`, `workPage`, `caseStudy`, `about`, `contactPage`, `notFound`, `whatsappTemplates`, `breadcrumbs` namespaces).
+
+### Tests executed / results
+
+- `tsc --noEmit`: pass, 0 errors.
+- `eslint .`: pass, 0 errors, 0 warnings.
+- `next build`: pass — **89 static pages** generated across all 4 locales (home, services × 12, work × 4, about, contact, plus indexes).
+- Route smoke test (all locales, valid and invalid slugs): every real route 200s, every invalid slug/locale correctly 404s via `not-found.tsx` (confirmed it resolves the correct locale with no props, using `next-intl`'s request-scoped `getLocale()`/`getTranslations()` — verified against the Next.js 16 docs directly rather than assumed from older training data).
+- Contact form: tested end-to-end with Playwright — empty submit shows 4 client-side validation errors; valid submit calls the real server action (confirmed via the server's own log line), returns the honest success state, and produces a correctly pre-filled WhatsApp continuation link. Zero console errors.
+- Click-through test: services index → service detail → related project → case study all resolved to the correct real pages with zero console/page errors.
+- Performance: initial JS for a service-detail page measured at ~244KB gzipped — statistically the same as Phase 2's homepage figure (243KB), confirming the new content layer and pages added no meaningful client-side bundle weight (the content is server-rendered data, not shipped as JS).
+
+### Browser QA (real, screenshotted)
+
+12 checks across desktop (1440×900) and mobile (390×844) viewports, `fr`/`ar`/`de` locales, covering services index, service detail, work index, case-study detail, about, and contact: **zero layout overflow, zero console errors, zero page errors** in the final pass. Arabic RTL confirmed correct on service-detail pages specifically (sidebar mirrors to the left, breadcrumb chevrons flip, FAQ accordion chevrons on the correct side) — this was checked freshly for Phase 3's new page types, not assumed to carry over from Phase 2's homepage-only RTL check.
+
+### Remaining risks / known limitations (carried forward deliberately)
+
+- Case-study narrative sections (challenge/strategy/outcome) are absent pending real owner input — tracked, not blocking, not faked.
+- The homepage's original `services.items` teaser array still exists unused in `messages/*.json` (superseded by sourcing the same 6 services from the content layer) — harmless dead data, flagged here rather than silently left for someone to wonder about later.
+- Nav's "Insights" (blog) still has no destination and stays out of the nav until Phase 9 builds it.
+- Contact form has no spam/rate-limiting protection yet — acceptable for now since it has no real backend to abuse (Phase 5/10 territory once persistence exists).
+- The Next.js/Turbopack non-ASCII static-param bug documented above is now worked around in this codebase, but is worth a heads-up if the framework is ever upgraded and the workaround's continued necessity should be re-checked.
+
+### Next phase
+
+**Phase 4 — Project Builder, lead capture, and WhatsApp integration**: the multi-step interactive Project Builder (what to build → goal → capabilities → platforms → timeline → budget → AI-generated brief → proposal/WhatsApp handoff), and turning the Contact form's current honest-placeholder persistence into real lead storage.
+
+---
+
 ## ROADMAP / TODO
 
 - [x] Phase 0 — Audit (this document)
 - [x] Phase 1 — Architecture, design tokens, branding foundation, i18n routing skeleton
 - [x] Phase 2 — Flagship visual identity (hero, 3D object, motion system, scroll story, navigation)
-- [ ] Phase 3 — Services + portfolio + case studies
+- [x] Phase 3 — Services + portfolio + case studies
 - [ ] Phase 4 — Project Builder + lead capture + WhatsApp
 - [ ] Phase 5 — Admin + CRM
 - [ ] Phase 6 — AI Consultant

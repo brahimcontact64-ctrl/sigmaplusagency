@@ -10,6 +10,11 @@
     "contact": "Contact",
     "startProject": "Start a project"
   },
+  "breadcrumbs": {
+    "home": "Home",
+    "services": "Services",
+    "work": "Work"
+  },
   "hero": {
     "eyebrow": "Web · Mobile · SaaS · AI · Automation · E-commerce",
     "headlineLine1": "We don't just build software.",
@@ -31,16 +36,57 @@
       { "title": "SEO & Growth", "description": "A solid technical foundation so customers can find and choose you." }
     ]
   },
+  "servicesPage": {
+    "title": "Services",
+    "subtitle": "Complete solutions, organized around what we actually build.",
+    "seeAll": "View service",
+    "categories": {
+      "build": { "label": "Build", "description": "Websites, mobile apps, e-commerce, and SaaS platforms." },
+      "intelligence": { "label": "Intelligence", "description": "AI agents, voice AI, and automation." },
+      "experience": { "label": "Experience", "description": "Interface design and SEO growth." },
+      "infrastructure": { "label": "Infrastructure", "description": "Backend, cloud, and long-term maintenance." }
+    }
+  },
+  "serviceDetail": {
+    "problemsTitle": "Problems we solve",
+    "deliverablesTitle": "What you get",
+    "capabilitiesTitle": "What we can do",
+    "technologiesTitle": "Technologies",
+    "industriesTitle": "Relevant industries",
+    "faqTitle": "Frequently asked questions",
+    "relatedServicesTitle": "Related services",
+    "relatedProjectsTitle": "Related projects",
+    "ctaTitle": "Have a project in mind?",
+    "ctaSubtitle": "Let's talk about what you need and the best way to build it.",
+    "whatsappCta": "Chat on WhatsApp",
+    "startProjectCta": "Start a project"
+  },
   "work": {
-    "title": "Selected work",
+    "title": "Our Work",
     "subtitle": "A selection of projects delivered for our clients.",
-    "viewProject": "View project",
-    "projects": [
-      { "name": "SahEat", "tag": "Marketplace", "description": "Food delivery marketplace with mobile apps and an admin dashboard." },
-      { "name": "e-Vizza", "tag": "SaaS · AI", "description": "AI-assisted SaaS platform for automating visa applications." },
-      { "name": "Eleman Shoes", "tag": "E-commerce", "description": "E-commerce store with real-time inventory management." },
-      { "name": "Dzenix", "tag": "Site & brand", "description": "Website and brand identity for a digital agency." }
-    ]
+    "viewProject": "View project"
+  },
+  "workPage": {
+    "title": "Our Work",
+    "subtitle": "A selection of projects delivered for our clients — presented honestly, with no invented numbers.",
+    "viewCaseStudy": "View case study",
+    "statusDelivered": "Delivered"
+  },
+  "caseStudy": {
+    "whatItIsTitle": "At a glance",
+    "coreFunctionalityTitle": "Core functionality",
+    "challengeTitle": "The challenge",
+    "strategyTitle": "The strategy",
+    "implementationTitle": "The implementation",
+    "outcomeTitle": "The outcome",
+    "platformsTitle": "Platforms",
+    "industryLabel": "Industry",
+    "statusLabel": "Status",
+    "statusDelivered": "Delivered",
+    "relatedServicesTitle": "Services involved",
+    "nextProjectLabel": "Next project",
+    "ctaTitle": "Have a similar project in mind?",
+    "ctaSubtitle": "Let's talk about what you want to build."
   },
   "why": {
     "title": "Why SIGMA+",
@@ -53,12 +99,62 @@
       { "title": "Growth", "description": "A technical and SEO foundation built to last well past launch." }
     ]
   },
+  "about": {
+    "title": "About SIGMA+",
+    "subtitle": "A digital product studio, not just another agency.",
+    "intro": "SIGMA+ is a digital product studio focused on engineering, design, AI, automation, web, and mobile. We build products meant to actually be used — not demos.",
+    "processTitle": "Our process",
+    "processSubtitle": "Seven stages, on every project.",
+    "process": [
+      { "title": "Discover", "description": "We understand your business, users, and real constraints before proposing a solution." },
+      { "title": "Define", "description": "We scope the project, set priorities, and define what success actually means here." },
+      { "title": "Design", "description": "We design flows and interfaces before writing code, to avoid costly rework later." },
+      { "title": "Build", "description": "We develop with a clean, tested, documented architecture." },
+      { "title": "Test", "description": "We verify the product actually works before anything goes live." },
+      { "title": "Launch", "description": "We ship to production with a clear rollout plan." },
+      { "title": "Improve", "description": "We support the product's evolution after launch." }
+    ]
+  },
   "contact": {
     "title": "Ready to start your project?",
     "subtitle": "Tell us what you need — we'll get back to you quickly.",
     "whatsapp": "Chat on WhatsApp",
     "emailLabel": "Email",
     "phoneLabel": "Phone"
+  },
+  "contactPage": {
+    "title": "Contact",
+    "subtitle": "Tell us about your project — we'll get back to you quickly, or continue directly on WhatsApp.",
+    "whatsappAlternative": "Chat directly on WhatsApp",
+    "form": {
+      "name": "Name",
+      "company": "Company (optional)",
+      "email": "Email",
+      "phone": "Phone (optional)",
+      "projectType": "Project type",
+      "budget": "Approximate budget (optional)",
+      "timeline": "Desired timeline (optional)",
+      "message": "Tell us about your project",
+      "submit": "Send",
+      "submitting": "Sending...",
+      "projectTypeOptions": ["Website", "Mobile app", "E-commerce", "SaaS", "AI agent", "Automation", "Other"],
+      "budgetOptions": ["Under $1,000", "$1,000 – $5,000", "$5,000 – $15,000", "Over $15,000", "Not sure yet"]
+    },
+    "success": {
+      "title": "Message received.",
+      "description": "We don't have automated replies set up yet — for a fast response, continue the conversation on WhatsApp.",
+      "cta": "Continue on WhatsApp"
+    },
+    "error": "Something went wrong. Please try again or reach us directly on WhatsApp."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or has moved.",
+    "cta": "Back to home"
+  },
+  "whatsappTemplates": {
+    "service": "Hi, I'm interested in your \"{service}\" service. Could you tell me more?",
+    "project": "Hi, I saw your {project} project and would like to discuss something similar."
   },
   "footer": {
     "tagline": "Digital studio — Algeria and beyond.",

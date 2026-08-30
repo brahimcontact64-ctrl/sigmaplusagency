@@ -18,10 +18,10 @@ type Nav = {
 };
 
 const NAV_LINKS: { key: keyof Nav; href: string }[] = [
-  { key: "services", href: "#services" },
-  { key: "work", href: "#work" },
-  { key: "about", href: "#why" },
-  { key: "contact", href: "#contact" },
+  { key: "services", href: "/services" },
+  { key: "work", href: "/work" },
+  { key: "about", href: "/about" },
+  { key: "contact", href: "/contact" },
 ];
 
 export function HeaderClient({
@@ -38,6 +38,12 @@ export function HeaderClient({
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { scrollYProgress } = useScroll();
+
+  // ButtonLink renders a plain <a>, not the locale-aware <Link/>, so a
+  // real cross-page route needs the locale prefix built in manually.
+  // "contact" is a fixed, non-localized top-level segment (see routing
+  // notes in the master plan), so this is safe for every locale.
+  const contactHref = `/${locale}/contact`;
 
   useEffect(() => {
     let ticking = false;
@@ -87,27 +93,20 @@ export function HeaderClient({
         </Link>
 
         <nav className="hidden items-center gap-8 text-sm font-medium text-muted lg:flex">
-          {/* Plain relative-hash anchors on purpose: these are same-page
-              section jumps. Routing them through the locale-aware <Link/>
-              would risk resolving to the default-locale root instead of
-              staying on the current locale. */}
-          <a href="#services" className="rounded-sm transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-bright">
-            {nav.services}
-          </a>
-          <a href="#work" className="rounded-sm transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-bright">
-            {nav.work}
-          </a>
-          <a href="#why" className="rounded-sm transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-bright">
-            {nav.about}
-          </a>
-          <a href="#contact" className="rounded-sm transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-bright">
-            {nav.contact}
-          </a>
+          {NAV_LINKS.map((item) => (
+            <Link
+              key={item.key}
+              href={item.href}
+              className="rounded-sm transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-bright"
+            >
+              {nav[item.key]}
+            </Link>
+          ))}
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
           <LanguageSwitcher currentLocale={locale} locales={locales} />
-          <ButtonLink href="#contact" size="md">
+          <ButtonLink href={contactHref} size="md">
             {nav.startProject}
           </ButtonLink>
         </div>
@@ -144,14 +143,14 @@ export function HeaderClient({
                     key={item.key}
                     variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
                   >
-                    <a
+                    <Link
                       href={item.href}
                       onClick={() => setMenuOpen(false)}
                       className="flex items-center justify-between border-b border-border py-4 text-2xl font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-bright"
                     >
                       {nav[item.key]}
-                      <ArrowRight className="size-5 text-muted" />
-                    </a>
+                      <ArrowRight className="size-5 text-muted rtl:rotate-180" />
+                    </Link>
                   </motion.div>
                 ))}
               </div>
@@ -163,7 +162,7 @@ export function HeaderClient({
                 <div className="mb-2 flex justify-center">
                   <LanguageSwitcher currentLocale={locale} locales={locales} />
                 </div>
-                <ButtonLink href="#contact" size="lg" onClick={() => setMenuOpen(false)}>
+                <ButtonLink href={contactHref} size="lg" onClick={() => setMenuOpen(false)}>
                   {nav.startProject}
                 </ButtonLink>
                 <ButtonLink

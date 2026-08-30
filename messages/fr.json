@@ -10,6 +10,11 @@
     "contact": "Contact",
     "startProject": "Démarrer un projet"
   },
+  "breadcrumbs": {
+    "home": "Accueil",
+    "services": "Services",
+    "work": "Réalisations"
+  },
   "hero": {
     "eyebrow": "Web · Mobile · SaaS · IA · Automatisation · E-commerce",
     "headlineLine1": "Nous ne codons pas juste des logiciels.",
@@ -31,16 +36,57 @@
       { "title": "SEO & croissance", "description": "Une fondation technique solide pour être trouvé et choisi." }
     ]
   },
+  "servicesPage": {
+    "title": "Services",
+    "subtitle": "Des solutions complètes, organisées autour de ce que nous construisons réellement.",
+    "seeAll": "Voir le service",
+    "categories": {
+      "build": { "label": "Construire", "description": "Sites, applications mobiles, e-commerce et plateformes SaaS." },
+      "intelligence": { "label": "Intelligence", "description": "Agents IA, IA vocale et automatisation." },
+      "experience": { "label": "Expérience", "description": "Design d'interfaces et croissance SEO." },
+      "infrastructure": { "label": "Infrastructure", "description": "Backend, cloud, et maintenance dans la durée." }
+    }
+  },
+  "serviceDetail": {
+    "problemsTitle": "Problèmes que nous résolvons",
+    "deliverablesTitle": "Ce que vous recevez",
+    "capabilitiesTitle": "Ce que nous savons faire",
+    "technologiesTitle": "Technologies",
+    "industriesTitle": "Secteurs concernés",
+    "faqTitle": "Questions fréquentes",
+    "relatedServicesTitle": "Services liés",
+    "relatedProjectsTitle": "Projets liés",
+    "ctaTitle": "Un projet en tête ?",
+    "ctaSubtitle": "Discutons de votre besoin et de la meilleure façon d'y répondre.",
+    "whatsappCta": "Discuter sur WhatsApp",
+    "startProjectCta": "Démarrer un projet"
+  },
   "work": {
     "title": "Nos réalisations",
     "subtitle": "Une sélection de projets livrés pour nos clients.",
-    "viewProject": "Voir le projet",
-    "projects": [
-      { "name": "SahEat", "tag": "Marketplace", "description": "Marketplace de livraison de repas avec applications mobiles et tableau de bord d'administration." },
-      { "name": "e-Vizza", "tag": "SaaS · IA", "description": "Plateforme SaaS d'automatisation de demandes de visa, assistée par IA." },
-      { "name": "Eleman Shoes", "tag": "E-commerce", "description": "Boutique e-commerce avec gestion des stocks en temps réel." },
-      { "name": "Dzenix", "tag": "Site & marque", "description": "Site web et identité de marque pour une agence digitale." }
-    ]
+    "viewProject": "Voir le projet"
+  },
+  "workPage": {
+    "title": "Nos réalisations",
+    "subtitle": "Une sélection de projets livrés pour nos clients — présentés honnêtement, sans chiffres inventés.",
+    "viewCaseStudy": "Voir l'étude de cas",
+    "statusDelivered": "Livré"
+  },
+  "caseStudy": {
+    "whatItIsTitle": "En bref",
+    "coreFunctionalityTitle": "Fonctionnalités principales",
+    "challengeTitle": "Le défi",
+    "strategyTitle": "La stratégie",
+    "implementationTitle": "La réalisation",
+    "outcomeTitle": "Le résultat",
+    "platformsTitle": "Plateformes",
+    "industryLabel": "Secteur",
+    "statusLabel": "Statut",
+    "statusDelivered": "Livré",
+    "relatedServicesTitle": "Services mobilisés",
+    "nextProjectLabel": "Projet suivant",
+    "ctaTitle": "Un projet similaire en tête ?",
+    "ctaSubtitle": "Parlons de ce que vous voulez construire."
   },
   "why": {
     "title": "Pourquoi SIGMA+",
@@ -53,12 +99,62 @@
       { "title": "Croissance", "description": "Une fondation technique et SEO solide pour durer au-delà du lancement." }
     ]
   },
+  "about": {
+    "title": "À propos de SIGMA+",
+    "subtitle": "Un studio de produits digitaux, pas une agence de plus.",
+    "intro": "SIGMA+ est un studio de produits digitaux spécialisé dans l'ingénierie, le design, l'IA, l'automatisation, le web et le mobile. Nous concevons des produits destinés à être réellement utilisés — pas de simples démonstrations.",
+    "processTitle": "Notre méthode",
+    "processSubtitle": "Sept étapes, à chaque projet.",
+    "process": [
+      { "title": "Découvrir", "description": "Nous comprenons votre activité, vos utilisateurs et vos contraintes réelles avant de proposer une solution." },
+      { "title": "Définir", "description": "Nous cadrons le périmètre, les priorités et ce que réussir signifie concrètement pour ce projet." },
+      { "title": "Designer", "description": "Nous concevons les parcours et interfaces avant d'écrire du code, pour éviter des allers-retours coûteux." },
+      { "title": "Construire", "description": "Nous développons avec une architecture propre, testée et documentée." },
+      { "title": "Tester", "description": "Nous vérifions que le produit fonctionne réellement avant toute mise en ligne." },
+      { "title": "Lancer", "description": "Nous mettons en production avec un plan de bascule clair." },
+      { "title": "Améliorer", "description": "Nous accompagnons l'évolution du produit après le lancement." }
+    ]
+  },
   "contact": {
     "title": "Prêt à démarrer votre projet ?",
     "subtitle": "Décrivez-nous votre besoin, nous revenons vers vous rapidement.",
     "whatsapp": "Discuter sur WhatsApp",
     "emailLabel": "Email",
     "phoneLabel": "Téléphone"
+  },
+  "contactPage": {
+    "title": "Contact",
+    "subtitle": "Parlez-nous de votre projet — nous revenons vers vous rapidement, ou continuez directement sur WhatsApp.",
+    "whatsappAlternative": "Discuter directement sur WhatsApp",
+    "form": {
+      "name": "Nom",
+      "company": "Entreprise (optionnel)",
+      "email": "Email",
+      "phone": "Téléphone (optionnel)",
+      "projectType": "Type de projet",
+      "budget": "Budget approximatif (optionnel)",
+      "timeline": "Délai souhaité (optionnel)",
+      "message": "Décrivez votre besoin",
+      "submit": "Envoyer",
+      "submitting": "Envoi...",
+      "projectTypeOptions": ["Site web", "Application mobile", "E-commerce", "SaaS", "Agent IA", "Automatisation", "Autre"],
+      "budgetOptions": ["Moins de 1 000 €", "1 000 € – 5 000 €", "5 000 € – 15 000 €", "Plus de 15 000 €", "À définir"]
+    },
+    "success": {
+      "title": "Message bien reçu.",
+      "description": "Nous n'avons pas encore de système de réponse automatique en place — pour une réponse rapide, continuez la conversation sur WhatsApp.",
+      "cta": "Continuer sur WhatsApp"
+    },
+    "error": "Une erreur est survenue. Merci de réessayer ou de nous contacter directement sur WhatsApp."
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "description": "La page que vous cherchez n'existe pas ou a été déplacée.",
+    "cta": "Retour à l'accueil"
+  },
+  "whatsappTemplates": {
+    "service": "Bonjour, je suis intéressé(e) par votre service « {service} ». Pouvez-vous m'en dire plus ?",
+    "project": "Bonjour, j'ai vu votre projet {project} et j'aimerais discuter de quelque chose de similaire."
   },
   "footer": {
     "tagline": "Studio digital — Algérie et au-delà.",
