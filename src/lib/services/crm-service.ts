@@ -1,6 +1,7 @@
 import { getCrmRepository, type CrmRepository, type LeadListFilters, type LeadListSort, type LeadListItem } from "@/lib/repositories/crm-repository";
 import { getAuditLogRepository, type AuditLogRepository } from "@/lib/repositories/audit-log-repository";
-import { LEAD_STATUSES, isValidLeadStatus, type LeadStatus } from "@/domain/lead";
+import { LEAD_STATUSES, isValidLeadStatus, isValidLostReason, type LeadStatus, type LostReason } from "@/domain/lead";
+import { isSupportedCurrency } from "@/lib/money";
 import type { AdminActor } from "@/domain/admin-user";
 import type { Lead } from "@/domain/lead";
 import type { ProjectRequest } from "@/domain/project-request";
@@ -21,6 +22,9 @@ export type ChangeStatusResult =
   | { success: false; error: "not_found" | "invalid_status" | "unchanged" };
 
 export type AddNoteResult = { success: true; note: LeadNote } | { success: false; error: "not_found" | "invalid_note" };
+
+export type SetLostReasonResult = { success: true; lead: Lead } | { success: false; error: "not_found" | "invalid_reason" };
+export type SetDealValueResult = { success: true; lead: Lead } | { success: false; error: "not_found" | "invalid_value" | "invalid_currency" };
 
 /**
  * CRM domain logic on top of Phase 4's lead tables (read/status-write
@@ -106,6 +110,38 @@ export class CrmService {
     });
 
     return { success: true, note: created };
+  }
+
+  async setLostReason(leadId: string, reason: string, note: string | undefined, actor: AdminActor): Promise<SetLostReasonResult> {
+    if (!isValidLostReason(reason)) return { success: false, error: "invalid_reason" };
+
+    const lead = await this.repo.getLeadById(leadId);
+    if (!lead) return { success: false, error: "not_found" };
+
+    const updated = await this.repo.setLostReason(leadId, reason as LostReason, note?.trim() || undefined);
+    if (!updated) return { success: false, error: "not_found" };
+
+    await this.repo.createActivity(leadId, "lost_reason_set", { reason, actorEmail: actor.email });
+    await this.auditLog.record({ actorId: actor.id, actorEmail: actor.email, action: "lost_reason_set", targetType: "lead", targetId: leadId, metadata: { reason } });
+
+    return { success: true, lead: updated };
+  }
+
+  /** `minorUnits` must already be a validated non-negative integer — see src/lib/money.ts's `toMinorUnits()`, applied at the server-action boundary before this is called. */
+  async setDealValue(leadId: string, minorUnits: number, currency: string, actor: AdminActor): Promise<SetDealValueResult> {
+    if (!Number.isInteger(minorUnits) || minorUnits < 0) return { success: false, error: "invalid_value" };
+    if (!isSupportedCurrency(currency)) return { success: false, error: "invalid_currency" };
+
+    const lead = await this.repo.getLeadById(leadId);
+    if (!lead) return { success: false, error: "not_found" };
+
+    const updated = await this.repo.setDealValue(leadId, minorUnits, currency);
+    if (!updated) return { success: false, error: "not_found" };
+
+    await this.repo.createActivity(leadId, "deal_value_updated", { actorEmail: actor.email });
+    await this.auditLog.record({ actorId: actor.id, actorEmail: actor.email, action: "deal_value_updated", targetType: "lead", targetId: leadId });
+
+    return { success: true, lead: updated };
   }
 
   getDashboardMetrics() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MessageCircle, RotateCcw } from "lucide-react";
@@ -8,6 +8,7 @@ import { contactFormSchema, type ContactFormInput, type ContactFormResult } from
 import { submitContactForm } from "@/lib/actions/contact";
 import { getClientAttribution } from "@/lib/attribution";
 import { track } from "@/lib/integrations/analytics";
+import { getOrCreateAnalyticsSessionId } from "@/lib/analytics/session-id";
 import { HONEYPOT_FIELD_NAME } from "@/lib/security/honeypot";
 import { Button, ButtonLink } from "@/components/ui/button";
 import type { Locale } from "@/i18n/routing";
@@ -50,6 +51,7 @@ export function ContactForm({
   whatsappFallbackUrl: string;
 }) {
   const [result, setResult] = useState<ContactFormResult | null>(null);
+  const hasStarted = useRef(false);
 
   const {
     register,
@@ -60,8 +62,14 @@ export function ContactForm({
     defaultValues: { locale },
   });
 
+  function trackStartOnce() {
+    if (hasStarted.current) return;
+    hasStarted.current = true;
+    track("contact_form_started");
+  }
+
   async function onSubmit(values: ContactFormInput) {
-    const res = await submitContactForm({ ...values, ...getClientAttribution() });
+    const res = await submitContactForm({ ...values, ...getClientAttribution() }, getOrCreateAnalyticsSessionId());
     setResult(res);
     if (res.success) {
       track("contact_form_submitted");
@@ -95,7 +103,7 @@ export function ContactForm({
   const failure = result?.success === false ? result : null;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} onFocus={trackStartOnce} className="space-y-5" noValidate>
       <input type="hidden" {...register("locale")} />
       {/* Honeypot: hidden from real users via CSS, not type="hidden" (some bots skip those). Never rendered visibly, never focusable. */}
       <div aria-hidden="true" className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden">

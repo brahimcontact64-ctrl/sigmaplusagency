@@ -836,9 +836,92 @@ Unchanged from Phase 7 — all optional, all already gracefully "not connected"/
 
 See SEO_STRATEGY.md §26 for the full list — headline items: zero seed articles were published (an explicitly acceptable outcome — architecture over volume, per the brief); `runSeoAudit()`/`sitemap()`/the SEO adapters read through real repository singletons rather than being fully dependency-injected at the page/script level (a fresh CI checkout is unaffected; a local dev DB with manually-created test content could in principle influence those specific runs — the article *tests* themselves avoid this via full DI); no OAuth token storage (deliberately deferred per §51's safe-fallback instruction); `seo_metric_snapshots`-style persistence intentionally not added as a table yet (no real sync would populate it).
 
-### Recommended Phase 9
+### Recommended Phase 9 (superseded — see below)
 
 **Blog/content platform**, per the roadmap — though given how much of that ground Phase 8 already covered for real (the content model, editorial workflow, RBAC, sanitization, public reading experience), Phase 9's remaining scope is narrower than originally scoped: real seed content once the owner has reviewed/approved topics, category landing pages if they earn their own indexable value, and closing the loop from SEO Opportunity → "Create Draft" (§52-53 of the Phase 8 brief) once there's a real opportunity from a connected data source to act on.
+
+The owner directed Phase 9 toward analytics/observability/production-hardening instead of the blog-platform follow-up above — see the Phase 9 report immediately below. The remaining blog-platform scope (real seed content, category landing pages, SEO-opportunity → draft loop) stays open for a future phase.
+
+---
+
+## PHASE 9 — ANALYTICS, CONVERSION INTELLIGENCE, OBSERVABILITY & PRODUCTION HARDENING
+
+Full policy/architecture detail lives in **`docs/ANALYTICS_MEASUREMENT_PLAN.md`** and **`docs/PRODUCTION_OPERATIONS.md`** — this section is the phase report. `docs/LAUNCH_CHECKLIST.md` is new this phase too.
+
+### Baseline (before any Phase 9 change)
+
+`git status`: clean. `tsc --noEmit`: clean. `eslint .`: clean. `vitest run`: **225/225 passing** (34 files). `npm run seo:audit`: 0 errors, 0 warnings, 20 opportunities (identical to Phase 8's end state — all case-study narrative gaps and long-meta-description items, none new). Production build: succeeds.
+
+### Event taxonomy and PII controls
+
+`src/domain/analytics-event.ts` is now the single canonical taxonomy (`ANALYTICS_EVENTS`) and a closed Zod schema (`analyticsPropsSchema`, `.strict()`) for every event's dimensions — the old flat array in `src/lib/integrations/analytics.ts` was retired in favor of importing from here, so there is exactly one event list, not two competing ones. `src/lib/analytics/sanitize.ts` adds a value-shape PII guard on top of the schema (email/phone-shaped values are stripped from any field, not just disallowed by key) — proven by `tests/integration/analytics-sanitize.test.ts`, including a test that an unrecognized event property, an oversized value, an invalid canonical id, and an invalid locale are all rejected.
+
+### First-party analytics persistence
+
+New `analytics_events` table (migration `0005_fantastic_supernaut.sql`, additive): id, eventName, anonymousSessionId, nullable leadId/projectRequestId (both `ON DELETE SET NULL`), locale, pagePath, environment, `safeProperties` jsonb, createdAt — plus 4 indexes for the query patterns the reporting layer actually uses. `src/lib/repositories/analytics-repository.ts` is the query layer (record, attach-to-lead, per-event distinct-session counts, per-property-filtered counts, multi-event-AND counts, per-property grouped breakdowns with lead attribution) — every method proven against a real PGlite database in `tests/integration/analytics-repository.test.ts`, which caught and led to fixing two real bugs (see "Errors found and fixed" below).
+
+### Anonymous session ID and consent
+
+`src/lib/analytics/session-id.ts` — random `crypto.randomUUID()` in `localStorage`, 30-day rotation, never derived from PII, never used for cross-device tracking. `src/lib/consent/consent-store.ts` + `src/components/consent/consent-banner.tsx` — Accept / Reject optional / Manage, no pre-checked optional box, no dark patterns; essential site functionality (Contact, Project Builder, AI, WhatsApp, CRM persistence) is identical whether analytics is accepted or rejected. Explicitly documented as **not** a certified legal-compliance product — real regulatory review is a launch-checklist owner item, not something this code certifies.
+
+### `track()` unification and instrumentation
+
+`src/lib/integrations/analytics.ts` is now client-only by design; a new `src/lib/integrations/analytics-server.ts` (`trackServer()`) is the server-side counterpart, used by `/api/ai/consultant/route.ts`. This split exists because Next's client webpack build resolves every import specifier reachable from a client-imported module — including inside a `typeof window` branch and even a dynamic `import()` — so a server-only persistence path sharing a file with client-imported `track()` broke the production build the first time it was tried (see "Errors found and fixed"). New, genuinely wired instrumentation beyond what existed before: `page_view` (site-wide, via `page-view-tracker.tsx` in the locale layout), `service_viewed`/`case_study_viewed`/`article_viewed` (their respective detail pages), `cta_click` (the Start Project CTA on those same detail pages, via `tracked-cta-link.tsx`), `contact_form_started`, and `web_vital` (Core Web Vitals — LCP/CLS/INP only — via `next/web-vitals`' `useReportWebVitals`). `proposal_requested` remains schema-supported but unfired — documented as architecture-only in the measurement plan rather than claimed as live.
+
+### Lead attribution bridge and First Touch model
+
+`lead-service.ts`'s `submitContact`/`submitProjectRequest` now accept an optional client-supplied `analyticsSessionId` and call `AnalyticsService.attachSessionToLead()` on success — retroactively linking that session's prior anonymous events to the real lead, never rewriting an event already attached elsewhere (`WHERE lead_id IS NULL` guard, proven by a dedicated repository test). The same First-Touch capture that already existed in `findOrCreateLead()` (attribution recorded once, at creation, never overwritten on a repeat submission) is now the documented, named model — see `docs/ANALYTICS_MEASUREMENT_PLAN.md` §6. `src/lib/attribution/sanitize-utm.ts` caps UTM/URL value length and drops script-shaped payloads at capture time; `src/lib/attribution/channel.ts` buckets a First Touch into a broad channel (direct/organic/paid/social/email/referral/other) via a simple, documented heuristic.
+
+### Funnel and conversion intelligence
+
+`src/lib/services/growth-analytics-service.ts` — Project Builder funnel (viewed→started→completed→lead created, plus a deterministically-defined abandonment count: started-without-completing **and** the tab was actually closed mid-flow, never a timeout guess), AI Consultant funnel, AI-assisted-vs-other conversion (explicitly correlation-only language throughout, never causal), per-service/case-study/article breakdowns (views/CTA clicks/session-attributed leads), lead-level acquisition-by-channel, and CRM stage-conversion rates (lead→qualified, qualified→won). Every rate uses `src/lib/analytics/rates.ts`'s `safeRate()`/`percentChange()`, which return `null` for a zero/negative denominator instead of `Infinity`/`NaN`/a fabricated 0% — proven end-to-end against real inserted events in `tests/integration/growth-analytics-service.test.ts`.
+
+### CRM revenue-readiness: deal value and lost reasons
+
+`src/lib/money.ts` — integer minor units only, never a float, `SUPPORTED_CURRENCIES` explicit. `leads.dealValueMinorUnits`/`dealCurrency` are manual-admin-entry only (`components/admin/deal-form.tsx`) — never auto-inferred from a Project Builder budget *range*. Structured `LOST_REASONS` (`BUDGET`/`TIMING`/`NO_RESPONSE`/`COMPETITOR`/`SCOPE_MISMATCH`/`INTERNAL_DECISION`/`OTHER`) plus an optional note, never required retroactively. `leads.wonAt` is set exactly once on first transition to WON (the same "publishedAt-once" pattern as article publication), preserved across a later move away and back — proven by a dedicated test. Every mutation writes both a `LeadActivity` and an `admin_audit_logs` row with the real authenticated actor.
+
+### Admin → Analytics dashboard
+
+New `/admin/analytics` (added to nav), gated to `ANALYTICS_VIEWER_ROLES` (OWNER/ADMIN — a non-permitted role sees an explicit "Not authorized" state, not the data). Overview/Acquisition/Funnels/Services/Case Studies/Articles/CRM Conversion sections, a 7/30/90-day range selector, an explicit data-freshness line ("current as of ..."), and lightweight CSS bar charts (`components/admin/bar-row.tsx`) each with a real text-equivalent value alongside the bar — no chart dependency added, no decorative fake data.
+
+### Observability
+
+`src/lib/observability/logger.ts` (structured JSON logging, key-pattern secret redaction), `error-reporter.ts` (a Sentry-ready `ErrorReporter` interface with a console-default implementation — no external dependency added merely to tick a box), `src/domain/error-codes.ts` (a stable internal taxonomy, separate from user-facing messages). `GET /api/health` (liveness — status/version/timestamp only) and `GET /api/health/ready` (readiness — a real, 5-second-cached `select 1` against the database, so it can't become a way to hammer the database). Admin → Dashboard gained a small DB/AI/Analytics health strip (`src/lib/observability/integration-health.ts`) — truthful states, no expensive call on every page load.
+
+### Web Vitals, security headers, GA4 outbound
+
+`src/components/analytics/web-vitals-reporter.tsx` — LCP/CLS/INP only, piped through the same first-party pipeline as a `web_vital` event, consent-gated. `src/lib/security/csp.ts` + `next.config.ts`'s `headers()` — a pragmatic CSP (`'unsafe-inline'` kept deliberately, since this stack has no nonce plumbing yet — documented as the remaining tightening step, not shipped as a false "strict CSP" claim) plus `X-Content-Type-Options`/`Referrer-Policy`/`Permissions-Policy`/HSTS. `src/components/analytics/ga4-outbound.tsx` — the optional GA4 *outbound* client script, distinct from Phase 8's inbound GA4 *reporting* adapter, loads only when `NEXT_PUBLIC_GA4_MEASUREMENT_ID` is set and analytics consent was accepted.
+
+### Production hardening
+
+`src/lib/security/rate-limit.ts` gained `analyticsEventRateLimiter` (session- and IP-keyed) for the new ingestion endpoint; the Redis/Upstash-backed shared-store adapter for multi-instance rate limiting remains a documented gap, not silently claimed as done. `src/lib/env.ts` + `npm run validate:env` centralize the environment-variable inventory (required-production/optional-integration/public/secret categories) as a presence-only report — never prints a value — layered on top of, not replacing, the fail-fast checks that already exist at `DATABASE_URL`'s and `ADMIN_SESSION_SECRET`'s actual points of use.
+
+### Errors found and fixed this phase
+
+- **Client bundle break from a shared server/client module.** `track()`'s server-side persistence path originally lived in the same file client components import, guarded only by `typeof window === "undefined"`. Next's client webpack build still resolves a dynamically-imported specifier for code-splitting purposes even inside a runtime-dead branch, and hit Node builtins (`tls`, `perf_hooks`) pulled in via `postgres`/Drizzle, breaking `next build` for every page that used `track()`. Fixed by splitting the server path into its own file (`analytics-server.ts`) that the client-imported `analytics.ts` never references, not even dynamically.
+- **A real Postgres GROUP BY bug.** `groupDistinctSessionsByProperty()`'s `GROUP BY` re-referenced a parameterized JSONB-extraction expression that had already appeared in the `SELECT` list — Postgres binds each appearance of a parameterized fragment to its own placeholder, so the two (textually identical, differently-numbered) instances weren't recognized as the same expression and the query was rejected (reproduced against real PGlite in the analytics-repository test). Fixed by grouping on the output column's ordinal position (`GROUP BY 1`) instead.
+- **A `this`-binding bug in the structured logger.** `CONSOLE_BY_LEVEL` originally stored bare `console.debug`/`console.error`/etc. references; calling one detached from the `console` object broke in this environment. Fixed by wrapping each in a small arrow function that calls the bound method properly. Caught by `tests/integration/observability-logger.test.ts`.
+- A stale multi-process file-lock contention issue on the local PGlite dev database (several long-running `seo-audit`/build invocations accumulated across this session) caused `npm run seo:audit` to hang — not a code defect; resolved by clearing the stale processes, after which the audit ran and passed cleanly.
+
+### Tests
+
+76 new Vitest tests across 10 files: analytics PII sanitization and closed-schema validation, date-range/rate-safety math (zero-denominator honesty, equal-length comparison periods), money handling (rounding, negative/non-finite rejection, currency validation), attribution channel classification and UTM sanitization, page-type classification, structured-logger redaction and `ErrorReporter` correlation-id behavior, environment-variable presence reporting, the analytics repository against a real PGlite database (distinct-session counting, property filtering, multi-event-AND counting, lead-attribution grouping, the never-re-attach guard), the growth-analytics service's funnel/conversion math against real inserted events, and deal-value/lost-reason/`wonAt`-once behavior. **301 total tests passing** (225 carried forward + 76 new).
+
+### Final verification
+
+TypeScript (`tsc --noEmit`): clean. ESLint: clean. Vitest: **301/301 passing** (44 files). `npm run seo:audit`: 0 errors, 0 warnings, 20 opportunities (unchanged from baseline). Production build (`next build`): succeeds — `/admin/analytics`, `/api/analytics/event`, `/api/health`, `/api/health/ready` all compile and appear in the route table alongside every prior route. `npx drizzle-kit generate` confirms `schema.ts` has zero drift from the committed migration (`0005_fantastic_supernaut.sql`) — nothing left ungenerated.
+
+### Required/new environment variables
+
+All optional, all already gracefully degrading without them: `NEXT_PUBLIC_GA4_MEASUREMENT_ID` (GA4 outbound script — no ID, no script, site unaffected). No new required-production variable was added.
+
+### Known limitations
+
+Session-level acquisition-channel breakdown doesn't exist yet (`page_view` doesn't currently carry UTM dimensions — see measurement plan §6); `cta_click` is wired to exactly one CTA today, not every button on the site; per-content `builderStarts` is left unset rather than guessed (would need a second-event-in-session join not yet built); Redis/Upstash-backed distributed rate limiting is a documented gap, not implemented; CSP keeps `'unsafe-inline'` pending nonce plumbing; Web Vitals is real-user-monitoring architecture, not yet a field-CWV baseline with enough accumulated traffic to cite; the internal lead-export-assembly service and formal data-retention-policy configuration described in the original Phase 9 brief (§58-62) were treated as documentation-level scope this phase (see `docs/PRODUCTION_OPERATIONS.md`) rather than a full implementation, since building an unused export/deletion workflow would be speculative ahead of an actual retention policy decision.
+
+### Recommended Phase 10
+
+Close the observability/production-hardening gaps flagged above that are worth real implementation once there's production traffic to justify them: a Redis/Upstash rate-limiter adapter before any multi-instance deployment, nonce-based CSP tightening, and a real internal lead-export/retention workflow once the owner has a data-retention policy to encode. Otherwise, the original roadmap's Phase 9 blog-platform remainder (real seed content, category landing pages, SEO-opportunity → draft loop) is still open and could be picked up here instead.
 
 ---
 
@@ -853,8 +936,8 @@ See SEO_STRATEGY.md §26 for the full list — headline items: zero seed article
 - [x] Phase 6 — AI Consultant
 - [x] Phase 7 — Technical SEO foundation
 - [x] Phase 8 — Insights/CMS content system + SEO intelligence data layer
-- [ ] Phase 9 — Blog/content platform
-- [ ] Phase 10 — Analytics, observability, optimization, security hardening
+- [x] Phase 9 — Analytics, conversion intelligence, observability & production hardening (redirected from the originally-planned "blog/content platform," which Phase 8 had already substantially covered)
+- [ ] Phase 10 — Redis-backed rate limiting, nonce-based CSP, lead-export/retention workflow, and/or the remaining blog-platform scope
 - [ ] Phase 11 — Full E2E + production readiness
 
 ## OPEN ITEMS REQUIRING OWNER INPUT (not blockers, tracked for later phases)
@@ -864,3 +947,4 @@ See SEO_STRATEGY.md §26 for the full list — headline items: zero seed article
 - Real, consented testimonials (none currently exist that can be verified)
 - Founder/team bio content for the About page
 - SIGMA+ brand mark (logo) — none exists yet
+- Full pre-launch owner-action list (production domain/DNS, production PostgreSQL, `ADMIN_SESSION_SECRET`, temporary OWNER password rotation, legal review of the consent/analytics implementation, and more): see `docs/LAUNCH_CHECKLIST.md`, added Phase 9.

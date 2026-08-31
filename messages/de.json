@@ -474,5 +474,16 @@
     "publishedOn": "Veröffentlicht am",
     "updatedOn": "Aktualisiert am",
     "backToInsights": "Zurück zu Insights"
+  },
+  "consent": {
+    "message": "Wir verwenden essenzielle Cookies für den Betrieb dieser Website sowie optionale Analyse-Cookies, um die Nutzung zu verstehen. Analyse-Cookies sind deaktiviert, bis Sie zustimmen.",
+    "accept": "Akzeptieren",
+    "rejectOptional": "Optionale ablehnen",
+    "manage": "Verwalten",
+    "manageTitle": "Cookie-Einstellungen",
+    "manageDescription": "Essenzielle Cookies sind immer aktiv — ohne sie funktioniert die Website nicht. Analyse-Cookies sind optional und helfen uns, den Traffic zu verstehen; sie sind standardmäßig deaktiviert.",
+    "essentialLabel": "Essenziell (immer aktiv)",
+    "analyticsLabel": "Analyse",
+    "save": "Einstellungen speichern"
   }
 }

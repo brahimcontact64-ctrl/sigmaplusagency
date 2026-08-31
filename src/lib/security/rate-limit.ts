@@ -60,3 +60,12 @@ export const loginEmailRateLimiter: RateLimiter = new InMemoryRateLimiter(10, 15
 // a fresh sessionId to reset its own limit.
 export const aiMessageSessionRateLimiter: RateLimiter = new InMemoryRateLimiter(20, 10 * 60 * 1000);
 export const aiMessageIpRateLimiter: RateLimiter = new InMemoryRateLimiter(40, 10 * 60 * 1000);
+
+// Analytics ingestion (/api/analytics/event): generous, since a single
+// real page visit can legitimately fire several events (page_view,
+// scroll-driven cta_click, project_builder_step_completed, ...). This
+// exists to blunt an endpoint being turned into an arbitrary write
+// amplifier, not to throttle real usage. Checked against both the
+// caller-supplied anonymous session id and the request IP, same
+// belt-and-suspenders shape as the login limiter above.
+export const analyticsEventRateLimiter: RateLimiter = new InMemoryRateLimiter(120, 10 * 60 * 1000);

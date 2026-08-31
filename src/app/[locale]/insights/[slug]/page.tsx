@@ -9,6 +9,8 @@ import { PageHero } from "@/components/ui/page-hero";
 import { ArticleBody } from "@/components/content/article-body";
 import { ButtonLink } from "@/components/ui/button";
 import { JsonLd } from "@/components/seo/json-ld";
+import { TrackOnMount } from "@/components/analytics/track-on-mount";
+import { TrackedCtaLink } from "@/components/analytics/tracked-cta-link";
 import { getArticleRepository } from "@/lib/repositories/article-repository";
 import { getServiceContent } from "@/content/services";
 import { getCaseStudyContent } from "@/content/case-studies";
@@ -103,6 +105,7 @@ export default async function InsightArticlePage({ params }: { params: Promise<{
   return (
     <>
       <JsonLd data={jsonLd} />
+      <TrackOnMount event="article_viewed" props={{ articleId: article.id, locale, pageType: "article_detail" }} />
       <SiteHeader locale={locale} />
       <main className="flex-1">
         <PageHero
@@ -167,10 +170,15 @@ export default async function InsightArticlePage({ params }: { params: Promise<{
             <h2 className="text-2xl font-bold sm:text-3xl">{tServiceDetail("ctaTitle")}</h2>
             <p className="mt-2 text-muted">{tServiceDetail("ctaSubtitle")}</p>
             <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <ButtonLink href={`/${locale}/start-project`} size="lg">
+              <TrackedCtaLink
+                href={`/${locale}/start-project`}
+                size="lg"
+                ctaId="start_project"
+                trackProps={{ pageType: "article_detail", articleId: article.id }}
+              >
                 <Rocket className="size-5" />
                 {tServiceDetail("startProjectCta")}
-              </ButtonLink>
+              </TrackedCtaLink>
               <ButtonLink href={whatsappUrl} target="_blank" rel="noopener noreferrer" variant="whatsapp" size="lg">
                 <MessageCircle className="size-5" />
                 {tServiceDetail("whatsappCta")}

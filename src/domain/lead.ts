@@ -36,8 +36,22 @@ export const LEAD_ACTIVITY_TYPES = [
   "ai_brief_confirmed",
   "ai_handoff_to_builder",
   "ai_lead_created",
+  "deal_value_updated",
+  "lost_reason_set",
 ] as const;
 export type LeadActivityType = (typeof LEAD_ACTIVITY_TYPES)[number];
+
+/**
+ * Optional, structured LOST reasons (Phase 9 §19) — never required
+ * retroactively on existing LOST leads, and no reason is inferred.
+ * `OTHER` always allows a free-text `lostNote` alongside it.
+ */
+export const LOST_REASONS = ["BUDGET", "TIMING", "NO_RESPONSE", "COMPETITOR", "SCOPE_MISMATCH", "INTERNAL_DECISION", "OTHER"] as const;
+export type LostReason = (typeof LOST_REASONS)[number];
+
+export function isValidLostReason(value: unknown): value is LostReason {
+  return typeof value === "string" && (LOST_REASONS as readonly string[]).includes(value);
+}
 
 /**
  * Status transition policy: every status currently allows moving to
@@ -75,4 +89,10 @@ export type Lead = {
   status: LeadStatus;
   createdAt: Date;
   updatedAt: Date;
+  /** Manual CRM input only — never inferred from a Project Builder budget range (a range is not a contract value). See src/lib/money.ts for the integer-minor-units handling. */
+  lostReason?: LostReason;
+  lostNote?: string;
+  dealValueMinorUnits?: number;
+  dealCurrency?: string;
+  wonAt?: Date;
 } & Attribution;

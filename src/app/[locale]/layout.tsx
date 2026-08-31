@@ -8,6 +8,10 @@ import "../globals.css";
 import { routing, rtlLocales, type Locale } from "@/i18n/routing";
 import { siteConfig } from "@/lib/site-config";
 import { buildFixedPathAlternates } from "@/lib/seo/site-url";
+import { PageViewTracker } from "@/components/analytics/page-view-tracker";
+import { WebVitalsReporter } from "@/components/analytics/web-vitals-reporter";
+import { Ga4Outbound } from "@/components/analytics/ga4-outbound";
+import { ConsentBanner } from "@/components/consent/consent-banner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -84,6 +88,10 @@ export default async function LocaleLayout({
       <body className="min-h-full flex flex-col bg-void text-foreground">
         <NextIntlClientProvider>
           <MotionConfig reducedMotion="user">{children}</MotionConfig>
+          <PageViewTracker />
+          <WebVitalsReporter />
+          <Ga4Outbound />
+          <ConsentBanner />
         </NextIntlClientProvider>
       </body>
     </html>

@@ -53,9 +53,14 @@ export function AiConsultantPanel({ locale, available }: { locale: Locale; avail
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const id = getOrCreateAiSessionId();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time mount-only localStorage read, not a render cascade
-    setSessionId(getOrCreateAiSessionId());
-    track("ai_consultant_viewed");
+    setSessionId(id);
+    // The AI's own session id doubles as the analytics session for
+    // this funnel — it's already a random, first-party, non-PII id
+    // (see session-id.ts), and reusing it lets client events here line
+    // up with the server-side ones fired from /api/ai/consultant.
+    track("ai_consultant_viewed", undefined, { anonymousSessionId: id });
   }, []);
 
   useEffect(() => {
@@ -102,19 +107,19 @@ export function AiConsultantPanel({ locale, available }: { locale: Locale; avail
         onDone: () => setStreaming(false),
         onStreamError: (message) => {
           setNotice(message);
-          track("ai_error", { stage: "stream" });
+          track("ai_error", { reason: "stream" }, { anonymousSessionId: sessionId });
         },
       });
 
       if (result?.kind === "http") {
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
         setNotice(httpErrorMessage[result.error === "unknown" ? "unexpected" : result.error]);
-        track("ai_error", { stage: "http" });
+        track("ai_error", { reason: "http" }, { anonymousSessionId: sessionId });
       }
     } catch (error) {
       if ((error as Error).name !== "AbortError") {
         setNotice(t("errorGeneric"));
-        track("ai_error", { stage: "network" });
+        track("ai_error", { reason: "network" }, { anonymousSessionId: sessionId });
       }
     } finally {
       setStreaming(false);
@@ -143,7 +148,7 @@ export function AiConsultantPanel({ locale, available }: { locale: Locale; avail
     } catch {
       // storage unavailable — the builder just opens empty, not a hard failure
     }
-    track("ai_builder_handoff", { hasConversation: Boolean(conversationId) });
+    track("ai_builder_handoff", { hasConversation: Boolean(conversationId) }, { anonymousSessionId: sessionId });
     if (conversationId) void logAiHandoffToBuilderAction({ conversationId, sessionId });
     router.push(`/${locale}/start-project?from=ai`);
   }
@@ -174,8 +179,8 @@ export function AiConsultantPanel({ locale, available }: { locale: Locale; avail
 
     setProposalResult(result);
     setShowCapture(false);
-    track("ai_contact_requested", { conversationId });
-    track("lead_created", { source: "ai_consultant" });
+    track("ai_contact_requested", { aiConversationId: conversationId }, { anonymousSessionId: sessionId });
+    track("lead_created", { source: "ai_consultant" }, { anonymousSessionId: sessionId });
   }
 
   if (!available) {

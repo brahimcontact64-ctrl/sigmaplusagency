@@ -29,6 +29,15 @@ export const CONTENT_EDITOR_ROLES: AdminRole[] = ["OWNER", "ADMIN", "EDITOR"];
 /** Approving/rejecting an SEO recommendation is a business-strategy decision — kept tighter than general content editing. */
 export const SEO_EDITOR_ROLES: AdminRole[] = ["OWNER", "ADMIN"];
 
+/**
+ * Analytics/Growth dashboard exposes aggregate conversion intelligence
+ * derived from real lead and session data — never public, and kept
+ * tighter than general CRM access (Phase 9 §65). SALES/EDITOR/VIEWER
+ * don't get it today; a read-only VIEWER-level view is a plausible
+ * future addition, not built until there's an actual VIEWER user.
+ */
+export const ANALYTICS_VIEWER_ROLES: AdminRole[] = ["OWNER", "ADMIN"];
+
 export type AdminUser = {
   id: string;
   email: string;

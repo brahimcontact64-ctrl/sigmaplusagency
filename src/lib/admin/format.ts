@@ -39,3 +39,9 @@ const ACTIVITY_LABELS: Record<string, (metadata?: Record<string, unknown>) => st
 export function activityLabel(type: string, metadata?: Record<string, unknown>): string {
   return ACTIVITY_LABELS[type]?.(metadata) ?? type;
 }
+
+/** `null` means "no denominator data yet" (see `safeRate`) — rendered as an honest em dash, never 0% or NaN%. */
+export function formatPercent(rate: number | null, fractionDigits = 1): string {
+  if (rate === null) return "—";
+  return `${(rate * 100).toFixed(fractionDigits)}%`;
+}

@@ -474,5 +474,16 @@
     "publishedOn": "Published on",
     "updatedOn": "Updated on",
     "backToInsights": "Back to Insights"
+  },
+  "consent": {
+    "message": "We use essential cookies to run this site, and optional analytics cookies to understand how it's used. Analytics are off until you accept.",
+    "accept": "Accept",
+    "rejectOptional": "Reject optional",
+    "manage": "Manage",
+    "manageTitle": "Cookie preferences",
+    "manageDescription": "Essential cookies are always on — the site can't function without them. Analytics cookies are optional and help us understand traffic; they're off by default.",
+    "essentialLabel": "Essential (always on)",
+    "analyticsLabel": "Analytics",
+    "save": "Save preferences"
   }
 }

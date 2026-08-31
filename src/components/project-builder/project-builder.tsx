@@ -17,6 +17,7 @@ import { STEP_IDS, EMPTY_FORM_DATA, type BuilderFormData, type StepId } from "./
 import { saveDraft, loadDraft, clearDraft } from "@/lib/project-builder-draft";
 import { getClientAttribution } from "@/lib/attribution";
 import { track } from "@/lib/integrations/analytics";
+import { getOrCreateAnalyticsSessionId } from "@/lib/analytics/session-id";
 import { submitProjectBuilder } from "@/lib/actions/project-builder";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import type { ProjectBuilderResult } from "@/domain/project-builder";
@@ -154,7 +155,7 @@ export function ProjectBuilder() {
   useEffect(() => {
     function handleUnload() {
       if (hasStarted.current && !hasCompleted.current) {
-        track("project_builder_abandoned", { atStep: stepId });
+        track("project_builder_abandoned", { builderStep: stepId });
       }
     }
     window.addEventListener("beforeunload", handleUnload);
@@ -171,7 +172,7 @@ export function ProjectBuilder() {
 
   function goNext() {
     if (!isStepValid(stepId, data)) return;
-    track("project_builder_step_completed", { step: stepId, index: stepIndex });
+    track("project_builder_step_completed", { builderStep: stepId, builderStepIndex: stepIndex });
     setStepIndex((i) => Math.min(i + 1, STEP_IDS.length - 1));
   }
 
@@ -203,7 +204,7 @@ export function ProjectBuilder() {
       message: data.message || undefined,
       locale,
       ...getClientAttribution(),
-    });
+    }, getOrCreateAnalyticsSessionId());
     setSubmitting(false);
     setResult(res);
 

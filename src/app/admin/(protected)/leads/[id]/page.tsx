@@ -6,6 +6,7 @@ import { LeadStatusSelect } from "@/components/admin/lead-status-select";
 import { LeadNoteForm } from "@/components/admin/lead-note-form";
 import { EmptyState } from "@/components/admin/empty-state";
 import { AiConsultationSection } from "@/components/admin/ai-consultation-section";
+import { DealForm } from "@/components/admin/deal-form";
 import { formatDateTime, activityLabel } from "@/lib/admin/format";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -73,7 +74,12 @@ export default async function AdminLeadDetailPage({ params }: { params: Promise<
         <Section title="Metadata">
           <Field label="Created" value={formatDateTime(lead.createdAt)} />
           <Field label="Last updated" value={formatDateTime(lead.updatedAt)} />
+          {lead.wonAt && <Field label="Won at" value={formatDateTime(lead.wonAt)} />}
           <Field label="Internal ID" value={lead.id} mono />
+        </Section>
+
+        <Section title="Deal">
+          <DealForm lead={lead} />
         </Section>
       </div>
 

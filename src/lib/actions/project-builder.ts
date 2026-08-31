@@ -15,7 +15,7 @@ import { getClientIp } from "@/lib/security/client-ip";
  * WhatsApp URL construction at all. There is no code path that hands
  * back a WhatsApp link without a prior successful database write.
  */
-export async function submitProjectBuilder(formData: unknown): Promise<ProjectBuilderResult> {
+export async function submitProjectBuilder(formData: unknown, analyticsSessionId?: string): Promise<ProjectBuilderResult> {
   const parsed = projectBuilderSchema.safeParse(formData);
   if (!parsed.success) {
     return { success: false, error: "validation_error" };
@@ -60,6 +60,11 @@ export async function submitProjectBuilder(formData: unknown): Promise<ProjectBu
     utmCampaign: data.utmCampaign || undefined,
     utmContent: data.utmContent || undefined,
     utmTerm: data.utmTerm || undefined,
+    // Untrusted client-supplied value, only ever used as an equality
+    // lookup key (never interpolated/executed) — a malformed value
+    // simply matches no prior analytics events. Length-capped the same
+    // way the ingestion route caps it.
+    analyticsSessionId: typeof analyticsSessionId === "string" ? analyticsSessionId.slice(0, 100) : undefined,
   });
 
   if (!result.success) {

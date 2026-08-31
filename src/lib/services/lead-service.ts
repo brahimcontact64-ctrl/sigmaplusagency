@@ -3,6 +3,7 @@ import { getLeadRepository, type LeadRepository } from "@/lib/repositories/lead-
 import { generatePublicReference } from "./reference";
 import { normalizeEmail, normalizePhone } from "./identity";
 import { buildStructuredBrief, type BriefInput } from "./structured-brief";
+import { sanitizeUtmValue, sanitizeUrlValue } from "@/lib/attribution/sanitize-utm";
 import type { Attribution, LeadSource, PreferredContactMethod } from "@/domain/lead";
 import type { ProjectRequest, StructuredBrief } from "@/domain/project-request";
 
@@ -16,6 +17,8 @@ export type SubmitContactInput = {
   timeline?: string;
   message?: string;
   locale: Locale;
+  /** First-party analytics session id, if the visitor's browser supplied one — bridges prior anonymous events to this lead (Phase 9 §8). Never required. */
+  analyticsSessionId?: string;
 } & Attribution;
 
 export type SubmitProjectRequestInput = BriefInput & {
@@ -26,7 +29,28 @@ export type SubmitProjectRequestInput = BriefInput & {
   country?: string;
   preferredContactMethod?: PreferredContactMethod;
   locale: Locale;
+  analyticsSessionId?: string;
 } & Attribution;
+
+/**
+ * Best-effort, non-blocking: retroactively links this session's prior
+ * anonymous analytics events to the just-created/reused lead. Must
+ * never fail (or slow down) the actual submission it's attached to —
+ * analytics is always secondary to persisting the lead (Phase 9 §31).
+ */
+async function attachAnalyticsSession(analyticsSessionId: string | undefined, leadId: string): Promise<void> {
+  if (!analyticsSessionId) return;
+  try {
+    // Dynamically imported so the analytics repository/Drizzle stack
+    // behind it never has to resolve just because lead-service.ts is
+    // loaded — a lead submission's success must never depend on the
+    // analytics module even being importable.
+    const { getAnalyticsService } = await import("./analytics-service");
+    await getAnalyticsService().attachSessionToLead(analyticsSessionId, leadId);
+  } catch (error) {
+    console.error("[lead-service] analytics session attach failed (non-fatal):", error);
+  }
+}
 
 export type SubmitResult =
   | { success: true; reference: string; leadId: string }
@@ -56,6 +80,22 @@ async function findOrCreateLead(
   const existing = await repo.findByNormalizedIdentity(emailNormalized, phoneNormalized);
   if (existing) return { lead: existing, isNew: false };
 
+  // This is the entire "First Touch" attribution model (Phase 9 §9):
+  // attribution is captured exactly once, right here, at the visit
+  // that created the lead — a returning visitor who resubmits via a
+  // different channel never overwrites it (see the dedup return
+  // above). See docs/ANALYTICS_MEASUREMENT_PLAN.md for why this model
+  // was chosen over multi-touch attribution.
+  const attribution: Attribution = {
+    landingPage: sanitizeUrlValue(params.attribution.landingPage),
+    referrer: sanitizeUrlValue(params.attribution.referrer),
+    utmSource: sanitizeUtmValue(params.attribution.utmSource),
+    utmMedium: sanitizeUtmValue(params.attribution.utmMedium),
+    utmCampaign: sanitizeUtmValue(params.attribution.utmCampaign),
+    utmContent: sanitizeUtmValue(params.attribution.utmContent),
+    utmTerm: sanitizeUtmValue(params.attribution.utmTerm),
+  };
+
   const lead = await repo.createLead({
     publicReference: generatePublicReference(),
     name: params.name,
@@ -68,7 +108,7 @@ async function findOrCreateLead(
     language: params.language,
     preferredContactMethod: params.preferredContactMethod,
     source: params.source,
-    ...params.attribution,
+    ...attribution,
   });
   return { lead, isNew: true };
 }
@@ -135,6 +175,8 @@ export async function submitContact(
       } satisfies Omit<ProjectRequest, "id" | "createdAt">);
     }
 
+    await attachAnalyticsSession(input.analyticsSessionId, lead.id);
+
     return { success: true, reference: lead.publicReference, leadId: lead.id };
   } catch (error) {
     return toFailure(error);
@@ -189,6 +231,8 @@ export async function submitProjectRequest(
     await repo.createActivity(lead.id, "project_request_submitted", {
       projectType: input.projectType,
     });
+
+    await attachAnalyticsSession(input.analyticsSessionId, lead.id);
 
     return { success: true, reference: lead.publicReference, leadId: lead.id, brief };
   } catch (error) {

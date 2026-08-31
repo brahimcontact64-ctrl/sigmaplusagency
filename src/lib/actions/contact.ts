@@ -14,7 +14,7 @@ import { getClientIp } from "@/lib/security/client-ip";
  * one lead pipeline, not two. WhatsApp is only ever offered *after* a
  * successful write; see submitContact's try/catch for the failure path.
  */
-export async function submitContactForm(formData: unknown): Promise<ContactFormResult> {
+export async function submitContactForm(formData: unknown, analyticsSessionId?: string): Promise<ContactFormResult> {
   const parsed = contactFormSchema.safeParse(formData);
   if (!parsed.success) {
     return { success: false, error: "validation_error" };
@@ -50,6 +50,7 @@ export async function submitContactForm(formData: unknown): Promise<ContactFormR
     utmCampaign: data.utmCampaign || undefined,
     utmContent: data.utmContent || undefined,
     utmTerm: data.utmTerm || undefined,
+    analyticsSessionId: typeof analyticsSessionId === "string" ? analyticsSessionId.slice(0, 100) : undefined,
   });
 
   if (!result.success) {

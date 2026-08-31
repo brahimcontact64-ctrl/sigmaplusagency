@@ -1,7 +1,7 @@
-import { and, count, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, inArray, lt, lte, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { leads, projectRequests, leadActivities, leadNotes } from "@/lib/db/schema";
-import type { Lead, LeadActivityType, LeadSource, LeadStatus } from "@/domain/lead";
+import type { Lead, LeadActivityType, LeadSource, LeadStatus, LostReason } from "@/domain/lead";
 import type { ProjectRequest } from "@/domain/project-request";
 import type { LeadNote } from "@/domain/lead-note";
 
@@ -27,6 +27,11 @@ function toLead(row: typeof leads.$inferSelect): Lead {
     utmTerm: row.utmTerm ?? undefined,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    lostReason: (row.lostReason as LostReason) ?? undefined,
+    lostNote: row.lostNote ?? undefined,
+    dealValueMinorUnits: row.dealValueMinorUnits ?? undefined,
+    dealCurrency: row.dealCurrency ?? undefined,
+    wonAt: row.wonAt ?? undefined,
   };
 }
 
@@ -114,6 +119,14 @@ export type DashboardMetrics = {
   recentActivities: (LeadActivityRecord & { leadReference: string; leadName: string })[];
 };
 
+export type ConversionSnapshot = {
+  leadsCreated: number;
+  statusCounts: { status: LeadStatus; count: number }[];
+  wonCount: number;
+  lostCount: number;
+  attributionRows: { utmSource: string | null; utmMedium: string | null; referrer: string | null; count: number }[];
+};
+
 export interface CrmRepository {
   listLeads(filters: LeadListFilters, sort: LeadListSort, page: number, pageSize: number): Promise<LeadListResult>;
   getLeadById(id: string): Promise<Lead | null>;
@@ -130,10 +143,14 @@ export interface CrmRepository {
     pageSize: number,
   ): Promise<{ items: (ProjectRequest & { leadReference: string; leadName: string; leadStatus: LeadStatus })[]; total: number }>;
   updateLeadStatus(leadId: string, newStatus: LeadStatus): Promise<Lead | null>;
+  setLostReason(leadId: string, reason: LostReason, note?: string): Promise<Lead | null>;
+  setDealValue(leadId: string, minorUnits: number, currency: string): Promise<Lead | null>;
   createActivity(leadId: string, type: LeadActivityType, metadata?: Record<string, unknown>): Promise<void>;
   createNote(leadId: string, authorId: string | undefined, authorName: string, note: string): Promise<LeadNote>;
   getDashboardMetrics(): Promise<DashboardMetrics>;
   listAllLeadsForPipeline(limit: number): Promise<LeadListItem[]>;
+  /** Date-ranged CRM conversion snapshot (Phase 9 §17-20, §26) — the raw counts behind the Admin Analytics dashboard's CRM Conversion and Acquisition sections. Never computes a rate itself; that's the service layer's job (see `safeRate`). */
+  getConversionSnapshot(range: { start: Date; end: Date }): Promise<ConversionSnapshot>;
 }
 
 export class DrizzleCrmRepository implements CrmRepository {
@@ -396,9 +413,39 @@ export class DrizzleCrmRepository implements CrmRepository {
 
   async updateLeadStatus(leadId: string, newStatus: LeadStatus): Promise<Lead | null> {
     const db = await this.getDbInstance();
+
+    // wonAt is set exactly once, the same "publishedAt-once" pattern
+    // used for article publication (Phase 8) — moving a lead off WON
+    // and back doesn't fabricate a new win date.
+    let wonAt: Date | undefined;
+    if (newStatus === "WON") {
+      const current = await this.getLeadById(leadId);
+      if (current && !current.wonAt) wonAt = new Date();
+    }
+
     const [row] = await db
       .update(leads)
-      .set({ status: newStatus, updatedAt: new Date() })
+      .set({ status: newStatus, updatedAt: new Date(), ...(wonAt ? { wonAt } : {}) })
+      .where(eq(leads.id, leadId))
+      .returning();
+    return row ? toLead(row) : null;
+  }
+
+  async setLostReason(leadId: string, reason: LostReason, note?: string): Promise<Lead | null> {
+    const db = await this.getDbInstance();
+    const [row] = await db
+      .update(leads)
+      .set({ lostReason: reason, lostNote: note, updatedAt: new Date() })
+      .where(eq(leads.id, leadId))
+      .returning();
+    return row ? toLead(row) : null;
+  }
+
+  async setDealValue(leadId: string, minorUnits: number, currency: string): Promise<Lead | null> {
+    const db = await this.getDbInstance();
+    const [row] = await db
+      .update(leads)
+      .set({ dealValueMinorUnits: minorUnits, dealCurrency: currency, updatedAt: new Date() })
       .where(eq(leads.id, leadId))
       .returning();
     return row ? toLead(row) : null;
@@ -451,6 +498,31 @@ export class DrizzleCrmRepository implements CrmRepository {
       projectsByType,
       recentLeads: recentLeadRows.map(toLead),
       recentActivities,
+    };
+  }
+
+  async getConversionSnapshot(range: { start: Date; end: Date }): Promise<ConversionSnapshot> {
+    const db = await this.getDbInstance();
+    const inRange = and(gte(leads.createdAt, range.start), lt(leads.createdAt, range.end));
+
+    const [leadsCreatedRows, statusCounts, wonRows, lostRows, attributionRows] = await Promise.all([
+      db.select({ value: count() }).from(leads).where(inRange),
+      db.select({ status: leads.status, count: count() }).from(leads).where(inRange).groupBy(leads.status),
+      db.select({ value: count() }).from(leads).where(and(inRange, eq(leads.status, "WON"))),
+      db.select({ value: count() }).from(leads).where(and(inRange, eq(leads.status, "LOST"))),
+      db
+        .select({ utmSource: leads.utmSource, utmMedium: leads.utmMedium, referrer: leads.referrer, count: count() })
+        .from(leads)
+        .where(inRange)
+        .groupBy(leads.utmSource, leads.utmMedium, leads.referrer),
+    ]);
+
+    return {
+      leadsCreated: leadsCreatedRows[0]?.value ?? 0,
+      statusCounts: statusCounts.map((r) => ({ status: r.status as LeadStatus, count: r.count })),
+      wonCount: wonRows[0]?.value ?? 0,
+      lostCount: lostRows[0]?.value ?? 0,
+      attributionRows,
     };
   }
 }

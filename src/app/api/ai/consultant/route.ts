@@ -8,7 +8,7 @@ import { AIConversationService } from "@/lib/services/ai-conversation-service";
 import { QualificationService } from "@/lib/services/ai-qualification-service";
 import { aiMessageSessionRateLimiter, aiMessageIpRateLimiter } from "@/lib/security/rate-limit";
 import { getClientIp } from "@/lib/security/client-ip";
-import { track } from "@/lib/integrations/analytics";
+import { trackServer } from "@/lib/integrations/analytics-server";
 
 /**
  * The only network boundary for SIGMA AI. Every request is validated,
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     const isNewConversation = !conversation;
     if (!conversation) {
       conversation = await repo.create(sessionId, locale);
-      track("ai_consultation_started", { conversationId: conversation.id });
+      void trackServer("ai_consultation_started", { aiConversationId: conversation.id }, { anonymousSessionId: sessionId });
     }
     const conv = conversation;
 
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userMessage = await repo.appendMessage(conv.id, "user", message);
-    track("ai_message_sent", { conversationId: conv.id, isNew: isNewConversation });
+    void trackServer("ai_message_sent", { aiConversationId: conv.id, isNewConversation }, { anonymousSessionId: sessionId });
 
     const history = await repo.listMessages(conv.id);
     const conversationService = new AIConversationService(provider, repo);
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
             latestUserMessageId: userMessage.id,
           });
           await repo.updateQualificationState(conv.id, updatedState);
-          track("ai_qualification_updated", { conversationId: conv.id });
+          void trackServer("ai_qualification_updated", { aiConversationId: conv.id }, { anonymousSessionId: sessionId });
         } catch (error) {
           console.error("[ai-consultant] qualification extraction failed:", error);
         }
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("[ai-consultant] request failed:", error);
-    track("ai_error", { stage: "request" });
+    void trackServer("ai_error", { reason: "request" }, { anonymousSessionId: sessionId });
     return NextResponse.json({ error: "unexpected" }, { status: 500 });
   }
 }

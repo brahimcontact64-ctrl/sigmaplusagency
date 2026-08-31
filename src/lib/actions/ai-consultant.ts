@@ -54,7 +54,7 @@ export async function requestAiProposalAction(input: unknown): Promise<RequestAi
     },
   );
 
-  const result = await submitProjectRequest(submitInput);
+  const result = await submitProjectRequest({ ...submitInput, analyticsSessionId: data.sessionId });
   if (!result.success) return { success: false, error: result.error };
 
   await conversationRepo.linkLead(conversation.id, result.leadId);

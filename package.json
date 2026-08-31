@@ -14,7 +14,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "admin:create-user": "tsx scripts/create-admin-user.ts",
-    "seo:audit": "tsx scripts/seo-audit.ts"
+    "seo:audit": "tsx scripts/seo-audit.ts",
+    "validate:env": "tsx scripts/validate-env.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",

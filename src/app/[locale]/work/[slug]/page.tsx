@@ -22,6 +22,8 @@ import { siteConfig } from "@/lib/site-config";
 import { buildCanonicalUrl, buildAlternateLanguages } from "@/lib/seo/site-url";
 import { buildCaseStudySchema, withSchemaContext } from "@/lib/seo/schema";
 import { JsonLd } from "@/components/seo/json-ld";
+import { TrackOnMount } from "@/components/analytics/track-on-mount";
+import { TrackedCtaLink } from "@/components/analytics/tracked-cta-link";
 import { routing, type Locale } from "@/i18n/routing";
 
 const ACCENTS: Record<string, string> = {
@@ -103,6 +105,7 @@ export default async function CaseStudyPage({
   return (
     <>
       <JsonLd data={jsonLd} />
+      <TrackOnMount event="case_study_viewed" props={{ caseStudyId: id, locale, pageType: "case_study_detail" }} />
       <SiteHeader locale={locale} />
 
       <main className="flex-1">
@@ -201,10 +204,15 @@ export default async function CaseStudyPage({
             <h2 className="text-2xl font-bold sm:text-3xl">{t("ctaTitle")}</h2>
             <p className="mt-2 text-muted">{t("ctaSubtitle")}</p>
             <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <ButtonLink href={`/${locale}/start-project`} size="lg">
+              <TrackedCtaLink
+                href={`/${locale}/start-project`}
+                size="lg"
+                ctaId="start_project"
+                trackProps={{ pageType: "case_study_detail", caseStudyId: id }}
+              >
                 <Rocket className="size-5" />
                 {tCta("startProjectCta")}
-              </ButtonLink>
+              </TrackedCtaLink>
               <ButtonLink href={whatsappUrl} target="_blank" rel="noopener noreferrer" variant="whatsapp" size="lg">
                 <MessageCircle className="size-5" />
                 {tCta("whatsappCta")}

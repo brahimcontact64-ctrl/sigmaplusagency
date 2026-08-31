@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireActor, assertRole } from "@/lib/auth/dal";
 import { getCrmService } from "@/lib/services/crm-service";
 import { CRM_EDITOR_ROLES } from "@/domain/admin-user";
+import { toMinorUnits } from "@/lib/money";
 
 export type ActionResult = { success: true } | { success: false; error: string };
 
@@ -40,6 +41,44 @@ export async function addLeadNoteAction(leadId: string, note: string): Promise<A
   }
 
   const result = await getCrmService().addNote(leadId, note, actor);
+  if (!result.success) return { success: false, error: result.error };
+
+  revalidatePath(`/admin/leads/${leadId}`);
+  return { success: true };
+}
+
+export async function setLostReasonAction(leadId: string, reason: string, note: string): Promise<ActionResult> {
+  const actor = await requireActor();
+  try {
+    assertRole(actor, CRM_EDITOR_ROLES);
+  } catch {
+    return { success: false, error: "forbidden" };
+  }
+
+  const result = await getCrmService().setLostReason(leadId, reason, note, actor);
+  if (!result.success) return { success: false, error: result.error };
+
+  revalidatePath(`/admin/leads/${leadId}`);
+  return { success: true };
+}
+
+/** `majorAmount` is what the admin typed (e.g. 1500.5 for "1500.50") — converted to integer minor units here, at the one server boundary, never downstream. */
+export async function setDealValueAction(leadId: string, majorAmount: number, currency: string): Promise<ActionResult> {
+  const actor = await requireActor();
+  try {
+    assertRole(actor, CRM_EDITOR_ROLES);
+  } catch {
+    return { success: false, error: "forbidden" };
+  }
+
+  let minorUnits: number;
+  try {
+    minorUnits = toMinorUnits(majorAmount);
+  } catch {
+    return { success: false, error: "invalid_value" };
+  }
+
+  const result = await getCrmService().setDealValue(leadId, minorUnits, currency, actor);
   if (!result.success) return { success: false, error: result.error };
 
   revalidatePath(`/admin/leads/${leadId}`);

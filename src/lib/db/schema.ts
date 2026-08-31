@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, uuid, boolean, real, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, uuid, boolean, real, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const leads = pgTable(
   "leads",
@@ -27,12 +27,24 @@ export const leads = pgTable(
     utmContent: text("utm_content"),
     utmTerm: text("utm_term"),
 
+    // --- Phase 9: CRM revenue-readiness (all nullable, manual-entry only) ---
+    // Money is always an integer minor-unit count (e.g. cents) + an
+    // explicit currency — never a float, never inferred from a Project
+    // Builder budget range (a range is not a contract value).
+    lostReason: text("lost_reason"),
+    lostNote: text("lost_note"),
+    dealValueMinorUnits: integer("deal_value_minor_units"),
+    dealCurrency: text("deal_currency"),
+    wonAt: timestamp("won_at", { withTimezone: true }),
+
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("leads_email_normalized_idx").on(table.emailNormalized),
     index("leads_phone_normalized_idx").on(table.phoneNormalized),
+    index("leads_status_idx").on(table.status),
+    index("leads_created_at_idx").on(table.createdAt),
   ],
 );
 
@@ -304,4 +316,42 @@ export const seoRecommendations = pgTable(
     generatedAt: timestamp("generated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("seo_recommendations_status_idx").on(table.status)],
+);
+
+// --- Phase 9: first-party analytics ----------------------------------
+
+/**
+ * Product/business funnel events only — never a surveillance log. See
+ * docs/ANALYTICS_MEASUREMENT_PLAN.md for the full taxonomy and
+ * docs/PRODUCTION_OPERATIONS.md for retention policy. Deliberately
+ * does NOT store an IP address (this is not rate-limit storage — see
+ * src/lib/security/rate-limit.ts for that) and does not attempt
+ * fingerprinting; `anonymousSessionId` is a random, rotating,
+ * first-party identifier (src/lib/analytics/session-id.ts).
+ * `safeProperties` is only ever what already passed
+ * `validateAnalyticsPayload()` (the closed dimension schema) — this
+ * table is not a place arbitrary JSON can land.
+ */
+export const analyticsEvents = pgTable(
+  "analytics_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventName: text("event_name").notNull(),
+    anonymousSessionId: text("anonymous_session_id").notNull(),
+    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+    projectRequestId: uuid("project_request_id").references(() => projectRequests.id, { onDelete: "set null" }),
+    locale: text("locale"),
+    pagePath: text("page_path"),
+    // "production" | "development" | "preview" — lets dashboards exclude
+    // non-production noise (Phase 9 §70) without needing bot detection.
+    environment: text("environment").notNull(),
+    safeProperties: jsonb("safe_properties").$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("analytics_events_name_created_at_idx").on(table.eventName, table.createdAt),
+    index("analytics_events_session_idx").on(table.anonymousSessionId),
+    index("analytics_events_lead_id_idx").on(table.leadId),
+    index("analytics_events_created_at_idx").on(table.createdAt),
+  ],
 );

@@ -36,6 +36,13 @@
       "when": 1788164351171,
       "tag": "0004_clumsy_random",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788168926500,
+      "tag": "0005_fantastic_supernaut",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCrmService } from "@/lib/services/crm-service";
+import { getCoreIntegrationHealth, type IntegrationHealthStatus } from "@/lib/observability/integration-health";
 import { StatCard } from "@/components/admin/stat-card";
 import { BarList } from "@/components/admin/bar-list";
 import { StatusBadge } from "@/components/admin/status-badge";
@@ -9,14 +10,30 @@ import type { LeadStatus } from "@/domain/lead";
 
 export const metadata = { title: "Dashboard — SIGMA+ Admin" };
 
+const HEALTH_STYLES: Record<IntegrationHealthStatus, string> = {
+  HEALTHY: "text-emerald-400",
+  DEGRADED: "text-amber-400",
+  NOT_CONFIGURED: "text-muted",
+  ERROR: "text-red-400",
+};
+
 export default async function AdminDashboardPage() {
-  const metrics = await getCrmService().getDashboardMetrics();
+  const [metrics, health] = await Promise.all([getCrmService().getDashboardMetrics(), getCoreIntegrationHealth()]);
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted">Live figures from the lead database — nothing here is simulated.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+          <p className="mt-1 text-sm text-muted">Live figures from the lead database — nothing here is simulated.</p>
+        </div>
+        <div className="flex gap-3 text-xs">
+          {health.map((row) => (
+            <span key={row.name} className="rounded-full border border-border px-3 py-1.5">
+              {row.name}: <span className={`font-semibold ${HEALTH_STYLES[row.status]}`}>{row.status.replace("_", " ")}</span>
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
