@@ -1,11 +1,14 @@
+import { getDeploymentEnvironment } from "@/lib/deployment";
+
 /**
  * Tags events with the deployment environment that generated them, at
  * write time — lets reporting exclude dev/preview/test traffic from
  * production numbers with zero bot-fingerprinting (Phase 9 §70).
- * Vercel sets VERCEL_ENV; anything else falls back to NODE_ENV.
+ * Delegates to the one canonical environment detector (Phase 10 §8-9)
+ * rather than re-deriving VERCEL_ENV/NODE_ENV logic here too.
  */
 export function resolveAnalyticsEnvironment(): string {
-  return process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "development";
+  return getDeploymentEnvironment();
 }
 
 /**

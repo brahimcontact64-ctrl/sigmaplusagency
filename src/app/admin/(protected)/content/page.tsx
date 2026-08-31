@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getArticleRepository } from "@/lib/repositories/article-repository";
-import { EmptyState } from "@/components/admin/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateTime } from "@/lib/admin/format";
 import { CONTENT_STATUSES, ARTICLE_CATEGORIES } from "@/domain/article";
 import { locales } from "@/i18n/routing";

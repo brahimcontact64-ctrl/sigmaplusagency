@@ -7,7 +7,7 @@ import { getPageSpeedConnection } from "@/lib/seo/adapters/pagespeed";
 import { getSeoRecommendationService } from "@/lib/services/seo-recommendation-service";
 import { getArticleRepository } from "@/lib/repositories/article-repository";
 import { StatCard } from "@/components/admin/stat-card";
-import { EmptyState } from "@/components/admin/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SeoRecommendationActions } from "@/components/admin/seo-recommendation-actions";
 import { GenerateRecommendationsButton } from "@/components/admin/generate-recommendations-button";
 import { formatDateTime } from "@/lib/admin/format";

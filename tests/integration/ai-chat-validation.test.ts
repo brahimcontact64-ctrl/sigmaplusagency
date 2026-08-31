@@ -47,17 +47,17 @@ describe("aiChatRequestSchema", () => {
 });
 
 describe("AI rate limiters", () => {
-  it("session limiter blocks after its configured threshold", () => {
+  it("session limiter blocks after its configured threshold", async () => {
     const key = "test-session-unique-key-1";
     let allowed = true;
     for (let i = 0; i < 25; i++) {
-      allowed = aiMessageSessionRateLimiter.check(key);
+      allowed = await aiMessageSessionRateLimiter.check(key);
     }
     expect(allowed).toBe(false);
   });
 
-  it("IP limiter is independent per key", () => {
-    expect(aiMessageIpRateLimiter.check("test-ip-unique-key-1")).toBe(true);
-    expect(aiMessageIpRateLimiter.check("test-ip-unique-key-2")).toBe(true);
+  it("IP limiter is independent per key", async () => {
+    expect(await aiMessageIpRateLimiter.check("test-ip-unique-key-1")).toBe(true);
+    expect(await aiMessageIpRateLimiter.check("test-ip-unique-key-2")).toBe(true);
   });
 });

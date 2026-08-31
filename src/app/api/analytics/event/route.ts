@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   }
 
   const ip = await getClientIp();
-  if (!analyticsEventRateLimiter.check(`analytics:${parsed.data.anonymousSessionId}`) || !analyticsEventRateLimiter.check(`analytics-ip:${ip}`)) {
+  if (!(await analyticsEventRateLimiter.check(`analytics:${parsed.data.anonymousSessionId}`)) || !(await analyticsEventRateLimiter.check(`analytics-ip:${ip}`))) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 

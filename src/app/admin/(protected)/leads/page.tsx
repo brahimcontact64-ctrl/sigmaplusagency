@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCrmService } from "@/lib/services/crm-service";
 import { StatusBadge } from "@/components/admin/status-badge";
-import { EmptyState } from "@/components/admin/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateTime, formatRelative } from "@/lib/admin/format";
 import { LEAD_STATUSES, LEAD_SOURCES, isValidLeadStatus, type LeadSource } from "@/domain/lead";
 import { PROJECT_TYPES } from "@/domain/project-request";

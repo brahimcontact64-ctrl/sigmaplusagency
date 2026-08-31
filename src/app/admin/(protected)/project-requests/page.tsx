@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCrmService } from "@/lib/services/crm-service";
 import { StatusBadge } from "@/components/admin/status-badge";
-import { EmptyState } from "@/components/admin/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateTime } from "@/lib/admin/format";
 
 export const metadata = { title: "Project Requests — SIGMA+ Admin" };

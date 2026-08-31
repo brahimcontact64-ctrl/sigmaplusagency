@@ -34,6 +34,7 @@ type ErrorCopy = {
   validation_error: string;
   rate_limited: string;
   db_unavailable: string;
+  maintenance: string;
   unexpected: string;
 };
 

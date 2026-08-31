@@ -38,6 +38,8 @@ export const LEAD_ACTIVITY_TYPES = [
   "ai_lead_created",
   "deal_value_updated",
   "lost_reason_set",
+  "internal_notification_sent",
+  "client_confirmation_sent",
 ] as const;
 export type LeadActivityType = (typeof LEAD_ACTIVITY_TYPES)[number];
 

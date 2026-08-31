@@ -8,6 +8,7 @@ import "../globals.css";
 import { routing, rtlLocales, type Locale } from "@/i18n/routing";
 import { siteConfig } from "@/lib/site-config";
 import { buildFixedPathAlternates } from "@/lib/seo/site-url";
+import { isProductionDeployment } from "@/lib/deployment";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 import { WebVitalsReporter } from "@/components/analytics/web-vitals-reporter";
 import { Ga4Outbound } from "@/components/analytics/ga4-outbound";
@@ -45,6 +46,10 @@ export async function generateMetadata({
     title: t("title"),
     description: t("description"),
     alternates: buildFixedPathAlternates(locale, ""),
+    // Phase 10 §8-9: a preview/dev deployment must never present itself
+    // as indexable — this is the site-wide default every page inherits
+    // unless it explicitly overrides `robots` (none currently do).
+    ...(isProductionDeployment() ? {} : { robots: { index: false, follow: false } }),
     ...(googleVerification ? { verification: { google: googleVerification } } : {}),
     openGraph: {
       title: t("title"),

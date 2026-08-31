@@ -232,6 +232,7 @@
       "validation_error": "Some fields are invalid. Please check the form.",
       "rate_limited": "Too many attempts in a short time. Please try again in a few minutes, or reach us directly on WhatsApp.",
       "db_unavailable": "Our saving system is temporarily unavailable. Your message was not saved — please try again, or contact us directly on WhatsApp so nothing is lost.",
+      "maintenance": "We're temporarily pausing new submissions for scheduled maintenance. Please try again shortly, or reach us directly on WhatsApp.",
       "unexpected": "Something went wrong and your message was not saved. Please try again or reach us directly on WhatsApp."
     },
     "whatsappSummary": "Hi SIGMA+, I just submitted the contact form.\n\nName: {name}\nProject type: {projectType}\nReference: {reference}"
@@ -240,6 +241,13 @@
     "title": "Page not found",
     "description": "The page you're looking for doesn't exist or has moved.",
     "cta": "Back to home"
+  },
+  "errorPage": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred on our end. Please try again, or head back home.",
+    "retry": "Try again",
+    "home": "Back to home",
+    "referenceLabel": "Reference"
   },
   "whatsappTemplates": {
     "service": "Hi, I'm interested in your \"{service}\" service. Could you tell me more?",
@@ -418,6 +426,7 @@
       "validation_error": "Some information is invalid. Please check your answers.",
       "rate_limited": "Too many attempts in a short time. Please try again in a few minutes, or reach us directly on WhatsApp.",
       "db_unavailable": "Our saving system is temporarily unavailable. Your request was not saved — please try again, or contact us directly on WhatsApp so nothing is lost.",
+      "maintenance": "We're temporarily pausing new project requests for scheduled maintenance. Please try again shortly, or reach us directly on WhatsApp.",
       "unexpected": "Something went wrong and your request was not saved. Please try again or reach us directly on WhatsApp."
     },
     "whatsappSummary": "Hello SIGMA+,\nI just submitted a project request.\n\nProject: {projectType}\nGoal: {goal}\nFeatures: {capabilities}\nTimeline: {timeline}\nReference: {reference}",
@@ -485,5 +494,82 @@
     "essentialLabel": "Essential (always on)",
     "analyticsLabel": "Analytics",
     "save": "Save preferences"
+  },
+  "legal": {
+    "draftNotice": "This page is general information, not legal advice, and has not yet been reviewed by a lawyer. It is not a certified compliance statement. Final legal/privacy review is a launch requirement — see our Launch Checklist.",
+    "lastUpdatedLabel": "Last updated",
+    "lastUpdatedValue": "August 2026",
+    "privacy": {
+      "title": "Privacy Policy",
+      "intro": "This Privacy Policy explains what information SIGMA+ Agency collects when you use this website, and how it's used.",
+      "sections": [
+        {
+          "heading": "Who we are",
+          "body": "SIGMA+ Agency is a digital product studio. For any privacy question or request, contact us at the email address listed on our Contact page."
+        },
+        {
+          "heading": "Information we collect",
+          "body": "When you submit the Contact form or Project Builder, we collect what you provide: name, email, phone (if given), company (if given), and your project details. If you use SIGMA AI, we collect the messages you send it. If you accept optional analytics cookies, we also collect anonymous usage data (pages viewed, general interactions) tied to a random session identifier — never your name, email, or message content."
+        },
+        {
+          "heading": "Cookies",
+          "body": "Essential cookies (needed for the site and your cookie preference itself) are always on. Optional analytics cookies are off until you accept them, and you can change your choice at any time using \"Manage\" in the cookie banner."
+        },
+        {
+          "heading": "How we use your information",
+          "body": "To respond to your inquiry, prepare the proposal or service you requested, operate SIGMA AI if you use it, and understand how the site is used so we can improve it. We do not sell your information."
+        },
+        {
+          "heading": "Third parties",
+          "body": "We use Anthropic to power SIGMA AI (only when you use that feature), an email provider to send our own notifications, and — only if enabled and only after you accept analytics cookies — Google Analytics. Each is used strictly for the stated purpose, not for third-party advertising."
+        },
+        {
+          "heading": "Data retention",
+          "body": "We keep your information as long as reasonably needed to respond to your request and for legitimate business/legal purposes. You can ask us to review, correct, or delete your data by contacting us."
+        },
+        {
+          "heading": "Your rights",
+          "body": "Depending on where you're located, you may have rights to access, correct, export, or delete your personal data. Contact us and we'll respond to any request."
+        }
+      ]
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "intro": "These Terms govern your use of the SIGMA+ Agency website.",
+      "sections": [
+        {
+          "heading": "Acceptance",
+          "body": "By using this website, you agree to these Terms. If you don't agree, please don't use the site."
+        },
+        {
+          "heading": "The services described here",
+          "body": "This site describes SIGMA+'s services. Submitting the Contact form or Project Builder is a request for a proposal, not a binding contract — any real engagement is confirmed separately, directly with our team."
+        },
+        {
+          "heading": "SIGMA AI",
+          "body": "SIGMA AI is an automated assistant. Its responses are informational and help scope your project — they are not a professional, legal, or financial guarantee, and any real proposal is reviewed and confirmed by a person before it's sent."
+        },
+        {
+          "heading": "Acceptable use",
+          "body": "Don't misuse this site — no attempts to disrupt, scrape at scale, or attack the platform, and no submitting content you don't have the right to share."
+        },
+        {
+          "heading": "Intellectual property",
+          "body": "The content, design, and branding of this site belong to SIGMA+ Agency unless otherwise noted."
+        },
+        {
+          "heading": "Limitation of liability",
+          "body": "This site and SIGMA AI are provided \"as is.\" To the extent permitted by law, SIGMA+ isn't liable for indirect or incidental damages arising from your use of the site."
+        },
+        {
+          "heading": "Governing law",
+          "body": "The governing law and jurisdiction for these Terms will be confirmed before broad public launch."
+        },
+        {
+          "heading": "Changes",
+          "body": "We may update these Terms from time to time. Continued use of the site after a change means you accept the update."
+        }
+      ]
+    }
   }
 }

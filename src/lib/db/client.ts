@@ -29,12 +29,36 @@ export type AppDatabase = PgDatabase<PgQueryResultHKT, typeof schema>;
  *   schema, constraints, and migrations are identical to production's.
  */
 
+/**
+ * Connection tuning (Phase 10 §2). Defaults are safe for a
+ * conventional long-lived Node server; a serverless deployment
+ * (Vercel functions, one process per invocation) should lower
+ * `DATABASE_POOL_MAX` to 1 and put a real pooler (PgBouncer, or the
+ * provider's own pooled connection string — e.g. Supabase's
+ * "Transaction" mode URL) in front of Postgres, since many concurrent
+ * cold starts each holding a multi-connection pool can exhaust the
+ * database's real connection limit fast. See
+ * docs/PRODUCTION_OPERATIONS.md §6 for the full recommendation.
+ * `postgres-js` reads `sslmode` from the connection string itself
+ * (e.g. `?sslmode=require`); nothing here needs to force it.
+ */
+const DATABASE_POOL_MAX = Number(process.env.DATABASE_POOL_MAX) || 5;
+
 async function createPostgresDb(databaseUrl: string): Promise<AppDatabase> {
   const [{ drizzle }, { default: postgres }] = await Promise.all([
     import("drizzle-orm/postgres-js"),
     import("postgres"),
   ]);
-  const client = postgres(databaseUrl, { max: 5 });
+  const client = postgres(databaseUrl, {
+    max: DATABASE_POOL_MAX,
+    // Release idle connections back promptly rather than holding them
+    // open indefinitely — matters most on a serverless instance that
+    // may be frozen/reused unpredictably between invocations.
+    idle_timeout: 20,
+    // Fail fast on a genuinely unreachable database rather than hanging
+    // a request indefinitely.
+    connect_timeout: 10,
+  });
   return drizzle(client, { schema }) as unknown as AppDatabase;
 }
 

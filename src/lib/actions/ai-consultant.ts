@@ -10,11 +10,12 @@ import { buildProjectRequestWhatsAppUrl } from "@/lib/services/whatsapp-summary"
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { submissionRateLimiter } from "@/lib/security/rate-limit";
 import { getClientIp } from "@/lib/security/client-ip";
+import { isMaintenanceModeEnabled } from "@/lib/feature-flags";
 import { z } from "zod";
 
 export type RequestAiProposalResult =
   | { success: true; reference: string; whatsappUrl: string }
-  | { success: false; error: "validation_error" | "rate_limited" | "not_found" | "db_unavailable" | "unexpected" };
+  | { success: false; error: "validation_error" | "rate_limited" | "not_found" | "db_unavailable" | "maintenance" | "unexpected" };
 
 /**
  * The one place an AI conversation can turn into a real CRM lead —
@@ -26,12 +27,16 @@ export type RequestAiProposalResult =
  * conversation alone never creates CRM data.
  */
 export async function requestAiProposalAction(input: unknown): Promise<RequestAiProposalResult> {
+  if (isMaintenanceModeEnabled()) {
+    return { success: false, error: "maintenance" };
+  }
+
   const parsed = aiLeadCaptureSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: "validation_error" };
   const data = parsed.data;
 
   const ip = await getClientIp();
-  if (!submissionRateLimiter.check(`ai-proposal:${ip}`)) {
+  if (!(await submissionRateLimiter.check(`ai-proposal:${ip}`))) {
     return { success: false, error: "rate_limited" };
   }
 

@@ -6,6 +6,8 @@ import { PageHero } from "@/components/ui/page-hero";
 import { AiConsultantPanel } from "@/components/ai-consultant/ai-consultant-panel";
 import { isAIConfigured } from "@/lib/ai/get-provider";
 import { buildFixedPathAlternates } from "@/lib/seo/site-url";
+import { isProductionDeployment } from "@/lib/deployment";
+import { isMaintenanceModeEnabled } from "@/lib/feature-flags";
 import { routing, type Locale } from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -27,7 +29,9 @@ export async function generateMetadata({
     // A conversation held here is per-visitor and never indexable content — the
     // static intro copy is fine to index, the chat itself has no crawlable URL
     // (conversationId lives only in sessionStorage + POST bodies, never a URL).
-    robots: { index: true, follow: true },
+    // Still deferring to the site-wide preview/dev noindex default (Phase 10
+    // §8-9) rather than unconditionally overriding it with index:true.
+    robots: isProductionDeployment() ? { index: true, follow: true } : { index: false, follow: false },
   };
 }
 
@@ -37,7 +41,10 @@ export default async function AiConsultantPage({ params }: { params: Promise<{ l
 
   const t = await getTranslations("aiConsultant");
   const tBreadcrumbs = await getTranslations("breadcrumbs");
-  const available = isAIConfigured();
+  // Maintenance mode disables AI consultation the same as a missing
+  // API key would — the visitor sees the same honest "temporarily
+  // unavailable" state either way (Phase 10 §30).
+  const available = isAIConfigured() && !isMaintenanceModeEnabled();
 
   return (
     <>

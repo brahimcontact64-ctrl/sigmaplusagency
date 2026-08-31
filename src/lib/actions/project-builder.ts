@@ -7,6 +7,7 @@ import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { isHoneypotTripped, HONEYPOT_FIELD_NAME } from "@/lib/security/honeypot";
 import { submissionRateLimiter } from "@/lib/security/rate-limit";
 import { getClientIp } from "@/lib/security/client-ip";
+import { isMaintenanceModeEnabled } from "@/lib/feature-flags";
 
 /**
  * Failure-safety rule from the master plan, enforced structurally here:
@@ -16,6 +17,10 @@ import { getClientIp } from "@/lib/security/client-ip";
  * back a WhatsApp link without a prior successful database write.
  */
 export async function submitProjectBuilder(formData: unknown, analyticsSessionId?: string): Promise<ProjectBuilderResult> {
+  if (isMaintenanceModeEnabled()) {
+    return { success: false, error: "maintenance" };
+  }
+
   const parsed = projectBuilderSchema.safeParse(formData);
   if (!parsed.success) {
     return { success: false, error: "validation_error" };
@@ -28,7 +33,7 @@ export async function submitProjectBuilder(formData: unknown, analyticsSessionId
   }
 
   const ip = await getClientIp();
-  if (!submissionRateLimiter.check(`project-builder:${ip}`)) {
+  if (!(await submissionRateLimiter.check(`project-builder:${ip}`))) {
     return { success: false, error: "rate_limited" };
   }
 

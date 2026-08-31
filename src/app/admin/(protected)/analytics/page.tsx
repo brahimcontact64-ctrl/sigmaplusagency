@@ -5,7 +5,7 @@ import { getGrowthAnalyticsService } from "@/lib/services/growth-analytics-servi
 import { getArticleRepository } from "@/lib/repositories/article-repository";
 import { lastNDaysRange } from "@/lib/analytics/rates";
 import { StatCard } from "@/components/admin/stat-card";
-import { EmptyState } from "@/components/admin/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { BarRow } from "@/components/admin/bar-row";
 import { formatDateTime, formatPercent } from "@/lib/admin/format";
 import type { ContentBreakdownRow } from "@/lib/services/growth-analytics-service";

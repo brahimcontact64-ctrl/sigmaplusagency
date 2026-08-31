@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { getCrmService } from "@/lib/services/crm-service";
 import { getCoreIntegrationHealth, type IntegrationHealthStatus } from "@/lib/observability/integration-health";
+import { isMaintenanceModeEnabled } from "@/lib/feature-flags";
 import { StatCard } from "@/components/admin/stat-card";
 import { BarList } from "@/components/admin/bar-list";
 import { StatusBadge } from "@/components/admin/status-badge";
-import { EmptyState } from "@/components/admin/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatRelative, activityLabel } from "@/lib/admin/format";
 import type { LeadStatus } from "@/domain/lead";
 
@@ -20,8 +21,16 @@ const HEALTH_STYLES: Record<IntegrationHealthStatus, string> = {
 export default async function AdminDashboardPage() {
   const [metrics, health] = await Promise.all([getCrmService().getDashboardMetrics(), getCoreIntegrationHealth()]);
 
+  const maintenanceOn = isMaintenanceModeEnabled();
+
   return (
     <div className="flex flex-col gap-8">
+      {maintenanceOn && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-400" role="alert">
+          <strong className="font-semibold">Maintenance mode is ON.</strong> New Contact/Project Builder submissions and AI consultation are disabled site-wide. Set <code>MAINTENANCE_MODE=false</code> (or unset it) to resume normal operation.
+        </div>
+      )}
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>

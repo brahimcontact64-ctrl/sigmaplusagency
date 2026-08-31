@@ -232,6 +232,7 @@
       "validation_error": "Certains champs sont invalides. Merci de vérifier le formulaire.",
       "rate_limited": "Trop de tentatives en peu de temps. Merci de réessayer dans quelques minutes, ou contactez-nous directement sur WhatsApp.",
       "db_unavailable": "Notre système d'enregistrement est temporairement indisponible. Votre message n'a pas été enregistré — merci de réessayer, ou de nous contacter directement sur WhatsApp pour ne rien perdre.",
+      "maintenance": "Nous suspendons temporairement les nouveaux envois pour une maintenance planifiée. Merci de réessayer bientôt, ou de nous contacter directement sur WhatsApp.",
       "unexpected": "Une erreur est survenue et votre message n'a pas été enregistré. Merci de réessayer ou de nous contacter directement sur WhatsApp."
     },
     "whatsappSummary": "Bonjour SIGMA+, je viens de soumettre le formulaire de contact.\n\nNom: {name}\nType de projet: {projectType}\nRéférence: {reference}"
@@ -240,6 +241,13 @@
     "title": "Page introuvable",
     "description": "La page que vous cherchez n'existe pas ou a été déplacée.",
     "cta": "Retour à l'accueil"
+  },
+  "errorPage": {
+    "title": "Une erreur est survenue",
+    "description": "Une erreur inattendue s'est produite de notre côté. Merci de réessayer, ou retournez à l'accueil.",
+    "retry": "Réessayer",
+    "home": "Retour à l'accueil",
+    "referenceLabel": "Référence"
   },
   "whatsappTemplates": {
     "service": "Bonjour, je suis intéressé(e) par votre service « {service} ». Pouvez-vous m'en dire plus ?",
@@ -418,6 +426,7 @@
       "validation_error": "Certaines informations sont invalides. Merci de vérifier vos réponses.",
       "rate_limited": "Trop de tentatives en peu de temps. Merci de réessayer dans quelques minutes, ou contactez-nous directement sur WhatsApp.",
       "db_unavailable": "Notre système d'enregistrement est temporairement indisponible. Votre demande n'a pas été enregistrée — merci de réessayer, ou de nous contacter directement sur WhatsApp pour ne rien perdre.",
+      "maintenance": "Nous suspendons temporairement les nouvelles demandes de projet pour une maintenance planifiée. Merci de réessayer bientôt, ou de nous contacter directement sur WhatsApp.",
       "unexpected": "Une erreur est survenue et votre demande n'a pas été enregistrée. Merci de réessayer ou de nous contacter directement sur WhatsApp."
     },
     "whatsappSummary": "Bonjour SIGMA+,\nJe viens de soumettre une demande de projet.\n\nProjet: {projectType}\nObjectif: {goal}\nFonctionnalités: {capabilities}\nDélai: {timeline}\nRéférence: {reference}",
@@ -485,5 +494,82 @@
     "essentialLabel": "Essentiels (toujours actifs)",
     "analyticsLabel": "Analytiques",
     "save": "Enregistrer les préférences"
+  },
+  "legal": {
+    "draftNotice": "Cette page est une information générale, pas un avis juridique, et n'a pas encore été relue par un avocat. Ce n'est pas une attestation de conformité certifiée. Une relecture juridique/vie privée finale est requise avant le lancement — voir notre liste de vérification de lancement.",
+    "lastUpdatedLabel": "Dernière mise à jour",
+    "lastUpdatedValue": "Août 2026",
+    "privacy": {
+      "title": "Politique de confidentialité",
+      "intro": "Cette politique de confidentialité explique quelles informations SIGMA+ Agency collecte lorsque vous utilisez ce site, et comment elles sont utilisées.",
+      "sections": [
+        {
+          "heading": "Qui nous sommes",
+          "body": "SIGMA+ Agency est un studio de produits numériques. Pour toute question ou demande relative à la confidentialité, contactez-nous à l'adresse e-mail indiquée sur notre page Contact."
+        },
+        {
+          "heading": "Informations que nous collectons",
+          "body": "Lorsque vous soumettez le formulaire de contact ou le Project Builder, nous collectons ce que vous fournissez : nom, e-mail, téléphone (si indiqué), entreprise (si indiquée) et les détails de votre projet. Si vous utilisez SIGMA AI, nous collectons les messages que vous lui envoyez. Si vous acceptez les cookies analytiques optionnels, nous collectons aussi des données d'usage anonymes (pages consultées, interactions générales) associées à un identifiant de session aléatoire — jamais votre nom, e-mail ou le contenu de vos messages."
+        },
+        {
+          "heading": "Cookies",
+          "body": "Les cookies essentiels (nécessaires au site et à votre préférence de cookies elle-même) sont toujours actifs. Les cookies analytiques optionnels sont désactivés tant que vous ne les acceptez pas, et vous pouvez modifier votre choix à tout moment via « Gérer » dans le bandeau de cookies."
+        },
+        {
+          "heading": "Comment nous utilisons vos informations",
+          "body": "Pour répondre à votre demande, préparer la proposition ou le service demandé, faire fonctionner SIGMA AI si vous l'utilisez, et comprendre l'utilisation du site afin de l'améliorer. Nous ne vendons pas vos informations."
+        },
+        {
+          "heading": "Tiers",
+          "body": "Nous utilisons Anthropic pour faire fonctionner SIGMA AI (uniquement lorsque vous utilisez cette fonctionnalité), un fournisseur d'e-mail pour nos propres notifications, et — uniquement si activé et uniquement après acceptation des cookies analytiques — Google Analytics. Chacun est utilisé strictement pour l'usage indiqué, jamais pour de la publicité tierce."
+        },
+        {
+          "heading": "Conservation des données",
+          "body": "Nous conservons vos informations aussi longtemps que raisonnablement nécessaire pour répondre à votre demande et pour des finalités commerciales/légales légitimes. Vous pouvez nous demander de consulter, corriger ou supprimer vos données en nous contactant."
+        },
+        {
+          "heading": "Vos droits",
+          "body": "Selon votre lieu de résidence, vous pouvez disposer de droits d'accès, de rectification, d'export ou de suppression de vos données personnelles. Contactez-nous et nous répondrons à toute demande."
+        }
+      ]
+    },
+    "terms": {
+      "title": "Conditions d'utilisation",
+      "intro": "Ces conditions régissent votre utilisation du site de SIGMA+ Agency.",
+      "sections": [
+        {
+          "heading": "Acceptation",
+          "body": "En utilisant ce site, vous acceptez ces conditions. Si vous n'êtes pas d'accord, merci de ne pas utiliser le site."
+        },
+        {
+          "heading": "Les services décrits ici",
+          "body": "Ce site décrit les services de SIGMA+. Soumettre le formulaire de contact ou le Project Builder constitue une demande de proposition, pas un contrat contraignant — tout engagement réel est confirmé séparément, directement avec notre équipe."
+        },
+        {
+          "heading": "SIGMA AI",
+          "body": "SIGMA AI est un assistant automatisé. Ses réponses sont informatives et aident à cadrer votre projet — elles ne constituent pas une garantie professionnelle, juridique ou financière, et toute proposition réelle est relue et confirmée par une personne avant envoi."
+        },
+        {
+          "heading": "Usage acceptable",
+          "body": "N'utilisez pas ce site de façon abusive — pas de tentative de perturbation, d'extraction massive de données ou d'attaque de la plateforme, et ne soumettez pas de contenu que vous n'avez pas le droit de partager."
+        },
+        {
+          "heading": "Propriété intellectuelle",
+          "body": "Le contenu, le design et l'identité de marque de ce site appartiennent à SIGMA+ Agency, sauf mention contraire."
+        },
+        {
+          "heading": "Limitation de responsabilité",
+          "body": "Ce site et SIGMA AI sont fournis « en l'état ». Dans la mesure permise par la loi, SIGMA+ n'est pas responsable des dommages indirects ou accessoires résultant de votre utilisation du site."
+        },
+        {
+          "heading": "Droit applicable",
+          "body": "Le droit applicable et la juridiction compétente pour ces conditions seront confirmés avant le lancement public élargi."
+        },
+        {
+          "heading": "Modifications",
+          "body": "Nous pouvons mettre à jour ces conditions de temps à autre. Continuer à utiliser le site après une modification signifie que vous acceptez la mise à jour."
+        }
+      ]
+    }
   }
 }

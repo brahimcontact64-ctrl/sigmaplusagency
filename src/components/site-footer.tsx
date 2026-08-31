@@ -13,7 +13,7 @@ const FOOTER_LINKS: { key: "services" | "work" | "insights" | "about" | "contact
 
 /** A compact link list reinforces internal linking depth (see docs/SEO_STRATEGY.md "Internal linking") — every commercial page was already one click from the header nav, this just adds a second path from every page on the site. */
 export async function SiteFooter() {
-  const [t, tNav] = await Promise.all([getTranslations("footer"), getTranslations("nav")]);
+  const [t, tNav, tLegal] = await Promise.all([getTranslations("footer"), getTranslations("nav"), getTranslations("legal")]);
   const year = new Date().getFullYear();
   const config = await getEffectiveSiteConfig();
 
@@ -33,9 +33,19 @@ export async function SiteFooter() {
           ))}
         </nav>
 
-        <p>
-          © {year} {config.legalName} — {t("rights")}
-        </p>
+        <div className="flex flex-col items-start gap-3 sm:items-end">
+          <nav aria-label="Legal" className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+            <Link href="/privacy-policy" className="transition-colors hover:text-foreground">
+              {tLegal("privacy.title")}
+            </Link>
+            <Link href="/terms" className="transition-colors hover:text-foreground">
+              {tLegal("terms.title")}
+            </Link>
+          </nav>
+          <p>
+            © {year} {config.legalName} — {t("rights")}
+          </p>
+        </div>
       </div>
     </footer>
   );

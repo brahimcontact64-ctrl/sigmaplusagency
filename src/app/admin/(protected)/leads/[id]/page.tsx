@@ -1,10 +1,14 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { Download } from "lucide-react";
 import { getCrmService } from "@/lib/services/crm-service";
 import { getAiConversationRepository } from "@/lib/repositories/ai-conversation-repository";
+import { requireActor } from "@/lib/auth/dal";
+import { ANALYTICS_VIEWER_ROLES } from "@/domain/admin-user";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { LeadStatusSelect } from "@/components/admin/lead-status-select";
 import { LeadNoteForm } from "@/components/admin/lead-note-form";
-import { EmptyState } from "@/components/admin/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { AiConsultationSection } from "@/components/admin/ai-consultation-section";
 import { DealForm } from "@/components/admin/deal-form";
 import { formatDateTime, activityLabel } from "@/lib/admin/format";
@@ -17,10 +21,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function AdminLeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const detail = await getCrmService().getLeadDetail(id);
+  const [detail, actor] = await Promise.all([getCrmService().getLeadDetail(id), requireActor()]);
   if (!detail) notFound();
 
   const { lead, projectRequests, activities, notes } = detail;
+  const canExport = ANALYTICS_VIEWER_ROLES.includes(actor.role);
 
   const aiConversation = await getAiConversationRepository().findByLeadId(lead.id);
   const aiMessages = aiConversation ? await getAiConversationRepository().listMessages(aiConversation.id) : [];
@@ -45,7 +50,18 @@ export default async function AdminLeadDetailPage({ params }: { params: Promise<
           </div>
           <p className="mt-1 text-sm text-muted">{lead.name}</p>
         </div>
-        <LeadStatusSelect leadId={lead.id} status={lead.status} />
+        <div className="flex items-center gap-3">
+          {canExport && (
+            <Link
+              href={`/admin/leads/${lead.id}/export`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-primary-bright hover:text-primary-bright"
+            >
+              <Download className="size-3.5" />
+              Export data (JSON)
+            </Link>
+          )}
+          <LeadStatusSelect leadId={lead.id} status={lead.status} />
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

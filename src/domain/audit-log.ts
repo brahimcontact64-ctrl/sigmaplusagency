@@ -21,6 +21,7 @@ export const AUDIT_ACTIONS = [
   "seo_recommendation_rejected",
   "lost_reason_set",
   "deal_value_updated",
+  "lead_data_exported",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

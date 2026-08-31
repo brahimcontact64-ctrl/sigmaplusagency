@@ -43,7 +43,7 @@ export function buildStaticSitemapEntries(): MetadataRoute.Sitemap {
 
   entries.push(fixedPathEntry(""));
 
-  for (const segment of ["/services", "/work", "/about", "/contact", "/start-project", "/ai-consultant", "/insights"]) {
+  for (const segment of ["/services", "/work", "/about", "/contact", "/start-project", "/ai-consultant", "/insights", "/privacy-policy", "/terms"]) {
     entries.push(fixedPathEntry(segment));
   }
 

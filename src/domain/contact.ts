@@ -32,4 +32,4 @@ export type ContactFormInput = z.infer<typeof contactFormSchema>;
 
 export type ContactFormResult =
   | { success: true; reference: string; whatsappUrl: string }
-  | { success: false; error: "validation_error" | "rate_limited" | "db_unavailable" | "unexpected" };
+  | { success: false; error: "validation_error" | "rate_limited" | "db_unavailable" | "maintenance" | "unexpected" };

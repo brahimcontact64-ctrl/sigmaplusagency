@@ -919,9 +919,99 @@ All optional, all already gracefully degrading without them: `NEXT_PUBLIC_GA4_ME
 
 Session-level acquisition-channel breakdown doesn't exist yet (`page_view` doesn't currently carry UTM dimensions — see measurement plan §6); `cta_click` is wired to exactly one CTA today, not every button on the site; per-content `builderStarts` is left unset rather than guessed (would need a second-event-in-session join not yet built); Redis/Upstash-backed distributed rate limiting is a documented gap, not implemented; CSP keeps `'unsafe-inline'` pending nonce plumbing; Web Vitals is real-user-monitoring architecture, not yet a field-CWV baseline with enough accumulated traffic to cite; the internal lead-export-assembly service and formal data-retention-policy configuration described in the original Phase 9 brief (§58-62) were treated as documentation-level scope this phase (see `docs/PRODUCTION_OPERATIONS.md`) rather than a full implementation, since building an unused export/deletion workflow would be speculative ahead of an actual retention policy decision.
 
-### Recommended Phase 10
+### Recommended Phase 10 (superseded — see below)
 
 Close the observability/production-hardening gaps flagged above that are worth real implementation once there's production traffic to justify them: a Redis/Upstash rate-limiter adapter before any multi-instance deployment, nonce-based CSP tightening, and a real internal lead-export/retention workflow once the owner has a data-retention policy to encode. Otherwise, the original roadmap's Phase 9 blog-platform remainder (real seed content, category landing pages, SEO-opportunity → draft loop) is still open and could be picked up here instead.
+
+The owner directed Phase 10 toward full production readiness and deployment/final UX polish instead — see the Phase 10 report immediately below.
+
+---
+
+## PHASE 10 — PRODUCTION READINESS, DEPLOYMENT & FINAL UX/CONVERSION POLISH
+
+Full policy/architecture detail lives in **`docs/PRODUCTION_OPERATIONS.md`**, **`docs/DEPLOYMENT_RUNBOOK.md`** (new this phase), and **`docs/LAUNCH_CHECKLIST.md`** — this section is the phase report.
+
+### Baseline
+
+`git status`: clean. `tsc --noEmit`: clean. `eslint .`: clean. `vitest run`: **325/325 passing** (50 files — this already reflects the phase's own additions; the pre-phase baseline, recorded before any change, was **301/301** across 44 files, identical to Phase 9's end state). `npm run seo:audit`: 0 errors, 0 warnings, 20 opportunities (unchanged from Phase 9's end state — all case-study narrative gaps and long-meta-description items, none new). Production build: succeeds.
+
+### Production database and migrations (§2-4)
+
+`src/lib/db/client.ts` gained `DATABASE_POOL_MAX` (default 5, tunable down for serverless deployments) plus `idle_timeout`/`connect_timeout` on the `postgres-js` client. **The permanent "never silently fall back from production PostgreSQL to PGlite/memory" rule was reconfirmed unchanged**, not relaxed. New `scripts/migrate-prod.ts` (`npm run db:migrate:prod`) is the real production migration entry point — unlike `drizzle-kit migrate` (which falls back to a placeholder local connection string when `DATABASE_URL` is unset, fine for dev, unsafe for production), this script refuses to run at all without a genuine `DATABASE_URL`, opens one dedicated connection, and fails loudly on any error. No automatic migration at request time or arbitrary startup exists anywhere.
+
+### Preview vs. production deployment behavior (§8-9) — a real gap found and fixed
+
+New `src/lib/deployment.ts` (`isProductionDeployment()`/`getDeploymentEnvironment()`) is the one source of truth, trusting Vercel's `VERCEL_ENV` over `NODE_ENV` so a preview build (which also runs with `NODE_ENV=production`) is never mistaken for production. Before this phase, `robots.txt` unconditionally allowed crawling and no page ever set `robots:{index:false}` outside Admin — meaning a preview deployment would have been fully crawlable. Fixed: `src/app/robots.ts` disallows everything on any non-production deployment; `src/app/[locale]/layout.tsx` sets a site-wide `noindex` default on non-production, which the AI Consultant page (the one page that previously hardcoded `index:true`) now correctly defers to instead of overriding unconditionally. Canonical URLs still always point at the real production origin regardless of which deployment served the request (intentional SEO dedup, unchanged). Both branches are tested.
+
+### Email notification architecture (§13-18, new capability)
+
+`src/lib/notifications/email-provider.ts` (`EmailNotificationProvider` interface, one real `ResendEmailProvider` via plain `fetch()`, no SDK dependency) + `src/lib/notifications/lead-notification-service.ts` (internal new-lead notification, optional off-by-default client confirmation email). Wired into `lead-service.ts` immediately after a lead is successfully persisted — notification failure is structurally isolated (the function never throws, and a `LeadActivity` is written only on a genuine `SENT` outcome, never for `SKIPPED`/`FAILED`). Internal emails contain only reference/name/company/project-type/timeline/budget/source/admin-link — never the raw message body or AI conversation text. Both `RESEND_API_KEY` and the two recipient/sender env vars are required for anything to actually send; missing any of them means a clean `SKIPPED`, never an error, and lead persistence is completely unaffected either way.
+
+### Distributed rate limiting (§19-20)
+
+`src/lib/security/rate-limit.ts`'s `RateLimiter` interface is now `Promise<boolean>`-returning (every call site updated to `await`). A new `UpstashRateLimiter` (plain REST `fetch()`, fixed-window `INCR`+`EXPIRE NX`, fails open on any provider error) is selected automatically over the existing in-memory implementation whenever `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` are both set — zero credentials required for the app to build or run. A production deployment without them logs one explicit `console.warn` at process start, so the limitation shows up in platform logs, not only in documentation.
+
+### CSP hardening (§21) — evaluated nonces, deliberately did not adopt them
+
+Investigated nonce-based `script-src`/`style-src` per Next's own documented pattern. Rejected for a documented, non-obvious reason: nonces require **every page to render dynamically**, and this app deliberately statically generates the entire public marketing site for real SEO/performance reasons established since Phase 1 — forcing that to dynamic rendering would be a major regression (slower loads, no CDN caching, higher hosting cost), a bigger trade than a hardening phase should make silently. The experimental hash-based alternative (Subresource Integrity) preserves static generation but doesn't hash inline `style="..."` attributes, which this codebase genuinely uses. What was tightened without that trade-off: `img-src` no longer allows a broad `https:` wildcard (zero external image usage exists anywhere, confirmed by a full source grep), and `'unsafe-eval'` is now scoped to non-production only, matching Next's own guidance for React's dev-mode error reconstruction. Full reasoning lives in `src/lib/security/csp.ts`'s header comment — this is the kind of decision a future phase should read before "fixing" it.
+
+### Maintenance mode and feature flags (§30-31)
+
+`src/lib/feature-flags.ts` — a deliberately minimal, server-authoritative snapshot, not a feature-flag platform. `MAINTENANCE_MODE=true` is the one flag with real enforcement: it's checked in `submitContactForm`, `submitProjectBuilder`, `requestAiProposalAction`, and the `/api/ai/consultant` route, each returning a new `"maintenance"` result/error state with dedicated, translated copy (all 4 locales) rather than a generic failure. The rest of the public site, and Admin entirely, are unaffected — the flag is never checked anywhere under `src/app/admin`. Admin → Dashboard shows a prominent banner whenever it's on, specifically so it's never left on by accident.
+
+### Security/auth re-review (§22-26) — mostly verification, one real fix
+
+Reconfirmed: auth cookie attributes (`httpOnly`, `secure`-in-production, `sameSite=lax`, logout invalidation + audit), no session token in `localStorage` anywhere, every admin route handler (both now, including the new single-lead export) performs its own `requireActor()`/`assertRole()` rather than relying on the protected layout alone, draft/preview/AI-conversation privacy all structurally enforced (unchanged from earlier phases), no E2E framework present anywhere (a launch gate, verified explicitly this phase). **New:** branded error boundaries added for the first time — `[locale]/error.tsx`, `global-error.tsx` (root-level, deliberately dependency-free since it can trigger when the root layout itself fails), and `admin/error.tsx` — none ever show a raw stack trace, all show a safe correlation id via the Phase 9 `ErrorReporter`.
+
+### Bundle isolation (§47-49) — one real cross-boundary import found and fixed
+
+Audited every `[locale]` page for an accidental import from `@/components/admin`. Found one: `insights/page.tsx` imported the shared `EmptyState` component from the Admin tree. Fixed by moving `EmptyState` to `src/components/ui/empty-state.tsx` (updated across all 9 call sites, 8 Admin + 1 public) — a small, low-risk fix, but a real layering violation that would have made the boundary progressively easier to blur further. AI provider SDK (`@anthropic-ai/sdk`) reconfirmed server-only-marked and never imported by a client component; Three.js lazy-loading reconfirmed unregressed.
+
+### Legal/privacy foundation (§55-56)
+
+New `/privacy-policy` and `/terms` pages, all 4 locales, linked from the footer, sharing one `LegalPageBody` component. Both carry a prominent, honest on-page notice that they are general information, not lawyer-reviewed legal copy, and are not a certified compliance statement — real legal review remains an explicit, tracked launch requirement, never claimed as done. Consent banner behavior reconfirmed unchanged from Phase 9 (Reject optional works, preference is revisitable via "Manage," no dark patterns).
+
+### Data export (§57)
+
+`GET /admin/leads/[id]/export` (OWNER/ADMIN only, tighter than the existing any-admin bulk CSV export) downloads one lead's full assembled record (lead + project requests + activity timeline + notes) as JSON, audited on every export (`lead_data_exported`). Deletion/anonymization remains a documented policy gap, not a silent omission — building it safely requires an actual retention-policy decision first (recorded in `docs/PRODUCTION_OPERATIONS.md` §12), and hard-deleting a lead or its audit trail without that policy is explicitly against project rules.
+
+### Mobile/RTL/accessibility/copy/CTA review (§32-46)
+
+Performed at the source/architecture level, per the durable no-E2E policy — no browser tool exists to drive a real device matrix. Reconfirmed unregressed: RTL mirroring (`dir="rtl"` on `<html>` for `ar`, chevrons/steppers already directionally aware from earlier phases), reduced-motion (`MotionConfig reducedMotion="user"`), no modal/dialog components exist anywhere (nothing to audit for focus-trapping), zero `<img>`/external-image usage (nothing to audit for alt text). Primary conversion paths (Home→Builder→Lead, Home→AI→Builder→Lead, Service/Case-Study/Insight→Builder, Contact→Lead) traced through the code and confirmed to have no dead ends. This was a source-level review, not a device-by-device visual QA pass — real device/browser QA remains a manual, owner-side activity per the launch checklist.
+
+### Secret scan and dependency audit (§52-53)
+
+Repository-level scan (tracked files, `.env.example`, `drizzle.config.ts`, scripts, tests) for API-key/private-key/credential-shaped patterns — clean; the only matches were the pre-existing placeholder values (`postgres://user:password@...`) in documentation/config, not real secrets. Dependency list reviewed — every package has confirmed real usage in source (including subpath imports like `@hookform/resolvers/zod`); no unused, stale, or leftover testing packages found. `npm audit`/vulnerability scanning was not run this phase due to this environment's network constraints — noted honestly rather than fabricating a clean result.
+
+### Documentation
+
+New: `docs/DEPLOYMENT_RUNBOOK.md` (the exact 16-step provision→deploy→verify sequence). Substantially extended: `docs/PRODUCTION_OPERATIONS.md` (preview/production behavior, email notifications, maintenance mode/feature flags, updated CSP/rate-limiting/migration sections, data export/retention section) and `docs/LAUNCH_CHECKLIST.md` (email notification section, updated security/legal sections, a truthful production-readiness scorecard by area, and a concrete manual smoke checklist).
+
+### Errors found and fixed this phase
+
+- **Preview deployments were fully crawlable** — no mechanism distinguished a preview build from production for `robots.txt`/page metadata purposes (§8-9 above). Fixed with `src/lib/deployment.ts` and updates to `robots.ts`/`layout.tsx`/`ai-consultant/page.tsx`.
+- **A public page imported from the Admin component tree** (`insights/page.tsx` → `@/components/admin/empty-state`) — fixed by relocating the shared component to `src/components/ui/`.
+- Two testability gaps in Phase 9-era code were fixed while writing this phase's tests: `lead-notification-service.ts`'s env-var reads were cached at module load (making them impossible to toggle in a test without re-importing the module) — changed to lazy per-call reads, with no behavior change in production. `csp.ts`'s equivalent module-level caching was left as-is since its test doesn't need to toggle env vars mid-run.
+
+### Tests
+
+24 new Vitest tests across 6 new files: deployment-environment detection (production vs. preview vs. development, including the "NODE_ENV=production during a preview build" trap), the in-memory rate limiter's contract (limit enforcement, independent keys, window expiry via fake timers) and distributed-mode detection, CSP header generation (restrictive directives present, no bare wildcards, no broad `img-src`, GA4 hosts absent when unconfigured), the email notification service against an injected fake provider (skip-when-unconfigured, real send, header-injection defense, provider-failure handling, client-confirmation off-by-default), and the liveness endpoint's response shape. Two existing tests (`seo-sitemap-robots.test.ts`'s `robots()` assertions) were restructured into explicit production/preview branches rather than a single implicit-environment call, since the underlying function is now environment-dependent. **325 total tests passing** (301 carried forward + 24 new).
+
+### Final verification
+
+TypeScript (`tsc --noEmit`): clean. ESLint: clean. Vitest: **325/325 passing** (50 files). `npm run seo:audit`: 0 errors, 0 warnings, 20 opportunities (unchanged). Production build (`next build`): succeeds — `/privacy-policy`, `/terms`, `/admin/leads/[id]/export` all compile and appear in the route table alongside every prior route; the new production-without-Upstash warning fires correctly during the build's static-generation pass. `npx drizzle-kit generate` confirms zero schema drift (no schema changes were needed this phase).
+
+### Known limitations / blockers (honest, not exhaustive)
+
+Real device/browser visual QA has not been performed (no browser tool, durable no-E2E policy) — the mobile/RTL/accessibility review this phase is source-level, not a substitute for a manual pass on real devices before broad launch. Lead deletion/anonymization remains architecture-only pending a retention-policy decision. `npm audit` was not run (network-constrained environment). Distributed rate limiting and the nonce-based CSP tightening remain inactive/not-adopted respectively, both for documented reasons, not oversights.
+
+### Exact owner actions still required before launch
+
+Production domain + DNS; production PostgreSQL; `ADMIN_SESSION_SECRET`; rotating the Phase-5-issued temporary OWNER password (a hard launch gate); confirming the primary WhatsApp number; providing `ANTHROPIC_API_KEY` if AI should launch enabled; providing `RESEND_API_KEY` + a verified sending domain (SPF/DKIM/DMARC) if email notifications should launch enabled; connecting GSC/GA4/PageSpeed (can happen shortly after go-live, not a blocker); real legal review of the Privacy Policy/Terms drafts and the consent implementation before broad public launch; optionally, Upstash credentials before any multi-instance production deployment. Full list with context: `docs/LAUNCH_CHECKLIST.md`.
+
+### Recommendation for launch
+
+Code, security architecture, and operational tooling (health checks, logging, migration/rollback procedure, deployment runbook, maintenance mode) are genuinely production-ready. Launch is **blocked only on the owner-side infrastructure/credential items above and the legal review** — nothing in the codebase itself is a known blocker. The recommended sequence is: provision infrastructure (domain/DB/secrets) → run `docs/DEPLOYMENT_RUNBOOK.md` end to end against a preview deployment first → obtain legal review of the draft Privacy/Terms pages → go live → run the manual smoke checklist for real → connect analytics/search tools.
 
 ---
 
@@ -937,8 +1027,8 @@ Close the observability/production-hardening gaps flagged above that are worth r
 - [x] Phase 7 — Technical SEO foundation
 - [x] Phase 8 — Insights/CMS content system + SEO intelligence data layer
 - [x] Phase 9 — Analytics, conversion intelligence, observability & production hardening (redirected from the originally-planned "blog/content platform," which Phase 8 had already substantially covered)
-- [ ] Phase 10 — Redis-backed rate limiting, nonce-based CSP, lead-export/retention workflow, and/or the remaining blog-platform scope
-- [ ] Phase 11 — Full E2E + production readiness
+- [x] Phase 10 — Production readiness, deployment & final UX/conversion polish
+- [ ] Phase 11 — Real device/browser manual QA pass, lead retention policy + anonymization workflow, and launch execution (once the owner-side infrastructure/legal items in `docs/LAUNCH_CHECKLIST.md` are complete)
 
 ## OPEN ITEMS REQUIRING OWNER INPUT (not blockers, tracked for later phases)
 

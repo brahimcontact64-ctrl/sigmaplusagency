@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getCrmService } from "@/lib/services/crm-service";
-import { EmptyState } from "@/components/admin/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatDateTime, activityLabel } from "@/lib/admin/format";
 
 export const metadata = { title: "Activities — SIGMA+ Admin" };

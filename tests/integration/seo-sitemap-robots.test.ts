@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { buildStaticSitemapEntries as sitemap } from "@/app/sitemap";
 import robots from "@/app/robots";
 import { siteConfig } from "@/lib/site-config";
@@ -38,20 +38,48 @@ describe("sitemap", () => {
   });
 });
 
-describe("robots", () => {
-  const result = robots();
+describe("robots — production deployment", () => {
+  const originalVercelEnv = process.env.VERCEL_ENV;
+
+  afterEach(() => {
+    if (originalVercelEnv === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = originalVercelEnv;
+  });
+
+  function robotsAsProduction() {
+    process.env.VERCEL_ENV = "production";
+    return robots();
+  }
 
   it("points at the real sitemap", () => {
-    expect(result.sitemap).toBe(`${siteConfig.url}/sitemap.xml`);
+    expect(robotsAsProduction().sitemap).toBe(`${siteConfig.url}/sitemap.xml`);
   });
 
   it("disallows admin and API surfaces", () => {
-    const rule = Array.isArray(result.rules) ? result.rules[0] : result.rules;
-    expect(rule.disallow).toEqual(expect.arrayContaining(["/admin", "/api/"]));
+    const rule = Array.isArray(robotsAsProduction().rules) ? (robotsAsProduction().rules as unknown[])[0] : robotsAsProduction().rules;
+    expect((rule as { disallow: string[] }).disallow).toEqual(expect.arrayContaining(["/admin", "/api/"]));
   });
 
   it("allows general crawling", () => {
+    const result = robotsAsProduction();
     const rule = Array.isArray(result.rules) ? result.rules[0] : result.rules;
-    expect(rule.allow).toBe("/");
+    expect((rule as { allow: string }).allow).toBe("/");
+  });
+});
+
+describe("robots — preview/development deployment (Phase 10 §9)", () => {
+  const originalVercelEnv = process.env.VERCEL_ENV;
+
+  afterEach(() => {
+    if (originalVercelEnv === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = originalVercelEnv;
+  });
+
+  it("disallows everything and omits the sitemap reference", () => {
+    process.env.VERCEL_ENV = "preview";
+    const result = robots();
+    const rule = Array.isArray(result.rules) ? result.rules[0] : result.rules;
+    expect((rule as { disallow: string }).disallow).toBe("/");
+    expect(result.sitemap).toBeUndefined();
   });
 });

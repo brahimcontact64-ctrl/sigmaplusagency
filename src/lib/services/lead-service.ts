@@ -4,7 +4,8 @@ import { generatePublicReference } from "./reference";
 import { normalizeEmail, normalizePhone } from "./identity";
 import { buildStructuredBrief, type BriefInput } from "./structured-brief";
 import { sanitizeUtmValue, sanitizeUrlValue } from "@/lib/attribution/sanitize-utm";
-import type { Attribution, LeadSource, PreferredContactMethod } from "@/domain/lead";
+import { sendInternalLeadNotification, sendClientConfirmationEmail } from "@/lib/notifications/lead-notification-service";
+import type { Attribution, Lead, LeadSource, PreferredContactMethod } from "@/domain/lead";
 import type { ProjectRequest, StructuredBrief } from "@/domain/project-request";
 
 export type SubmitContactInput = {
@@ -49,6 +50,36 @@ async function attachAnalyticsSession(analyticsSessionId: string | undefined, le
     await getAnalyticsService().attachSessionToLead(analyticsSessionId, leadId);
   } catch (error) {
     console.error("[lead-service] analytics session attach failed (non-fatal):", error);
+  }
+}
+
+/**
+ * Best-effort, non-blocking email notifications (Phase 10 §13-18) —
+ * both the internal new-lead notice and the optional client
+ * confirmation. Never throws, never delays the caller beyond the
+ * actual send attempt, and NEVER rolls back (or masks the success of)
+ * the lead it's attached to; a notification failure is only ever
+ * logged. A `LeadActivity` is written only for a real SENT outcome —
+ * SKIPPED/FAILED are never recorded as if something happened.
+ */
+async function sendLeadNotifications(
+  repo: LeadRepository,
+  lead: Lead,
+  reference: string,
+  brief?: Pick<StructuredBrief, "projectType" | "timeline" | "investmentRange">,
+): Promise<void> {
+  try {
+    const internal = await sendInternalLeadNotification(lead, reference, brief);
+    if (internal.outcome === "SENT") {
+      await repo.createActivity(lead.id, "internal_notification_sent", {});
+    }
+
+    const confirmation = await sendClientConfirmationEmail(lead, reference);
+    if (confirmation.outcome === "SENT") {
+      await repo.createActivity(lead.id, "client_confirmation_sent", {});
+    }
+  } catch (error) {
+    console.error("[lead-service] notification dispatch failed (non-fatal):", error);
   }
 }
 
@@ -146,8 +177,9 @@ export async function submitContact(
     if (isNew) await repo.createActivity(lead.id, "lead_created", { via: "contact_form" });
     await repo.createActivity(lead.id, "contact_form_submitted", { via: "contact_form" });
 
+    let brief: StructuredBrief | undefined;
     if (input.projectType && input.message) {
-      const brief = await buildStructuredBrief(
+      brief = await buildStructuredBrief(
         {
           projectType: "not-sure",
           goals: [],
@@ -176,6 +208,7 @@ export async function submitContact(
     }
 
     await attachAnalyticsSession(input.analyticsSessionId, lead.id);
+    await sendLeadNotifications(repo, lead, lead.publicReference, brief);
 
     return { success: true, reference: lead.publicReference, leadId: lead.id };
   } catch (error) {
@@ -233,6 +266,7 @@ export async function submitProjectRequest(
     });
 
     await attachAnalyticsSession(input.analyticsSessionId, lead.id);
+    await sendLeadNotifications(repo, lead, lead.publicReference, brief);
 
     return { success: true, reference: lead.publicReference, leadId: lead.id, brief };
   } catch (error) {

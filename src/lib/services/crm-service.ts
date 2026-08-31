@@ -59,6 +59,29 @@ export class CrmService {
     return { lead, projectRequests, activities, notes };
   }
 
+  /**
+   * Internal lead-data export (Phase 10 §57) — the full assembled
+   * record (lead + requests + activity timeline + notes) for a single
+   * lead, distinct from the bulk CRM CSV export. Every export is
+   * audited with the real authenticated actor; this is never exposed
+   * without OWNER/ADMIN authorization (enforced by the calling route,
+   * same pattern as every other admin mutation/read boundary).
+   */
+  async exportLeadData(leadId: string, actor: AdminActor): Promise<LeadDetail | null> {
+    const detail = await this.getLeadDetail(leadId);
+    if (!detail) return null;
+
+    await this.auditLog.record({
+      actorId: actor.id,
+      actorEmail: actor.email,
+      action: "lead_data_exported",
+      targetType: "lead",
+      targetId: leadId,
+    });
+
+    return detail;
+  }
+
   async changeLeadStatus(leadId: string, newStatus: string, actor: AdminActor): Promise<ChangeStatusResult> {
     if (!isValidLeadStatus(newStatus)) return { success: false, error: "invalid_status" };
 

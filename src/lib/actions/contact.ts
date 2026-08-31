@@ -7,6 +7,7 @@ import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { isHoneypotTripped, HONEYPOT_FIELD_NAME } from "@/lib/security/honeypot";
 import { submissionRateLimiter } from "@/lib/security/rate-limit";
 import { getClientIp } from "@/lib/security/client-ip";
+import { isMaintenanceModeEnabled } from "@/lib/feature-flags";
 
 /**
  * Real server boundary: validated, rate-limited, honeypot-checked, then
@@ -15,6 +16,10 @@ import { getClientIp } from "@/lib/security/client-ip";
  * successful write; see submitContact's try/catch for the failure path.
  */
 export async function submitContactForm(formData: unknown, analyticsSessionId?: string): Promise<ContactFormResult> {
+  if (isMaintenanceModeEnabled()) {
+    return { success: false, error: "maintenance" };
+  }
+
   const parsed = contactFormSchema.safeParse(formData);
   if (!parsed.success) {
     return { success: false, error: "validation_error" };
@@ -29,7 +34,7 @@ export async function submitContactForm(formData: unknown, analyticsSessionId?: 
   }
 
   const ip = await getClientIp();
-  if (!submissionRateLimiter.check(`contact:${ip}`)) {
+  if (!(await submissionRateLimiter.check(`contact:${ip}`))) {
     return { success: false, error: "rate_limited" };
   }
 

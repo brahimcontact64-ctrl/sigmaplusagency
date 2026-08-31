@@ -9,6 +9,7 @@ import { QualificationService } from "@/lib/services/ai-qualification-service";
 import { aiMessageSessionRateLimiter, aiMessageIpRateLimiter } from "@/lib/security/rate-limit";
 import { getClientIp } from "@/lib/security/client-ip";
 import { trackServer } from "@/lib/integrations/analytics-server";
+import { isMaintenanceModeEnabled } from "@/lib/feature-flags";
 
 /**
  * The only network boundary for SIGMA AI. Every request is validated,
@@ -33,8 +34,12 @@ export async function POST(request: NextRequest) {
   const { sessionId, conversationId, locale, message } = parsed.data;
 
   const ip = await getClientIp();
-  if (!aiMessageSessionRateLimiter.check(`ai-session:${sessionId}`) || !aiMessageIpRateLimiter.check(`ai-ip:${ip}`)) {
+  if (!(await aiMessageSessionRateLimiter.check(`ai-session:${sessionId}`)) || !(await aiMessageIpRateLimiter.check(`ai-ip:${ip}`))) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
+  if (isMaintenanceModeEnabled()) {
+    return NextResponse.json({ error: "ai_unavailable" }, { status: 503 });
   }
 
   const provider = getAIProvider();

@@ -31,7 +31,7 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
   const emailNormalized = normalizeEmail(email);
   const ip = await getClientIp();
 
-  if (!loginIpRateLimiter.check(`ip:${ip}`) || !loginEmailRateLimiter.check(`email:${emailNormalized}`)) {
+  if (!(await loginIpRateLimiter.check(`ip:${ip}`)) || !(await loginEmailRateLimiter.check(`email:${emailNormalized}`))) {
     return { error: "Too many attempts. Please try again in a few minutes." };
   }
 
