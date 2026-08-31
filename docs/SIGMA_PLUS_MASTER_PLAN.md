@@ -1,7 +1,7 @@
 # SIGMA PLUS AGENCY — Master Plan
 
 Status: living document. Updated at the end of every phase.
-Last updated: 2026-08-31 (Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, and Phase 6 complete).
+Last updated: 2026-08-31 (Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, and Phase 7 complete).
 
 ---
 
@@ -646,6 +646,108 @@ Everything from Phases 4-5, plus `ANTHROPIC_API_KEY` (optional — omitting it k
 
 ---
 
+## PHASE 7 — TECHNICAL SEO FOUNDATION
+
+Full policy detail lives in **`docs/SEO_STRATEGY.md`** — this section is the phase report; that document is the living reference going forward.
+
+### Pre-phase verification (0.1 / 0.2 / 0.3)
+
+- **0.1 Production persistence invariant, reconfirmed**: every repository (leads, project requests, activities, admin users, lead notes, admin audit logs, site-settings writes, AI conversations/messages) constructs against the same `getDb()` singleton, which throws synchronously in production with no `DATABASE_URL` — no repository has a separate or parallel persistence path. Added a dedicated test (`tests/integration/db-persistence-policy.test.ts`) that didn't exist before, and strengthened `db/client.ts`'s own doc comment to state the invariant explicitly and name every repository sharing it. Confirmed this is distinct from `effective-config.ts`'s public-contact-info fallback, which degrades gracefully but never touches persistence.
+- **0.2 AI model configuration**: `AI_MODEL` was previously passed to the Anthropic SDK unvalidated. Added `SUPPORTED_AI_MODELS` (`src/lib/ai/model-config.ts`, pure/testable) — an unsupported or typo'd model name is now treated exactly like a missing API key (the same honest "AI unavailable" state), decided once via `resolveAiConfig()` rather than only surfacing as an opaque provider error the first time someone sends a message. The `/ai-consultant` page's "available" check now reflects model validity too, not just key presence. No API key was required to verify this — it's exercised entirely via the pure `selectAiModel()` function and a mocked `AI_MODEL` string.
+- **0.3 Password reminder**: not touched, not printed, not re-inspected, per instruction. The owner still needs to change the Phase-5-issued temporary OWNER password before production use — flagged again here, not silently dropped.
+
+### SEO architecture
+
+Audited before changing anything (§2 of SEO_STRATEGY.md). Real gaps found: canonical/hreflang construction duplicated ad hoc across 9+ files with no `x-default` anywhere; `sitemap.ts` missing the Phase-6 `/ai-consultant` page and fabricating `lastModified: new Date()` on every entry; `robots.ts` with no explicit `/admin`/`/api/` disallow; JSON-LD built ad hoc per page with the Organization object duplicated instead of `@id`-referenced; no FAQPage schema despite a visibly-rendered FAQ; no deterministic SEO tooling at all. Nothing that already worked (localized routing, existing canonical/alternates on every page, the breadcrumb JSON-LD parity, the Phase 3 `alternateLinks:false` fix) was rewritten.
+
+### Indexability
+
+Explicit matrix in SEO_STRATEGY.md §3. Public commercial pages index/follow; `/admin/*` is noindex via three independent layers (metadata, robots.txt, and real auth — the last being the only one that actually stops anything); the AI Consultant's static landing page indexes, the conversation itself has no URL to index at all.
+
+### Canonical / hreflang system
+
+One resolver, `src/lib/seo/site-url.ts` (`buildCanonicalUrl`, `buildAlternateLanguages`, `buildFixedPathAlternates`), now used by every `generateMetadata` in the codebase (root layout, both index pages, about, contact, start-project, ai-consultant, and both `[slug]` detail pages — all refactored off inline `Object.fromEntries` construction). `x-default` added everywhere, pointing at `fr` (Algeria-first, matches `next-intl`'s own default locale). Verified query parameters (`?from=ai`, `utm_*`) can never affect a canonical, since no `generateMetadata` reads `searchParams` — this was already true, just confirmed and documented rather than needing a fix.
+
+### Sitemap / robots
+
+`sitemap.ts`: added the missing `/ai-consultant` entry; removed the fabricated `lastModified` entirely (no content in this codebase carries a real per-entry timestamp — omitted per the brief's own "otherwise omit it" instruction, not replaced with a different fake value). `robots.ts`: added explicit `disallow: ["/admin", "/api/"]`, documented in-code as defense-in-depth, not the real boundary.
+
+### Metadata / branding
+
+No global title template (each page sets its own differentiated title) — documented as the deliberate policy in SEO_STRATEGY.md §8, verified by the audit engine's duplicate-title check finding zero duplicates. Branding split (`SIGMA+` mark vs. `SIGMA+ Agency` legal name) documented as intentional, not accidental inconsistency. Optional `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` support added (emits nothing when unset — no fake token).
+
+### Structured data
+
+Centralized in `src/lib/seo/schema.ts` + `<JsonLd>` (`src/components/seo/json-ld.tsx`): `buildOrganizationSchema`/`buildWebSiteSchema`/`buildServiceSchema`/`buildCaseStudySchema`/`buildFaqPageSchema`/`buildBreadcrumbListSchema`, all `@id`-linked instead of duplicating the Organization object per page. The homepage now emits `[Organization, WebSite]` as one `@graph`; service pages emit `Service` (+ `FAQPage` only when that page's FAQ is actually visible — same array drives both); case-study pages emit `CreativeWork` (deliberately not `SoftwareApplication` — a case study page is an editorial write-up, not the software itself). Organization now sources from `getEffectiveSiteConfig()` (Phase 6), so a `company_identity` settings change reaches this schema too, not just the visible contact info. Nothing fabricated: no `aggregateRating`, `review`, `sameAs`, `logo`, `foundingDate`, or `numberOfEmployees` — all omitted for lack of a real, verified value (SEO_STRATEGY.md §9 explains why omission beats a placeholder here).
+
+### Internal linking
+
+Verified via the new audit engine's orphan-reachability check, walking a modeled link graph from Home (nav → 6 top-level pages, services/work indexes → every service/case study, service↔related-service, case-study↔related-service, and the case-study "next project" ring). **Zero orphans currently.** Added a compact footer nav (Services/Work/About/Contact) purely to strengthen internal-linking depth site-wide — every page already had these one click away via the header, this adds a second path.
+
+### Redirects / legacy migration
+
+`src/config/legacy-redirects.ts` (typed, wired into `next.config.ts` via `buildLegacyRedirectRules()`) is **empty, deliberately**: the Phase 0 audit found the old live site has no confirmed indexable subpage URLs at all (no sitemap, no robots.txt, single-page-app-with-anchors architecture in every local snapshot). There is nothing to verify a redirect *from* — inventing service/project-level mappings would have violated the explicit "do not invent redirects for URLs that never existed" rule. The only plausible future entry (bare locale root, if/when the old domain is ever pointed at this app) is a DNS/infrastructure decision for the owner, not something decided here.
+
+### 404 / 410
+
+404 (`not-found.tsx`) now links to Services/Work/Start a Project in addition to Home, still brand-consistent and localized (a real HTTP 404, handled automatically by the special-file convention). 410 is prepared (`src/lib/seo/gone.ts`) but not wired to any route, since nothing has actually been removed — using it without a real removed page was explicitly forbidden.
+
+### Algeria-first keyword hypotheses
+
+A 10-row intent/target-page/gap/cannibalization-risk table in SEO_STRATEGY.md §13 — every row explicitly labeled a hypothesis, no volume/ranking/difficulty claim anywhere. Several French phrases deliberately share one target page rather than getting their own, per the "don't create one page per keyword variation" instruction.
+
+### Local SEO — no doorway pages
+
+Explicit standing prohibition documented (SEO_STRATEGY.md §14): no `/agence-web-{ville}` pages, no fake offices/addresses/Google Business locations. None exist. Real future location pages remain architecturally possible but require genuinely unique content and a real reason, which doesn't exist yet.
+
+### SEO audit engine
+
+New: `src/domain/seo-issue.ts` (the `SeoIssue` type + severity/status/provenance vocabularies), `src/lib/seo/site-model.ts` (`buildSiteModel()` — every known page × every locale, built from the real content-layer functions and raw `messages/*.json` reads, no next-intl/server or DB dependency so it runs identically from a plain script or a Next server component), `src/lib/seo/audit.ts` (`runSeoAudit()` — fully deterministic, offline: duplicate/missing/length-outlier titles and descriptions, duplicate canonical URLs, translation-key parity across all 4 `messages/*.json` files, orphan-page reachability, empty case-study narratives, `<h1>` presence/duplication via a best-effort static source scan, broken internal `relatedServices`/case-study-service references). Every finding is `INTERNAL_AUDIT` provenance — the fuller provenance vocabulary (`LIVE_VERIFIED`/`OFFICIAL`/`CONNECTED_DATA`/`ESTIMATE`/`AI_RECOMMENDATION`) is defined for Phase 8+, unused this phase. Issue workflow statuses (`OPEN`/`ACKNOWLEDGED`/`RESOLVED`/`IGNORED`) are defined but not persisted — the audit is cheap enough to just re-run; documented as the deliberate scope trim it is.
+
+**Real run against the live content** (`npm run seo:audit`): **zero ERROR-severity findings**, 2 WARNINGs (two Arabic service meta descriptions shorter than the recommended minimum), 20 OPPORTUNITYs (a few long meta descriptions/titles risking truncation, plus the 4 case studies' already-known-and-tracked empty narrative sections). Nothing fabricated — every finding traces to a real, inspectable piece of content.
+
+### Admin SEO section
+
+`/admin/seo` (new, added to the admin nav): stat cards (indexable page count, known-noindex-route count, real sitemap URL count — computed by calling the actual `sitemap()` function, not a reimplementation), a findings table grouped/colored by severity, and three "Not connected" adapter status rows. All values computed live from `buildSiteModel()`/`runSeoAudit()`/`sitemap()` — nothing hardcoded, nothing simulated.
+
+### External integration adapters
+
+`src/lib/seo/adapters/{search-console,analytics-reporting,pagespeed}.ts` — each a typed boundary returning `{connected:false}` until real credentials exist (`GOOGLE_SEARCH_CONSOLE_*`, `GA4_*`, `PAGESPEED_API_KEY` respectively). None fake connected data; none implement unofficial scraping. The GA4 *reporting* adapter is explicitly distinct from the existing outbound `track()` event abstraction (Phase 4) — one sends events out, the other would read aggregate data back, and they were never meant to be the same thing.
+
+### Core Web Vitals — architectural review only (no measurement)
+
+No Lighthouse/CrUX/PageSpeed data was collected (no credentials, none required this phase) — SEO_STRATEGY.md §17 is a risk review of the implementation, not a measurement. Headline finding: **zero `<img>`/`next/image` usage exists anywhere in the public site today** (verified via a full source grep) — every visual is procedural SVG/Three.js/CSS, which is good for LCP/CLS but means the Image SEO section (§35 of the brief) has nothing to actually audit yet. The Phase 2 3D hero's lazy-loading/capability-gating/reduced-motion fallback was reconfirmed unregressed. New OG-image generation (`next/og`) is statically optimized by Next and adds no runtime cost to page loads.
+
+### Open Graph images
+
+New: `src/lib/seo/og-image.tsx` (one shared, programmatic `ImageResponse` renderer — brand mark + typographic title on the dark/electric-blue palette, no fabricated product screenshots) wired into `[locale]/opengraph-image.tsx` (default), `services/[slug]/opengraph-image.tsx`, `work/[slug]/opengraph-image.tsx`. **Arabic falls back to a brand-only card with no page-specific text** — Satori (the renderer behind `next/og`) doesn't correctly shape Arabic script, and a garbled image would be worse than a clean generic one. Documented, not an oversight.
+
+### Future blog architecture
+
+`src/domain/blog-post.ts` — types only (`BlogPost`, `BLOG_CATEGORIES`, `CONTENT_STATUSES`, `isPublished()`). No content, no `/blog` route, nothing in the sitemap — per the explicit "do not populate dozens of AI-generated articles" instruction. `isPublished()` is the one gate a future sitemap integration will use.
+
+### Tests
+
+39 new Vitest tests across 8 files (canonical/hreflang builders, schema builders including the anti-fabrication assertions like "no `aggregateRating`", the site model, the audit engine — including a hard assertion of **zero ERROR findings against the real live content**, a regression guard against the H1-check's earlier false-positive, sitemap inclusion/exclusion/no-fake-timestamp/no-duplicate-URL, robots rules, and the redirect-mapping function including a documented chained-redirect risk case), plus the two Phase 7 pre-verification tests (production DB throw, AI model validation). **154 total tests passing** (115 carried forward + 39 new).
+
+### Final verification
+
+TypeScript (`tsc --noEmit`): clean. ESLint: clean. Vitest: **154/154 passing**. `npm run seo:audit`: runs clean, 0 errors, exits 0 (see above for the real findings). Production build (`next build`): succeeds — every locale's static pages, the three new `opengraph-image` routes, `/admin/seo`, and the `/api/ai/consultant` route all compile and generate correctly; verified `robots.txt`/`sitemap.xml` output by inspection of the build's route table.
+
+### Required future environment variables
+
+All optional, all already gracefully "not connected" without them: `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`, `GOOGLE_SEARCH_CONSOLE_SITE_URL` + `GOOGLE_SEARCH_CONSOLE_CREDENTIALS_JSON`, `GA4_PROPERTY_ID` + `GA4_SERVICE_ACCOUNT_CREDENTIALS_JSON`, `PAGESPEED_API_KEY`.
+
+### Known limitations
+
+See SEO_STRATEGY.md §22 for the full list — headline items: no browser-rendered visual QA (durable no-E2E policy, verified at the application/integration level instead); two short Arabic meta descriptions and several long titles/descriptions flagged but not rewritten (editorial calls, not code defects); the `<h1>` audit check depends on the raw source tree being present at runtime (reliable in `npm run seo:audit`/dev, not guaranteed in every deployment target); no `logo`/`sameAs` in the Organization schema yet; SEO issue workflow statuses defined but not persisted; the Algeria keyword table remains hypothesis-only pending real Search Console data.
+
+### Next phase
+
+**Phase 8 — SIGMA SEO intelligence engine**, per the roadmap — the natural next step once real external connections (Search Console, GA4, PageSpeed) exist to upgrade `INTERNAL_AUDIT`-only findings into the fuller provenance model already defined in `src/domain/seo-issue.ts`.
+
+---
+
 ## ROADMAP / TODO
 
 - [x] Phase 0 — Audit (this document)
@@ -655,7 +757,7 @@ Everything from Phases 4-5, plus `ANTHROPIC_API_KEY` (optional — omitting it k
 - [x] Phase 4 — Project Builder + lead capture + WhatsApp
 - [x] Phase 5 — Admin + CRM
 - [x] Phase 6 — AI Consultant
-- [ ] Phase 7 — Technical SEO foundation
+- [x] Phase 7 — Technical SEO foundation
 - [ ] Phase 8 — SIGMA SEO intelligence engine
 - [ ] Phase 9 — Blog/content platform
 - [ ] Phase 10 — Analytics, observability, optimization, security hardening

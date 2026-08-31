@@ -18,6 +18,9 @@ import {
 import { getFeaturedProjects, getCaseStudyContent, getProjectSlug, caseStudiesMeta } from "@/content/case-studies";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { siteConfig } from "@/lib/site-config";
+import { buildCanonicalUrl, buildAlternateLanguages } from "@/lib/seo/site-url";
+import { buildServiceSchema, buildFaqPageSchema, withSchemaContext } from "@/lib/seo/schema";
+import { JsonLd } from "@/components/seo/json-ld";
 import { routing, type Locale } from "@/i18n/routing";
 
 export async function generateStaticParams({ params }: { params: { locale: string } }) {
@@ -35,14 +38,14 @@ export async function generateMetadata({
   if (!id) return {};
 
   const content = getServiceContent(locale, id);
-  const languages = Object.fromEntries(
-    routing.locales.map((l) => [l, `${siteConfig.url}/${l}/services/${getServiceSlug(l, id)}`]),
+  const languages = buildAlternateLanguages(
+    Object.fromEntries(routing.locales.map((l) => [l, `/services/${getServiceSlug(l, id)}`])) as Record<Locale, string>,
   );
 
   return {
     title: `${content.title} — ${siteConfig.name}`,
     description: content.positioning,
-    alternates: { canonical: `${siteConfig.url}/${locale}/services/${slug}`, languages },
+    alternates: { canonical: buildCanonicalUrl(locale, `/services/${slug}`), languages },
     openGraph: { title: content.title, description: content.positioning, type: "website" },
   };
 }
@@ -69,18 +72,18 @@ export default async function ServiceDetailPage({
 
   const relatedProjectIds = getFeaturedProjects().filter((pid) => caseStudiesMeta[pid].services.includes(id));
 
-  const serviceJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Service",
-    name: content.title,
-    description: content.description,
-    provider: { "@type": "ProfessionalService", name: siteConfig.legalName, url: siteConfig.url },
-    areaServed: ["DZ", "FR", "DE", "AE"],
-  };
+  const pageUrl = buildCanonicalUrl(locale, `/services/${slug}`);
+  const schemaNodes: object[] = [
+    buildServiceSchema({ name: content.title, description: content.description, url: pageUrl }),
+  ];
+  if (content.faq.length > 0) {
+    schemaNodes.push(buildFaqPageSchema(content.faq.map((f) => ({ question: f.question, answer: f.answer }))));
+  }
+  const jsonLd = withSchemaContext(schemaNodes);
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }} />
+      <JsonLd data={jsonLd} />
       <SiteHeader locale={locale} />
 
       <main className="flex-1">

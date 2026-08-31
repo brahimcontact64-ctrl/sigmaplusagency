@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { GridGlow } from "@/components/backgrounds/grid-glow";
 import type { BreadcrumbItem } from "./breadcrumbs";
 import { Breadcrumbs } from "./breadcrumbs";
+import type { Locale } from "@/i18n/routing";
 
 export function PageHero({
   eyebrow,
@@ -15,7 +16,7 @@ export function PageHero({
   title: string;
   description?: string;
   breadcrumbs?: BreadcrumbItem[];
-  locale: string;
+  locale: Locale;
   children?: ReactNode;
 }) {
   return (

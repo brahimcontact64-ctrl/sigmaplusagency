@@ -73,9 +73,25 @@ export function getDb(): Promise<AppDatabase> {
     );
   }
 
-  // Overridable so E2E test runs (see playwright.config.ts) use their
-  // own on-disk database instead of silently writing into the same
-  // directory a developer is using for manual testing.
+  // Reconfirmed explicitly in Phase 7 (see docs/SIGMA_PLUS_MASTER_PLAN.md
+  // §0.1): every repository in this codebase — leads, project requests,
+  // lead activities, admin users, lead notes, admin audit logs, site
+  // settings *writes*, AI conversations/messages — constructs against
+  // this exact function (see each repository's `getDbInstance = getDb`
+  // constructor default). There is no separate or parallel persistence
+  // path anywhere, so this one throw is the whole production guarantee.
+  // The only place that *catches* a failure from this function and
+  // degrades gracefully is src/lib/effective-config.ts's public contact
+  // info read — that is a cosmetic display fallback (which WhatsApp
+  // number to show), never a persistence decision, and it never writes
+  // anything. Do not add another catch-and-fall-back around getDb() for
+  // an actual write path; a failed write must surface as a failure.
+  //
+  // Overridable so a test run (or, historically, an E2E run before that
+  // policy was removed — see the durable "no browser E2E" project rule)
+  // uses its own on-disk database instead of silently writing into the
+  // same directory a developer is using for manual testing. The test
+  // suite itself never takes this branch — it always uses createTestDb().
   const dataDir = process.env.PGLITE_DATA_DIR ?? path.join(process.cwd(), ".data", "pglite-dev");
   dbPromise = createPgliteDb(dataDir);
   return dbPromise;

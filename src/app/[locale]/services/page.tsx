@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { getAllServiceIds, getServiceContent } from "@/content/services";
 import { SERVICE_CATEGORY_IDS, getServiceCategory, type ServiceCategoryId } from "@/domain/service";
 import { siteConfig } from "@/lib/site-config";
+import { buildFixedPathAlternates } from "@/lib/seo/site-url";
 import { routing, type Locale } from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -17,16 +18,15 @@ export function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: Locale }>;
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "servicesPage" });
-  const languages = Object.fromEntries(routing.locales.map((l) => [l, `${siteConfig.url}/${l}/services`]));
 
   return {
     title: `${t("title")} — ${siteConfig.name}`,
     description: t("subtitle"),
-    alternates: { canonical: `${siteConfig.url}/${locale}/services`, languages },
+    alternates: buildFixedPathAlternates(locale, "/services"),
   };
 }
 

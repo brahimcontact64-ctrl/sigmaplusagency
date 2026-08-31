@@ -9,6 +9,8 @@ import { CtaSection } from "@/components/sections/cta-section";
 import { getEffectiveSiteConfig, getEffectiveWhatsAppUrl } from "@/lib/effective-config";
 import { getServiceContent } from "@/content/services";
 import { getAllProjectIds, getCaseStudyContent } from "@/content/case-studies";
+import { buildOrganizationSchema, buildWebSiteSchema, withSchemaContext } from "@/lib/seo/schema";
+import { JsonLd } from "@/components/seo/json-ld";
 import type { Locale } from "@/i18n/routing";
 import type { ServiceId } from "@/domain/service";
 
@@ -62,23 +64,14 @@ export default async function HomePage({
   const heroWhatsappUrl = await getEffectiveWhatsAppUrl(`${hero("headlineLine1")} ${hero("headlineLine2")}`);
   const contactWhatsappUrl = await getEffectiveWhatsAppUrl(contact("title"));
 
-  const organizationJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "ProfessionalService",
-    name: effectiveConfig.legalName,
-    url: effectiveConfig.url,
-    email: effectiveConfig.contactEmail,
-    telephone: effectiveConfig.contactPhone,
-    areaServed: ["DZ", "FR", "DE", "AE"],
-    availableLanguage: ["fr", "ar", "en", "de"],
-  };
+  const jsonLd = withSchemaContext([
+    buildOrganizationSchema(effectiveConfig),
+    buildWebSiteSchema(effectiveConfig),
+  ]);
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <SiteHeader locale={locale} />
 
       <main className="flex-1">

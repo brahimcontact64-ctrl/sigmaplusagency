@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProjectBuilder } from "@/components/project-builder/project-builder";
-import { siteConfig } from "@/lib/site-config";
+import { buildFixedPathAlternates } from "@/lib/seo/site-url";
 import { routing, type Locale } from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -15,16 +15,19 @@ export function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: Locale }>;
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "projectBuilder" });
-  const languages = Object.fromEntries(routing.locales.map((l) => [l, `${siteConfig.url}/${l}/start-project`]));
 
   return {
     title: t("meta.title"),
     description: t("meta.description"),
-    alternates: { canonical: `${siteConfig.url}/${locale}/start-project`, languages },
+    // The Project Builder's own draft/handoff state (?from=ai, localStorage
+    // draft) never changes what's canonically indexed — this metadata is
+    // identical regardless of query string, so the clean canonical below
+    // already prevents ?from=ai from ever becoming a duplicate indexable URL.
+    alternates: buildFixedPathAlternates(locale, "/start-project"),
   };
 }
 

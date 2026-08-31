@@ -40,6 +40,9 @@ yarn-error.log*
 # local embedded dev database (PGlite) — never real production data
 /.data/
 
+# generated reports (e.g. npm run seo:audit) — reproducible, never hand-edited
+/generated/
+
 # claude code local runtime state
 .claude/
 

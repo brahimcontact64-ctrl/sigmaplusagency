@@ -7,6 +7,7 @@ import { MotionConfig } from "motion/react";
 import "../globals.css";
 import { routing, rtlLocales, type Locale } from "@/i18n/routing";
 import { siteConfig } from "@/lib/site-config";
+import { buildFixedPathAlternates } from "@/lib/seo/site-url";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,23 +26,22 @@ export function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: Locale }>;
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "meta" });
 
-  const languages = Object.fromEntries(
-    routing.locales.map((l) => [l, `${siteConfig.url}/${l}`]),
-  );
+  // NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION is optional — only emitted when
+  // the owner has actually been given a verification token by Google
+  // Search Console. No placeholder/fake token is ever set.
+  const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 
   return {
     metadataBase: new URL(siteConfig.url),
     title: t("title"),
     description: t("description"),
-    alternates: {
-      canonical: `${siteConfig.url}/${locale}`,
-      languages,
-    },
+    alternates: buildFixedPathAlternates(locale, ""),
+    ...(googleVerification ? { verification: { google: googleVerification } } : {}),
     openGraph: {
       title: t("title"),
       description: t("description"),

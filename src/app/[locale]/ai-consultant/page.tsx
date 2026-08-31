@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { PageHero } from "@/components/ui/page-hero";
 import { AiConsultantPanel } from "@/components/ai-consultant/ai-consultant-panel";
 import { isAIConfigured } from "@/lib/ai/get-provider";
-import { siteConfig } from "@/lib/site-config";
+import { buildFixedPathAlternates } from "@/lib/seo/site-url";
 import { routing, type Locale } from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -15,18 +15,18 @@ export function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: Locale }>;
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "aiConsultant" });
-  const languages = Object.fromEntries(routing.locales.map((l) => [l, `${siteConfig.url}/${l}/ai-consultant`]));
 
   return {
     title: t("meta.title"),
     description: t("meta.description"),
-    alternates: { canonical: `${siteConfig.url}/${locale}/ai-consultant`, languages },
+    alternates: buildFixedPathAlternates(locale, "/ai-consultant"),
     // A conversation held here is per-visitor and never indexable content — the
-    // static intro copy is fine to index, the chat itself has no crawlable URL.
+    // static intro copy is fine to index, the chat itself has no crawlable URL
+    // (conversationId lives only in sessionStorage + POST bodies, never a URL).
     robots: { index: true, follow: true },
   };
 }

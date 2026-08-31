@@ -19,6 +19,9 @@ import { getServiceContent } from "@/content/services";
 import { PROJECT_IDS } from "@/domain/case-study";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { siteConfig } from "@/lib/site-config";
+import { buildCanonicalUrl, buildAlternateLanguages } from "@/lib/seo/site-url";
+import { buildCaseStudySchema, withSchemaContext } from "@/lib/seo/schema";
+import { JsonLd } from "@/components/seo/json-ld";
 import { routing, type Locale } from "@/i18n/routing";
 
 const ACCENTS: Record<string, string> = {
@@ -43,14 +46,14 @@ export async function generateMetadata({
   if (!id) return {};
 
   const content = getCaseStudyContent(locale, id);
-  const languages = Object.fromEntries(
-    routing.locales.map((l) => [l, `${siteConfig.url}/${l}/work/${getProjectSlug(l, id)}`]),
+  const languages = buildAlternateLanguages(
+    Object.fromEntries(routing.locales.map((l) => [l, `/work/${getProjectSlug(l, id)}`])) as Record<Locale, string>,
   );
 
   return {
     title: `${content.name} — ${siteConfig.name}`,
     description: content.summary,
-    alternates: { canonical: `${siteConfig.url}/${locale}/work/${slug}`, languages },
+    alternates: { canonical: buildCanonicalUrl(locale, `/work/${slug}`), languages },
     openGraph: { title: content.name, description: content.summary, type: "article" },
   };
 }
@@ -89,17 +92,17 @@ export default async function CaseStudyPage({
   if (content.narrative.qualitativeOutcome)
     narrativeSections.push({ title: t("outcomeTitle"), text: content.narrative.qualitativeOutcome });
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "CreativeWork",
-    name: content.name,
-    description: content.summary,
-    creator: { "@type": "ProfessionalService", name: siteConfig.legalName, url: siteConfig.url },
-  };
+  const jsonLd = withSchemaContext(
+    buildCaseStudySchema({
+      name: content.name,
+      description: content.summary,
+      url: buildCanonicalUrl(locale, `/work/${slug}`),
+    }),
+  );
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd data={jsonLd} />
       <SiteHeader locale={locale} />
 
       <main className="flex-1">
