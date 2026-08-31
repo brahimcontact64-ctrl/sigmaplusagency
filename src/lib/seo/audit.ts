@@ -1,9 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import { buildSiteModel, getServiceMeta, getCaseStudyMeta, getAllServiceIds, getAllProjectIds, type PageModel } from "./site-model";
+import { buildSiteModel, buildArticleModel, getServiceMeta, getCaseStudyMeta, getAllServiceIds, getAllProjectIds, type PageModel } from "./site-model";
 import { getCaseStudyContent } from "@/content/case-studies";
+import { getArticleRepository } from "@/lib/repositories/article-repository";
 import { routing } from "@/i18n/routing";
 import type { SeoIssue } from "@/domain/seo-issue";
+import type { ArticleWithTranslation } from "@/domain/article";
 
 /**
  * Deterministic checks only — no external API, no AI call, no browser.
@@ -280,8 +282,63 @@ function checkBrokenInternalReferences(): SeoIssue[] {
   return issues;
 }
 
-export function runSeoAudit(): SeoIssue[] {
-  const pages = buildSiteModel();
+/** Published articles referencing a service/case-study id that no longer exists — same shape as the static-content check above, just DB-sourced. Also the "no accidentally-indexable draft" guarantee: this only ever sees rows `listAllPublishedTranslations()` already filtered to PUBLISHED. */
+async function checkArticles(): Promise<SeoIssue[]> {
+  const issues: SeoIssue[] = [];
+  const serviceIds = new Set(getAllServiceIds());
+  const projectIds = new Set(getAllProjectIds());
+
+  let articles: ArticleWithTranslation[];
+  try {
+    articles = await getArticleRepository().listAllPublishedTranslations();
+  } catch (error) {
+    issues.push(issue({ type: "WARNING", page: "insights", message: `Could not read published articles from the database: ${(error as Error).message}`, recommendation: "Verify DATABASE_URL / database availability — article-related checks were skipped this run." }));
+    return issues;
+  }
+
+  const seenSlugs = new Map<string, string>(); // `${locale}::${slug}` -> articleId, to catch a same-locale slug collision the DB's own unique index should already prevent
+  for (const article of articles) {
+    const key = `${article.translation.locale}::${article.translation.slug}`;
+    const existing = seenSlugs.get(key);
+    if (existing && existing !== article.id) {
+      issues.push(issue({ type: "ERROR", page: `/${article.translation.locale}/insights/${article.translation.slug}`, locale: article.translation.locale, message: `Duplicate published slug "${article.translation.slug}" shared by two different articles.`, recommendation: "Give each article a unique slug per locale." }));
+    }
+    seenSlugs.set(key, article.id);
+
+    for (const svc of article.relatedServices) {
+      if (!serviceIds.has(svc)) {
+        issues.push(issue({ type: "ERROR", page: `article:${article.id}`, locale: article.translation.locale, message: `relatedServices references unknown service id "${svc}".`, recommendation: "Fix or remove the reference in the article editor." }));
+      }
+    }
+    for (const proj of article.relatedCaseStudies) {
+      if (!projectIds.has(proj)) {
+        issues.push(issue({ type: "ERROR", page: `article:${article.id}`, locale: article.translation.locale, message: `relatedCaseStudies references unknown project id "${proj}".`, recommendation: "Fix or remove the reference in the article editor." }));
+      }
+    }
+  }
+
+  return issues;
+}
+
+export async function runSeoAudit(): Promise<SeoIssue[]> {
+  const staticPages = buildSiteModel();
+
+  let articlePages: PageModel[] = [];
+  let articleReferenceIssues: SeoIssue[] = [];
+  try {
+    articlePages = await buildArticleModel();
+    articleReferenceIssues = await checkArticles();
+  } catch (error) {
+    // Same DB-unavailable resilience as effective-config.ts — a broken
+    // article read must never take down the rest of the (static-content)
+    // audit, which is still fully meaningful on its own.
+    articleReferenceIssues = [
+      issue({ type: "WARNING", page: "insights", message: `Could not build the Insights article model: ${(error as Error).message}`, recommendation: "Verify DATABASE_URL / database availability — article-related checks were skipped this run." }),
+    ];
+  }
+
+  const pages = [...staticPages, ...articlePages];
+
   return [
     ...checkMetadataQuality(pages),
     ...checkDuplicateCanonicalUrls(pages),
@@ -290,5 +347,6 @@ export function runSeoAudit(): SeoIssue[] {
     ...checkEmptyCaseStudies(),
     ...checkHeadingStructure(),
     ...checkBrokenInternalReferences(),
+    ...articleReferenceIssues,
   ];
 }

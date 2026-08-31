@@ -187,23 +187,96 @@ The Admin → SEO page (`/admin/seo`) surfaces all three as "Not connected" toda
 - Query parameters (`?from=ai`, `utm_*`): never read by any `generateMetadata`, so they can never produce an alternate canonical (see §4).
 - Work/project filters: **none exist** — the Work index page lists every case study with no client-side filter UI, so there is no facet/filter query-parameter space to canonicalize. Revisit this section if filtering is ever added.
 
-## 21. Future blog architecture (types only — no content, no route)
+## 21. Insights/CMS content system (Phase 8 — supersedes the Phase 7 placeholder)
 
-`src/domain/blog-post.ts`: `BlogPost` type (id, category, status, locale, slug, title, description, content, author, publishedAt/updatedAt, optional canonicalOverride/ogImage, relatedServices/relatedCaseStudies), `BLOG_CATEGORIES` (web, mobile, ai, automation, e-commerce, seo, business-technology, case-studies), `CONTENT_STATUSES` (`DRAFT`/`REVIEW`/`PUBLISHED`/`ARCHIVED`). **No content exists, no `/blog` route exists, nothing is wired into the sitemap** — `isPublished()` is the one function that will gate sitemap inclusion once real posts exist, per the explicit "do not populate dozens of AI-generated articles" instruction.
+The Phase 7 `src/domain/blog-post.ts` types-only placeholder has been **replaced** by a real, DB-backed implementation — see §24 below for the full architecture. That file no longer exists.
 
-## 22. Known limitations
+## 24. Insights/CMS content system (Phase 8)
 
-- No browser-rendered visual QA was performed this phase (durable no-E2E policy) — verified at the application/integration level (`npm run seo:audit`, Vitest, a real `next build`) instead.
-- Two Arabic service meta descriptions are shorter than the recommended minimum (flagged by the audit, not fixed — a content-copy decision, not a code defect).
-- Several page descriptions run long enough to risk truncation in search results (flagged, not rewritten this phase — editorial call).
+### Content model
+
+`src/domain/article.ts`: `Article` (the stable, locale-independent identity — type/category/tags/author/featured/relatedServices/relatedCaseStudies) and `ArticleTranslation` (everything editorial and per-locale — status/slug/title/description/excerpt/content/seoTitle/seoDescription/ogImage/publishedAt). **Status lives on the translation, not the parent** — this is what makes "a French article exists, Arabic doesn't yet" possible without contradiction (Phase 8 §9). `ARTICLE_TYPES` = `ARTICLE`/`GUIDE`/`CASE_STUDY_EDITORIAL` (kept deliberately separate from the existing project Case Study domain — a case-study *editorial* article is not the same entity as a delivered-project case-study page). `ARTICLE_CATEGORIES` = web/mobile/ai/automation/ecommerce/seo/business-technology/case-studies.
+
+### Storage
+
+Postgres via Drizzle, additive migration `0004_clumsy_random.sql`: `articles`, `article_translations` (unique on `(locale, slug)` and on `(article_id, locale)`), `article_slug_redirects`. Tags/related-services/related-case-studies are `jsonb` arrays on `articles`, not join tables — the same pattern already used for `project_requests`' goals/capabilities/platforms; normalizing further wasn't justified at this content volume. The repository/service boundary (`ArticleRepository`/`ArticleService`) is the only thing public pages and the admin UI touch — a future headless CMS could replace the storage behind that boundary without changing either.
+
+### Anti-chain slug redirects (§15)
+
+`article_slug_redirects` maps an **old slug directly to the article**, never to another slug string. Resolving a redirect always looks up that article's *current* slug at request time — so a slug changed twice (A → B → C) redirects A straight to C with no intermediate hop and no stale "B" row to maintain. Verified with a dedicated test (`tests/integration/article-repository.test.ts`).
+
+### Editorial workflow / RBAC (§56)
+
+`DRAFT → REVIEW → PUBLISHED → ARCHIVED`, enforced server-side in `ArticleService`/`ArticleRepository.changeStatus` — `publishedAt` is set exactly once (first publish) and preserved across unpublish/republish. Publishing runs `validateForPublish()` (title/description/content/slug must be non-empty; no arbitrary SEO character-count hard block, per the brief). `CONTENT_EDITOR_ROLES` = OWNER/ADMIN/EDITOR (this is the first real use of the `EDITOR` role, defined since Phase 5 but unused until now) — SALES explicitly cannot publish content even though it can act on leads; every admin role can at least view the list. Admin UI: `/admin/content` (list + filters), `/admin/content/new`, `/admin/content/[id]` (article-level meta), `/admin/content/[id]/[locale]` (the translation editor), `/admin/content/[id]/[locale]/preview` (auth-only preview, no separate token system, never indexable).
+
+### Content sanitization (§12/§64)
+
+Body content is **Markdown, never raw HTML** — rendered via `react-markdown` (`src/components/content/article-body.tsx`) with `skipHtml` and no `rehype-raw`-style plugin, which is what actually prevents a stored `<script>`/inline event handler from ever executing (it renders as literal escaped text). The one other injection surface — a `javascript:`/`data:`/`vbscript:` URL in a markdown link or image — is blocked by an allowlist (`src/lib/content/sanitize-url.ts`, kept dependency-free specifically so it stays unit-testable, same pattern as `rbac.ts`/`model-config.ts`). No new markdown-to-HTML-with-sanitizer dependency was needed; `react-markdown`'s default (HTML-off) behavior is the actual safety mechanism.
+
+### Public routes
+
+`/[locale]/insights` (index: featured + recent + category filter, canonical always the clean index regardless of `?category`/`?page` — deliberately, to avoid diluting the index's own ranking signal across thin filtered slices, same principle as Phase 7's facet-indexing policy) and `/[locale]/insights/[slug]` (article detail: Article + Organization JSON-LD, related services/case studies, recent articles, the same commercial CTA every content page ends on). Both are `export const dynamic = "force-dynamic"` — deliberately **not** statically prerendered, since this is live-editable CMS content and a newly published article must appear without a redeploy. A localized RSS feed (`/[locale]/insights/rss.xml`) was added since it was genuinely low-cost (one Route Handler, no new dependency, reuses the existing `listPublished` query).
+
+### Multilingual hreflang for partial translations (§9/§16)
+
+`buildPartialAlternateLanguages()` (`src/lib/seo/site-url.ts`) only ever declares an alternate for a locale that actually has a **published** translation — never a fabricated route for a missing/unpublished one. `x-default` falls back to the first published locale (in `routing.locales` order) when the default locale (`fr`) itself isn't published yet, so there's always an x-default rather than omitting it.
+
+### Article SEO / structured data (§16-17)
+
+`buildArticleSchema()` (`src/lib/seo/schema.ts`) uses only real values: `datePublished`/`dateModified` from the translation's own timestamps (datePublished is *omitted* — not fabricated — for a not-yet-published draft being previewed), `author`/`publisher` both reference the single Organization `@id` (no invented staff writer — SIGMA+ is the only author that exists, per §18), `image` omitted unless a real `ogImage` was set. Article OG images (`/[locale]/insights/[slug]/opengraph-image.tsx`) reuse the same shared renderer from Phase 7, with the same Arabic-script fallback.
+
+### Sitemap integration (§58)
+
+`src/app/sitemap.ts`'s `articleEntries()` includes one entry per article per its *published* locale peers only, with a **real `lastModified`** from `article_translations.updated_at` — the first genuinely non-fabricated freshness signal in this codebase's sitemap (everything else still correctly omits it, per Phase 7 policy, since it has no real timestamp to report). A database failure here is caught and logged, never allowed to take down the rest of the sitemap (same resilience pattern as `effective-config.ts`). Split into a DB-free `buildStaticSitemapEntries()` and a DB-backed, dependency-injectable `articleEntries(repo)` specifically so the static-content tests stay hermetic while the article behavior (including DB-failure resilience) is still directly tested against an isolated PGlite instance.
+
+### SEO audit engine — now understands Insights (§66)
+
+`runSeoAudit()` is now `async`: it merges the static site model with a live query of published articles (`buildArticleModel()`) before running every existing check (duplicate/missing metadata, duplicate canonicals, orphan pages, etc.) against the combined set, plus one new check (`checkArticles`) for duplicate published slugs and broken `relatedServices`/`relatedCaseStudies` references. **Draft privacy is structural, not a bolted-on check** — `listAllPublishedTranslations()`'s own query filters to `PUBLISHED`, so a DRAFT/REVIEW/ARCHIVED translation cannot appear in the audit's page model at all, verified by the repository test suite rather than by trying to catch a leak after the fact. A database failure while reading articles degrades to a single WARNING issue rather than crashing the whole audit.
+
+## 25. SEO intelligence layer (Phase 8)
+
+### Domain model
+
+`src/domain/seo-intelligence.ts`: `SeoConnectionState` (provider/status/propertyIdentifier — never a credential — /lastSyncedAt/lastError), `SeoPageMetric`/`SeoQueryMetric` (Search Console-shaped, every value carries a mandatory `dateRange`), `SeoAnalyticsPageMetric` (GA4-shaped), `PageSpeedMetric` (explicit `FIELD`/`LAB` `kind`, never merged), `SeoOpportunity` (deterministic-rule output, always carries `confidence` + `evidence` + `dateRange`), `SeoRecommendation` (the approval-first workflow object). `src/domain/seo-issue.ts`'s provenance vocabulary was updated to the concrete set the brief specified: `INTERNAL_AUDIT`, `GOOGLE_SEARCH_CONSOLE`, `GOOGLE_ANALYTICS`, `PAGESPEED`, `MANUAL`, `ESTIMATE`, `AI_RECOMMENDATION` — an opportunity/recommendation's `source` field must be one of these, never blurred.
+
+### Connection state (§31/§33/§41/§51)
+
+Upgraded the Phase 7 boolean adapters into real, persisted connection state (`seo_connections` table — provider/status/propertyIdentifier/lastSyncedAt/lastError, **never a credential or token**). Each adapter (`search-console.ts`/`analytics-reporting.ts`/`pagespeed.ts`) now: reports `NOT_CONFIGURED` honestly with no credentials; reports an explicit `ERROR` (with a real message) if credentials exist but the real API client isn't implemented yet — **never a silent `NOT_CONFIGURED` once credentials are present**, since that would hide a real misconfiguration; and exposes an idempotent `sync*()` function (`syncSearchConsole`/`syncAnalyticsReporting`/`syncPageSpeed`) safe to call repeatedly or from a future cron, which never fabricates metric rows while disconnected. No OAuth token storage was implemented this phase (§51's explicit fallback: "leave the integration disconnected rather than using an unsafe shortcut").
+
+### Opportunity engine (§36-39)
+
+`src/lib/seo/opportunity-engine.ts` — five pure, fully unit-tested functions, every one returning `[]` when given no/insufficient data rather than fabricating a finding: `detectHighImpressionsLowCtr`, `detectMidRankingPositions` (never claims Search Console's *average position* is a guaranteed rank), `detectCannibalization` (only flags a query when no single page dominates AND a real runner-up share exists above a threshold — verified by a test that a dominant-page scenario is correctly *not* flagged), `detectContentDecay` (refuses to compare date ranges of different lengths — the brief's explicit "7 days vs 90 days" example is a dedicated test case), and `recommendationsFromAuditIssues` (the one rule that runs today with zero external connections: turns Phase 7's existing WARNING/OPPORTUNITY audit findings into draft recommendations — an ERROR is never turned into a "recommendation," since a bug should just be fixed directly).
+
+### Approval-first recommendations (§42-43)
+
+`seo_recommendations` table + `SeoRecommendationService`: `RECOMMENDED → APPROVED` or `RECOMMENDED → REJECTED`, both requiring an explicit admin actor (`SEO_EDITOR_ROLES` = OWNER/ADMIN — tighter than general content editing) and producing an audit-log entry. **Nothing in this codebase can reach `APPROVED` without that explicit action, and reaching it never itself rewrites a title, publishes an article, or changes a canonical/redirect** — it only records that a human signed off on the idea. Verified by a test asserting an already-`APPROVED` item can't be silently re-approved past its own state machine.
+
+### Admin SEO page — expanded
+
+`/admin/seo` now has Connections (truthful NOT_CONFIGURED/CONNECTED/ERROR/EXPIRED state, never shown as healthy without a real sync), Search Performance and PageSpeed (explicit "Not connected" empty states — no fake charts), Content (real published/review/draft/archived counts from the CMS), Opportunities (the `RECOMMENDED` queue with Approve/Reject actions and a "Generate from audit" button), and the original Technical Audit table.
+
+### Prepared, not implemented this phase
+
+- `SeoCompetitor` type + a manual-entry-only model (§46) — no scraping, no automatic competitor inference.
+- `KeywordProvider` interface (§45) — the Algeria hypotheses in §13 remain hypotheses; no real keyword-research vendor is connected.
+- `seo_metric_snapshots`-style persistence (§47) — deliberately **not** added as a table this phase (no real sync populates it yet, so an empty schema would be speculative); the metric *shapes* (`SeoPageMetric` etc.) exist so a real sync has something concrete to return once one exists.
+
+## 26. Known limitations
+
+- No browser-rendered visual QA was performed in Phase 7 or 8 (durable no-E2E policy) — verified at the application/integration level (`npm run seo:audit`, Vitest, a real `next build`) instead.
+- Several page descriptions/titles run long enough to risk truncation in search results (flagged by the audit, not rewritten — editorial call, not a code defect). The two Arabic short-description warnings from Phase 7 were fixed with real, grounded copy (see the Phase 8 report in the master plan).
 - The `<h1>` audit check depends on the raw source tree being present at run time — reliable for `npm run seo:audit` and local dev, not guaranteed for every deployment target.
 - No `logo`/`sameAs` in the Organization schema (no real assets/profiles yet — see §9).
-- SEO issue workflow statuses are defined but not persisted (see §15) — acceptable at current issue volume.
+- SEO issue workflow statuses (Phase 7, `SeoIssue`) remain unpersisted; SEO *recommendation* statuses (Phase 8, `SeoRecommendation`) now are — these are two different, intentionally separate concepts (see §15 vs §25).
 - Local/Algeria keyword table is hypothesis-only; no real search-volume or ranking data exists yet.
+- `runSeoAudit()`/`sitemap()`/the SEO adapters read through their real repository singletons (not dependency-injected) when called from `npm run seo:audit` or `/admin/seo` — correct for auditing genuinely live content, but means a local dev database with manually-created test articles could in principle influence those specific runs. A fresh CI checkout is unaffected (`.data/` is gitignored). The article-content *tests* avoid this by injecting an isolated `createTestArticleRepository` instance directly.
+- No seed articles were published this phase (zero is an explicitly acceptable outcome per the brief) — the content system is verified via the test suite and the admin editor UI, not via example content.
+- Insights pagination/category filtering is fully built but untested against real volume (zero published articles today) — revisit page-size and canonical-per-page behavior once real content exists.
 
-## 23. Measurement plan (once external access exists)
+## 27. Measurement plan (once external access exists)
 
-1. Verify domain ownership in Google Search Console → configure `GOOGLE_SEARCH_CONSOLE_*` env vars → `src/lib/seo/adapters/search-console.ts` starts returning real query/page/CTR/position data instead of `{connected:false}`.
+1. Verify domain ownership in Google Search Console → configure `GOOGLE_SEARCH_CONSOLE_*` env vars → `src/lib/seo/adapters/search-console.ts` moves from `NOT_CONFIGURED`/`ERROR` to real `CONNECTED` state and `syncSearchConsole()` starts returning real page/query metrics instead of `[]`.
 2. Configure GA4 property + service account → `GA4_*` env vars → `analytics-reporting.ts` real conversions/landing-page data.
-3. Configure `PAGESPEED_API_KEY` → `pagespeed.ts` real LCP/CLS/INP numbers, replacing the architectural risk review in §17 with actual measurements.
-4. Re-evaluate the §13 keyword hypotheses against real Search Console query data — promote confirmed high-value phrases, drop ones with no real signal, and only then consider whether any genuinely deserve their own page (still subject to §14's anti-doorway-page policy).
+3. Configure `PAGESPEED_API_KEY` → `pagespeed.ts` real LCP/CLS/INP field/lab data, replacing the architectural risk review in §17 with actual measurements.
+4. Once real Search Console data exists, run the opportunity engine (`src/lib/seo/opportunity-engine.ts`) against it for real — `detectHighImpressionsLowCtr`/`detectMidRankingPositions`/`detectCannibalization`/`detectContentDecay` are already implemented and tested against synthetic data, waiting only for real input.
+5. Re-evaluate the §13 keyword hypotheses against real Search Console query data — promote confirmed high-value phrases, drop ones with no real signal, and only then consider whether any genuinely deserve their own page (still subject to §14's anti-doorway-page policy).

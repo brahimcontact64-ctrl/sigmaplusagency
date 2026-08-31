@@ -82,6 +82,36 @@ export function buildCaseStudySchema(params: { name: string; description: string
   };
 }
 
+/**
+ * Real values only (Phase 8 §17) — `datePublished`/`dateModified` come
+ * straight from the article's own `publishedAt`/`updatedAt` timestamps
+ * (never fabricated), `author`/`publisher` both reference the one
+ * Organization entity (§18: no invented staff writers — SIGMA+ is the
+ * only author that exists), and `image` is omitted entirely rather
+ * than pointing at a placeholder when no `ogImage` was set.
+ */
+export function buildArticleSchema(params: {
+  headline: string;
+  description: string;
+  url: string;
+  datePublished?: Date;
+  dateModified: Date;
+  image?: string;
+}) {
+  return {
+    "@type": "Article",
+    headline: params.headline,
+    description: params.description,
+    url: params.url,
+    mainEntityOfPage: params.url,
+    ...(params.datePublished ? { datePublished: params.datePublished.toISOString() } : {}),
+    dateModified: params.dateModified.toISOString(),
+    author: { "@id": organizationId() },
+    publisher: { "@id": organizationId() },
+    ...(params.image ? { image: params.image } : {}),
+  };
+}
+
 export function buildFaqPageSchema(items: { question: string; answer: string }[]) {
   return {
     "@type": "FAQPage",

@@ -13,6 +13,22 @@ export const CRM_EDITOR_ROLES: AdminRole[] = ["OWNER", "ADMIN", "SALES", "EDITOR
 /** Settings mutate shared business configuration — restricted to owners. */
 export const SETTINGS_EDITOR_ROLES: AdminRole[] = ["OWNER"];
 
+/**
+ * Insights/CMS editorial permissions (Phase 8 §56). OWNER/ADMIN have
+ * full content control; EDITOR is the role this system finally gives
+ * real meaning to (previously defined but unused since Phase 5) —
+ * create/edit/review/publish. SALES explicitly does NOT get editorial
+ * publishing rights even though it can act on leads (`CRM_EDITOR_ROLES`
+ * above) — those are different domains of trust. VIEWER never mutates
+ * anything; every role can at least *view* the admin content list
+ * (enforced by giving these constants to mutation actions only, never
+ * to the list/detail read paths).
+ */
+export const CONTENT_EDITOR_ROLES: AdminRole[] = ["OWNER", "ADMIN", "EDITOR"];
+
+/** Approving/rejecting an SEO recommendation is a business-strategy decision — kept tighter than general content editing. */
+export const SEO_EDITOR_ROLES: AdminRole[] = ["OWNER", "ADMIN"];
+
 export type AdminUser = {
   id: string;
   email: string;

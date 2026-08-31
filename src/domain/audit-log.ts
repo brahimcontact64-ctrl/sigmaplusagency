@@ -12,6 +12,13 @@ export const AUDIT_ACTIONS = [
   "note_added",
   "settings_updated",
   "password_changed",
+  "article_created",
+  "article_updated",
+  "article_published",
+  "article_archived",
+  "article_slug_changed",
+  "seo_recommendation_approved",
+  "seo_recommendation_rejected",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

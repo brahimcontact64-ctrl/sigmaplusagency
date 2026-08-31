@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import sitemap from "@/app/sitemap";
+import { buildStaticSitemapEntries as sitemap } from "@/app/sitemap";
 import robots from "@/app/robots";
 import { siteConfig } from "@/lib/site-config";
 

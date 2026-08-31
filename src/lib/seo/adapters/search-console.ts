@@ -1,27 +1,48 @@
+import { getSeoConnectionRepository } from "@/lib/repositories/seo-connection-repository";
+import type { SeoConnectionState, SeoPageMetric, SeoQueryMetric } from "@/domain/seo-intelligence";
+
 /**
  * Google Search Console integration boundary — see docs/SEO_STRATEGY.md
  * "External integration adapters". No credentials exist yet, so this
- * never fakes connected data; it reports "not connected" honestly. A
- * real implementation (Search Console API + a service account or
- * OAuth token) is future work — this module exists so the Admin SEO
- * page and any future caller depend on a stable shape rather than
- * being written against a live API from day one.
+ * never fakes connected data; it reports NOT_CONFIGURED honestly and
+ * persists that state (rather than just returning a boolean) so the
+ * connection's last-known status/error survives a request and the
+ * admin can see NOT_CONFIGURED/ERROR/EXPIRED distinctly per Phase 8 §41.
+ *
+ * A real implementation calls Search Console's supported API via an
+ * OAuth/service-account flow — not implemented here (no credentials to
+ * implement against), and this module explicitly never scrapes.
  */
-export type SearchConsoleStatus =
-  | { connected: false }
-  | {
-      connected: true;
-      // Shape reserved for the real integration — queries/pages/clicks/
-      // impressions/CTR/average position/indexing diagnostics.
-      summary: { totalClicks: number; totalImpressions: number; averageCtr: number; averagePosition: number };
-    };
+const PROVIDER = "GOOGLE_SEARCH_CONSOLE" as const;
 
-export function getSearchConsoleStatus(): SearchConsoleStatus {
+export async function getSearchConsoleConnection(): Promise<SeoConnectionState> {
   const configured = Boolean(process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL && process.env.GOOGLE_SEARCH_CONSOLE_CREDENTIALS_JSON);
-  if (!configured) return { connected: false };
+  const repo = getSeoConnectionRepository();
+
+  if (!configured) {
+    return repo.upsert(PROVIDER, { status: "NOT_CONFIGURED", propertyIdentifier: undefined, lastError: undefined });
+  }
 
   // Credentials present but the real API call isn't implemented this
-  // phase — still report "not connected" rather than inventing a
-  // response, per the brief's explicit "do not fake connected data".
-  return { connected: false };
+  // phase — record an explicit, honest ERROR rather than pretending to
+  // be CONNECTED. Never a silent NOT_CONFIGURED once credentials exist,
+  // since that would hide a real misconfiguration from the admin.
+  return repo.upsert(PROVIDER, {
+    status: "ERROR",
+    propertyIdentifier: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL,
+    lastError: "Credentials configured but the Search Console API client is not yet implemented.",
+  });
+}
+
+/**
+ * Idempotent sync skeleton (Phase 8 §49): callable today, does nothing
+ * destructive, safe to call repeatedly or from a future cron. Returns
+ * the connection state it recorded rather than throwing, so a caller
+ * (e.g. a future scheduled job) can log the outcome without a try/catch
+ * around a thrown error for the extremely common "not configured" case.
+ */
+export async function syncSearchConsole(): Promise<{ state: SeoConnectionState; pageMetrics: SeoPageMetric[]; queryMetrics: SeoQueryMetric[] }> {
+  const state = await getSearchConsoleConnection();
+  // No real fetch happens while disconnected/erroring — never fabricate rows.
+  return { state, pageMetrics: [], queryMetrics: [] };
 }

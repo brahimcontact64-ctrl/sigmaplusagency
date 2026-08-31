@@ -1,7 +1,7 @@
 # SIGMA PLUS AGENCY — Master Plan
 
 Status: living document. Updated at the end of every phase.
-Last updated: 2026-08-31 (Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, and Phase 7 complete).
+Last updated: 2026-08-31 (Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, and Phase 8 complete).
 
 ---
 
@@ -740,11 +740,105 @@ All optional, all already gracefully "not connected" without them: `NEXT_PUBLIC_
 
 ### Known limitations
 
-See SEO_STRATEGY.md §22 for the full list — headline items: no browser-rendered visual QA (durable no-E2E policy, verified at the application/integration level instead); two short Arabic meta descriptions and several long titles/descriptions flagged but not rewritten (editorial calls, not code defects); the `<h1>` audit check depends on the raw source tree being present at runtime (reliable in `npm run seo:audit`/dev, not guaranteed in every deployment target); no `logo`/`sameAs` in the Organization schema yet; SEO issue workflow statuses defined but not persisted; the Algeria keyword table remains hypothesis-only pending real Search Console data.
+See SEO_STRATEGY.md §26 for the full list — headline items: no browser-rendered visual QA (durable no-E2E policy, verified at the application/integration level instead); two short Arabic meta descriptions and several long titles/descriptions flagged but not rewritten (editorial calls, not code defects); the `<h1>` audit check depends on the raw source tree being present at runtime (reliable in `npm run seo:audit`/dev, not guaranteed in every deployment target); no `logo`/`sameAs` in the Organization schema yet; SEO issue workflow statuses defined but not persisted; the Algeria keyword table remains hypothesis-only pending real Search Console data.
 
 ### Next phase
 
 **Phase 8 — SIGMA SEO intelligence engine**, per the roadmap — the natural next step once real external connections (Search Console, GA4, PageSpeed) exist to upgrade `INTERNAL_AUDIT`-only findings into the fuller provenance model already defined in `src/domain/seo-issue.ts`.
+
+---
+
+## PHASE 8 — INSIGHTS/CMS CONTENT SYSTEM + SEO INTELLIGENCE DATA LAYER
+
+Full policy/architecture detail lives in **`docs/SEO_STRATEGY.md`** §21-27 — this section is the phase report.
+
+### Baseline SEO audit (before any Phase 8 change)
+
+`npm run seo:audit`: **0 errors**, 2 warnings (both Arabic service meta descriptions shorter than the 40-char minimum), 20 opportunities (a few long titles/descriptions, the 4 case studies' already-tracked empty narrative sections). Recorded before touching anything, per the brief's explicit instruction.
+
+### Safe editorial fix (§2)
+
+Fixed both Arabic warnings with real, truthful copy — not padding. `automation`'s positioning was expanded to explicitly mention connecting existing tools (already the #1 real deliverable listed for that service: "أتمتة تربط أدواتك الحالية وتُزيل المهام المتكررة عن فريقك"); `backend-api`'s was expanded to mention structured databases and documented APIs (both already real, listed deliverables: "أسس خادم متينة وآمنة، مع قواعد بيانات مهيكلة وواجهات برمجية موثقة وجاهزة للتوسع"). Re-ran the audit: **0 errors, 0 warnings**, 20 opportunities unchanged (all legitimate, left for editorial judgment as instructed). The 4 case-study narrative gaps remain untouched, owner-input items — nothing was invented to "solve" them.
+
+### Editorial architecture / content model
+
+`src/domain/article.ts`: `Article` (stable, locale-independent identity) + `ArticleTranslation` (per-locale, carries its own `status`) — this split is what makes "French published, Arabic not translated yet" representable without contradiction. `ARTICLE_TYPES` (ARTICLE/GUIDE/CASE_STUDY_EDITORIAL) kept deliberately separate from the existing project Case Study domain. The Phase 7 `blog-post.ts` types-only placeholder was deleted and fully superseded.
+
+### Database / content model
+
+Postgres via Drizzle (additive migration `0004_clumsy_random.sql`): `articles`, `article_translations` (unique on locale+slug and on article+locale), `article_slug_redirects` — plus, for SEO intelligence, `seo_connections` and `seo_recommendations`. Tags/related-services/related-case-studies are `jsonb` arrays (same pattern as `project_requests`), not join tables — a deliberate, documented normalization decision, not an oversight. No existing table was altered; no Phase 4-7 data was touched.
+
+### Multilingual model
+
+Enforced at the database level (unique constraints), not just convention: a French translation can exist and be published while Arabic doesn't exist at all, or exists as a DRAFT. `hreflang`/sitemap alternates only ever include locales with an actual **published** translation (`buildPartialAlternateLanguages`) — verified by a dedicated test that a missing Arabic translation never produces a fabricated `/ar/insights/...` alternate.
+
+### Admin content workflow
+
+`/admin/content` (list + status/locale/category/search filters + pagination), `/admin/content/new`, `/admin/content/[id]` (article-level metadata: type/category/tags/featured/related services & case studies), `/admin/content/[id]/[locale]` (the actual translation editor: title/slug/description/excerpt/Markdown body/SEO overrides + Publish/Mark for review/Archive/Unpublish controls), `/admin/content/[id]/[locale]/preview` (auth-only, no separate preview-token system, never indexable). RBAC: `CONTENT_EDITOR_ROLES` = OWNER/ADMIN/EDITOR (the first real use of the `EDITOR` role since it was defined in Phase 5) — SALES cannot publish content even though it can act on leads; every role can at least view the list.
+
+### Publishing safeguards
+
+`validateForPublish()` blocks publishing with an empty title/description/body/slug — no arbitrary SEO character-count is a hard blocker (the brief was explicit warnings are fine there, and the audit engine already surfaces those separately). `publishedAt` is set exactly once, on first publish, and survives an unpublish/republish cycle. A DRAFT/REVIEW/ARCHIVED translation is structurally excluded from every public surface (the repository's own `findPublishedBySlug`/`listPublished`/`listAllPublishedTranslations` queries filter to `PUBLISHED` — draft privacy isn't a check bolted on afterward, it's the only path that exists).
+
+### Slug redirects (anti-chain)
+
+`article_slug_redirects` maps an old slug **directly to the article**, never to another slug string — resolving always fetches the article's current slug at request time, so A → B → C redirects A straight to C with no stale intermediate hop. Verified with a real two-hop-rename test. A redirect to an article that's since been unpublished/archived correctly resolves to nothing (404), rather than redirecting to a page that's no longer public.
+
+### Public Insights UX
+
+`/[locale]/insights` (featured + recent + category filter — canonical always the clean index regardless of query params, matching Phase 7's facet-indexing policy) and `/[locale]/insights/[slug]` (reading experience: Markdown body, related services/case studies, recent articles, the same commercial CTA every content page ends on). Both explicitly `force-dynamic` — never statically prerendered, since published content must appear without a redeploy. A localized RSS feed (`/[locale]/insights/rss.xml`) shipped since it was genuinely low-cost. Header/footer nav both gained a real "Insights" link.
+
+### SEO metadata / schema for articles
+
+`buildArticleSchema()` uses only real values — `datePublished` is *omitted*, never guessed, for content without one; `author`/`publisher` both reference the single Organization `@id` (no invented staff writer, per the brief's own allowance to keep it to "SIGMA+"); `image` omitted unless a real `ogImage` exists. Article OG images reuse Phase 7's shared renderer, including its Arabic-script fallback.
+
+### Sitemap / hreflang
+
+Articles get a real `lastModified` (`article_translations.updated_at`) — the first genuinely non-fabricated freshness signal in this sitemap; every other entry correctly still omits it, per Phase 7 policy, since nothing else has a real timestamp. `sitemap.ts` is now `export const dynamic = "force-dynamic"` — a build-time-frozen `sitemap.xml` would only ever reflect articles that existed at the last deploy, defeating the entire point of a live CMS; caught during this phase's own build verification (the first build produced correct output but had baked the sitemap statically, per Next's default metadata-route optimization, since Drizzle DB calls aren't part of Next's static-vs-dynamic heuristics the way `fetch()` is). A database failure while reading articles is caught and logged, never allowed to break the rest of the sitemap — and, mirroring the Phase 6 fix to `effective-config.ts`, a production build/runtime with no `DATABASE_URL` skips the doomed call entirely rather than logging the same expected stack trace on every build. `runSeoAudit()` is now `async` and understands Insights: it models published articles alongside static content for every existing check, plus a new one for duplicate published slugs and broken related-service/case-study references.
+
+### Security / content sanitization
+
+Article bodies are Markdown, rendered via `react-markdown` with `skipHtml` and no raw-HTML plugin — this, not a separate sanitizer library, is what actually prevents a stored `<script>` tag or inline event handler from ever executing (it renders as literal text). A `javascript:`/`data:`/`vbscript:` URL in a markdown link/image is blocked by an explicit allowlist. No new content-sanitization dependency was needed.
+
+### RBAC
+
+Documented in full in SEO_STRATEGY.md §24 — `CONTENT_EDITOR_ROLES` for articles, `SEO_EDITOR_ROLES` (OWNER/ADMIN only, tighter) for approving/rejecting SEO recommendations. Both enforced server-side in every mutating action, never trusted from the client, consistent with every prior phase's RBAC pattern.
+
+### SEO intelligence architecture
+
+`src/domain/seo-intelligence.ts`: connection state, Search-Console/GA4/PageSpeed metric shapes (PageSpeed explicitly distinguishes FIELD vs. LAB, never merged), `SeoOpportunity`, `SeoRecommendation`. The provenance vocabulary (`src/domain/seo-issue.ts`) now matches the brief's exact list: `INTERNAL_AUDIT`/`GOOGLE_SEARCH_CONSOLE`/`GOOGLE_ANALYTICS`/`PAGESPEED`/`MANUAL`/`ESTIMATE`/`AI_RECOMMENDATION`.
+
+### External adapter status (unchanged from Phase 7 in substance, upgraded in shape)
+
+All three remain **not connected** — no credentials exist. What changed: they now persist real connection *state* (`seo_connections`: NOT_CONFIGURED/CONNECTED/ERROR/EXPIRED, never a silent NOT_CONFIGURED once credentials are actually present — that would hide a real misconfiguration) instead of returning a bare boolean, and each exposes an idempotent `sync*()` function safe to call from a future cron, which never fabricates a metric row while disconnected.
+
+### Opportunity engine
+
+Five pure, fully unit-tested functions (`src/lib/seo/opportunity-engine.ts`) that all return `[]` given no/insufficient data: high-impressions-low-CTR, mid-ranking-position (never claims a guaranteed rank), cannibalization (verified to correctly *not* flag a normal dominant-page scenario — false positives were an explicit brief concern), content decay (refuses to compare unequal date-range lengths — the brief's own "7 days vs 90 days" example is a literal test case), and one that runs *today* with zero external data: turning Phase 7's existing audit WARNINGs/OPPORTUNITYs into draft recommendations.
+
+### Recommendation workflow — approval-first, verified
+
+`RECOMMENDED → APPROVED/REJECTED` only via an explicit OWNER/ADMIN action, recorded in the audit log. Nothing in this codebase can reach `APPROVED` on its own, and reaching it never itself rewrites a title, publishes an article, or changes a canonical/redirect. `/admin/seo` gained Connections, Search Performance, PageSpeed, Content, and Opportunities sections alongside the original Technical Audit table — external sections show an honest "Not connected" rather than any fake chart.
+
+### Tests
+
+62 new Vitest tests across 10 files: article creation/translations/multilingual independence, draft privacy (structural, not bolted-on), publish validation, slug uniqueness and anti-chain redirect history (including the two-hop-rename case and the unpublished-target case), admin filtering/counts, article-service audit trail, Zod validation (including rejecting an unknown related-service id), the full opportunity engine (including the two explicit false-positive/invalid-comparison guards from the brief), the approval-first recommendation workflow (including refusing to re-approve an already-approved item), connection-state idempotency and disconnected-by-default adapter behavior, sitemap article inclusion (real lastModified, partial-locale alternates, DB-failure resilience via an injected broken repository), Article schema (real-values-only, no fabricated author/date/image), content sanitization (URL allowlist including `javascript:`/`data:`/`vbscript:`), and content/SEO RBAC. **225 total tests passing** (163 carried forward + 62 new).
+
+### Final verification
+
+TypeScript (`tsc --noEmit`): clean. ESLint: clean. Vitest: **225/225 passing**. `npm run seo:audit`: 0 errors (verified against the real, now-async, article-aware audit engine — see baseline above). Production build (`next build`): succeeds — `/insights`, `/insights/[slug]` (+ its `opengraph-image`), `/insights/rss.xml`, `/admin/content/**`, and the expanded `/admin/seo` all compile correctly. Migration verified additive against a fresh database in every test run.
+
+### Required future environment variables
+
+Unchanged from Phase 7 — all optional, all already gracefully "not connected"/"not emitted" without them: `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`, `GOOGLE_SEARCH_CONSOLE_SITE_URL` + `GOOGLE_SEARCH_CONSOLE_CREDENTIALS_JSON`, `GA4_PROPERTY_ID` + `GA4_SERVICE_ACCOUNT_CREDENTIALS_JSON`, `PAGESPEED_API_KEY`.
+
+### Known limitations
+
+See SEO_STRATEGY.md §26 for the full list — headline items: zero seed articles were published (an explicitly acceptable outcome — architecture over volume, per the brief); `runSeoAudit()`/`sitemap()`/the SEO adapters read through real repository singletons rather than being fully dependency-injected at the page/script level (a fresh CI checkout is unaffected; a local dev DB with manually-created test content could in principle influence those specific runs — the article *tests* themselves avoid this via full DI); no OAuth token storage (deliberately deferred per §51's safe-fallback instruction); `seo_metric_snapshots`-style persistence intentionally not added as a table yet (no real sync would populate it).
+
+### Recommended Phase 9
+
+**Blog/content platform**, per the roadmap — though given how much of that ground Phase 8 already covered for real (the content model, editorial workflow, RBAC, sanitization, public reading experience), Phase 9's remaining scope is narrower than originally scoped: real seed content once the owner has reviewed/approved topics, category landing pages if they earn their own indexable value, and closing the loop from SEO Opportunity → "Create Draft" (§52-53 of the Phase 8 brief) once there's a real opportunity from a connected data source to act on.
 
 ---
 
@@ -758,7 +852,7 @@ See SEO_STRATEGY.md §22 for the full list — headline items: no browser-render
 - [x] Phase 5 — Admin + CRM
 - [x] Phase 6 — AI Consultant
 - [x] Phase 7 — Technical SEO foundation
-- [ ] Phase 8 — SIGMA SEO intelligence engine
+- [x] Phase 8 — Insights/CMS content system + SEO intelligence data layer
 - [ ] Phase 9 — Blog/content platform
 - [ ] Phase 10 — Analytics, observability, optimization, security hardening
 - [ ] Phase 11 — Full E2E + production readiness

@@ -3,9 +3,10 @@ import { Wordmark } from "@/components/brand/wordmark";
 import { Link } from "@/i18n/navigation";
 import { getEffectiveSiteConfig } from "@/lib/effective-config";
 
-const FOOTER_LINKS: { key: "services" | "work" | "about" | "contact"; href: string }[] = [
+const FOOTER_LINKS: { key: "services" | "work" | "insights" | "about" | "contact"; href: string }[] = [
   { key: "services", href: "/services" },
   { key: "work", href: "/work" },
+  { key: "insights", href: "/insights" },
   { key: "about", href: "/about" },
   { key: "contact", href: "/contact" },
 ];

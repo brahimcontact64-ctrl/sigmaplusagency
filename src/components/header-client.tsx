@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 type Nav = {
   services: string;
   work: string;
+  insights: string;
   about: string;
   contact: string;
   startProject: string;
@@ -21,6 +22,7 @@ type Nav = {
 const NAV_LINKS: { key: keyof Nav; href: string }[] = [
   { key: "services", href: "/services" },
   { key: "work", href: "/work" },
+  { key: "insights", href: "/insights" },
   { key: "about", href: "/about" },
   { key: "contact", href: "/contact" },
 ];

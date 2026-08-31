@@ -9,12 +9,14 @@
     "about": "Approche",
     "contact": "Contact",
     "startProject": "Démarrer un projet",
-    "aiConsultant": "Parler à SIGMA AI"
+    "aiConsultant": "Parler à SIGMA AI",
+    "insights": "Ressources"
   },
   "breadcrumbs": {
     "home": "Accueil",
     "services": "Services",
-    "work": "Réalisations"
+    "work": "Réalisations",
+    "insights": "Ressources"
   },
   "hero": {
     "eyebrow": "Web · Mobile · SaaS · IA · Automatisation · E-commerce",
@@ -29,12 +31,30 @@
     "title": "Ce que nous construisons",
     "subtitle": "Des solutions complètes, de l'idée au produit en production.",
     "items": [
-      { "title": "Développement web", "description": "Sites vitrines, plateformes et applications web sur mesure, rapides et optimisés." },
-      { "title": "Applications mobiles", "description": "Apps iOS et Android natives ou multiplateformes, pensées pour vos utilisateurs." },
-      { "title": "E-commerce", "description": "Boutiques en ligne complètes, paiement sécurisé et gestion des stocks." },
-      { "title": "SaaS & plateformes", "description": "Produits SaaS et outils métier conçus pour évoluer avec votre entreprise." },
-      { "title": "IA & automatisation", "description": "Agents IA, assistants et automatisations qui font gagner du temps à vos équipes." },
-      { "title": "SEO & croissance", "description": "Une fondation technique solide pour être trouvé et choisi." }
+      {
+        "title": "Développement web",
+        "description": "Sites vitrines, plateformes et applications web sur mesure, rapides et optimisés."
+      },
+      {
+        "title": "Applications mobiles",
+        "description": "Apps iOS et Android natives ou multiplateformes, pensées pour vos utilisateurs."
+      },
+      {
+        "title": "E-commerce",
+        "description": "Boutiques en ligne complètes, paiement sécurisé et gestion des stocks."
+      },
+      {
+        "title": "SaaS & plateformes",
+        "description": "Produits SaaS et outils métier conçus pour évoluer avec votre entreprise."
+      },
+      {
+        "title": "IA & automatisation",
+        "description": "Agents IA, assistants et automatisations qui font gagner du temps à vos équipes."
+      },
+      {
+        "title": "SEO & croissance",
+        "description": "Une fondation technique solide pour être trouvé et choisi."
+      }
     ]
   },
   "servicesPage": {
@@ -42,10 +62,22 @@
     "subtitle": "Des solutions complètes, organisées autour de ce que nous construisons réellement.",
     "seeAll": "Voir le service",
     "categories": {
-      "build": { "label": "Construire", "description": "Sites, applications mobiles, e-commerce et plateformes SaaS." },
-      "intelligence": { "label": "Intelligence", "description": "Agents IA, IA vocale et automatisation." },
-      "experience": { "label": "Expérience", "description": "Design d'interfaces et croissance SEO." },
-      "infrastructure": { "label": "Infrastructure", "description": "Backend, cloud, et maintenance dans la durée." }
+      "build": {
+        "label": "Construire",
+        "description": "Sites, applications mobiles, e-commerce et plateformes SaaS."
+      },
+      "intelligence": {
+        "label": "Intelligence",
+        "description": "Agents IA, IA vocale et automatisation."
+      },
+      "experience": {
+        "label": "Expérience",
+        "description": "Design d'interfaces et croissance SEO."
+      },
+      "infrastructure": {
+        "label": "Infrastructure",
+        "description": "Backend, cloud, et maintenance dans la durée."
+      }
     }
   },
   "serviceDetail": {
@@ -93,11 +125,26 @@
     "title": "Pourquoi SIGMA+",
     "subtitle": "Une méthode, pas des promesses.",
     "items": [
-      { "title": "Stratégie", "description": "Nous cadrons le bon problème avant d'écrire une ligne de code." },
-      { "title": "Design", "description": "Des interfaces claires, pensées pour vos utilisateurs et votre marché." },
-      { "title": "Ingénierie", "description": "Un code robuste, testé et prêt pour la production — pas un prototype jetable." },
-      { "title": "IA", "description": "Des agents et automatisations qui allègent réellement le travail de vos équipes." },
-      { "title": "Croissance", "description": "Une fondation technique et SEO solide pour durer au-delà du lancement." }
+      {
+        "title": "Stratégie",
+        "description": "Nous cadrons le bon problème avant d'écrire une ligne de code."
+      },
+      {
+        "title": "Design",
+        "description": "Des interfaces claires, pensées pour vos utilisateurs et votre marché."
+      },
+      {
+        "title": "Ingénierie",
+        "description": "Un code robuste, testé et prêt pour la production — pas un prototype jetable."
+      },
+      {
+        "title": "IA",
+        "description": "Des agents et automatisations qui allègent réellement le travail de vos équipes."
+      },
+      {
+        "title": "Croissance",
+        "description": "Une fondation technique et SEO solide pour durer au-delà du lancement."
+      }
     ]
   },
   "about": {
@@ -107,13 +154,34 @@
     "processTitle": "Notre méthode",
     "processSubtitle": "Sept étapes, à chaque projet.",
     "process": [
-      { "title": "Découvrir", "description": "Nous comprenons votre activité, vos utilisateurs et vos contraintes réelles avant de proposer une solution." },
-      { "title": "Définir", "description": "Nous cadrons le périmètre, les priorités et ce que réussir signifie concrètement pour ce projet." },
-      { "title": "Designer", "description": "Nous concevons les parcours et interfaces avant d'écrire du code, pour éviter des allers-retours coûteux." },
-      { "title": "Construire", "description": "Nous développons avec une architecture propre, testée et documentée." },
-      { "title": "Tester", "description": "Nous vérifions que le produit fonctionne réellement avant toute mise en ligne." },
-      { "title": "Lancer", "description": "Nous mettons en production avec un plan de bascule clair." },
-      { "title": "Améliorer", "description": "Nous accompagnons l'évolution du produit après le lancement." }
+      {
+        "title": "Découvrir",
+        "description": "Nous comprenons votre activité, vos utilisateurs et vos contraintes réelles avant de proposer une solution."
+      },
+      {
+        "title": "Définir",
+        "description": "Nous cadrons le périmètre, les priorités et ce que réussir signifie concrètement pour ce projet."
+      },
+      {
+        "title": "Designer",
+        "description": "Nous concevons les parcours et interfaces avant d'écrire du code, pour éviter des allers-retours coûteux."
+      },
+      {
+        "title": "Construire",
+        "description": "Nous développons avec une architecture propre, testée et documentée."
+      },
+      {
+        "title": "Tester",
+        "description": "Nous vérifions que le produit fonctionne réellement avant toute mise en ligne."
+      },
+      {
+        "title": "Lancer",
+        "description": "Nous mettons en production avec un plan de bascule clair."
+      },
+      {
+        "title": "Améliorer",
+        "description": "Nous accompagnons l'évolution du produit après le lancement."
+      }
     ]
   },
   "contact": {
@@ -138,8 +206,22 @@
       "message": "Décrivez votre besoin",
       "submit": "Envoyer",
       "submitting": "Envoi...",
-      "projectTypeOptions": ["Site web", "Application mobile", "E-commerce", "SaaS", "Agent IA", "Automatisation", "Autre"],
-      "budgetOptions": ["Moins de 1 000 €", "1 000 € – 5 000 €", "5 000 € – 15 000 €", "Plus de 15 000 €", "À définir"]
+      "projectTypeOptions": [
+        "Site web",
+        "Application mobile",
+        "E-commerce",
+        "SaaS",
+        "Agent IA",
+        "Automatisation",
+        "Autre"
+      ],
+      "budgetOptions": [
+        "Moins de 1 000 €",
+        "1 000 € – 5 000 €",
+        "5 000 € – 15 000 €",
+        "Plus de 15 000 €",
+        "À définir"
+      ]
     },
     "success": {
       "title": "Demande enregistrée.",
@@ -184,15 +266,44 @@
       "edit": "Modifier"
     },
     "steps": {
-      "whatToBuild": { "title": "Que souhaitez-vous construire ?", "subtitle": "Choisissez l'option la plus proche de votre projet." },
-      "goals": { "title": "Quel est votre objectif principal ?", "subtitle": "Sélectionnez tout ce qui s'applique." },
-      "capabilities": { "title": "De quelles fonctionnalités avez-vous besoin ?", "subtitle": "Sélectionnez ce qui vous semble pertinent — vous pourrez affiner plus tard." },
-      "platforms": { "title": "Sur quelles plateformes ?", "subtitle": "Sélectionnez tout ce qui s'applique." },
-      "businessState": { "title": "Où en êtes-vous aujourd'hui ?", "subtitle": "Cela nous aide à cadrer le point de départ.", "currentWebsiteLabel": "Site web ou application actuel (optionnel)" },
-      "timeline": { "title": "Quel est votre délai souhaité ?", "subtitle": "Une estimation suffit." },
-      "budget": { "title": "Quel est votre budget estimé ?", "subtitle": "Cela reste indicatif — aucun engagement à ce stade." },
-      "contact": { "title": "Comment vous joindre ?", "subtitle": "Vos coordonnées restent confidentielles." },
-      "message": { "title": "Autre chose à ajouter ?", "subtitle": "Optionnel, mais utile.", "placeholder": "Parlez-nous de votre projet, de vos contraintes, ou de ce qui vous préoccupe..." }
+      "whatToBuild": {
+        "title": "Que souhaitez-vous construire ?",
+        "subtitle": "Choisissez l'option la plus proche de votre projet."
+      },
+      "goals": {
+        "title": "Quel est votre objectif principal ?",
+        "subtitle": "Sélectionnez tout ce qui s'applique."
+      },
+      "capabilities": {
+        "title": "De quelles fonctionnalités avez-vous besoin ?",
+        "subtitle": "Sélectionnez ce qui vous semble pertinent — vous pourrez affiner plus tard."
+      },
+      "platforms": {
+        "title": "Sur quelles plateformes ?",
+        "subtitle": "Sélectionnez tout ce qui s'applique."
+      },
+      "businessState": {
+        "title": "Où en êtes-vous aujourd'hui ?",
+        "subtitle": "Cela nous aide à cadrer le point de départ.",
+        "currentWebsiteLabel": "Site web ou application actuel (optionnel)"
+      },
+      "timeline": {
+        "title": "Quel est votre délai souhaité ?",
+        "subtitle": "Une estimation suffit."
+      },
+      "budget": {
+        "title": "Quel est votre budget estimé ?",
+        "subtitle": "Cela reste indicatif — aucun engagement à ce stade."
+      },
+      "contact": {
+        "title": "Comment vous joindre ?",
+        "subtitle": "Vos coordonnées restent confidentielles."
+      },
+      "message": {
+        "title": "Autre chose à ajouter ?",
+        "subtitle": "Optionnel, mais utile.",
+        "placeholder": "Parlez-nous de votre projet, de vos contraintes, ou de ce qui vous préoccupe..."
+      }
     },
     "whatToBuild": {
       "website": "Site web",
@@ -274,7 +385,11 @@
       "company": "Entreprise (optionnel)",
       "country": "Pays (optionnel)",
       "preferredContactMethod": "Moyen de contact préféré",
-      "preferredContactOptions": { "whatsapp": "WhatsApp", "phone": "Téléphone", "email": "Email" }
+      "preferredContactOptions": {
+        "whatsapp": "WhatsApp",
+        "phone": "Téléphone",
+        "email": "Email"
+      }
     },
     "summary": {
       "title": "Récapitulatif de votre projet",
@@ -348,5 +463,16 @@
     "expired": "Cette conversation a expiré. Veuillez en démarrer une nouvelle.",
     "proposalSuccessTitle": "Merci, c'est bien reçu.",
     "proposalSuccessBody": "Votre référence est {reference}. L'équipe SIGMA+ vous recontactera prochainement."
+  },
+  "insights": {
+    "title": "Ressources",
+    "subtitle": "Guides et analyses de SIGMA+ pour vous aider à prendre de meilleures décisions technologiques.",
+    "allCategories": "Tout",
+    "featured": "À la une",
+    "empty": "Aucun article pour le moment",
+    "emptyHint": "Revenez bientôt pour nos premiers articles.",
+    "publishedOn": "Publié le",
+    "updatedOn": "Mis à jour le",
+    "backToInsights": "Retour aux ressources"
   }
 }

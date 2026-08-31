@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, uuid, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, uuid, boolean, real, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const leads = pgTable(
   "leads",
@@ -180,4 +180,128 @@ export const aiMessages = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("ai_messages_conversation_id_idx").on(table.conversationId)],
+);
+
+// --- Phase 8: Insights/CMS content system ----------------------------
+
+/**
+ * The stable, locale-independent identity a set of translations
+ * belongs to — see domain/article.ts. Tags/related-services/
+ * related-case-studies are jsonb arrays rather than join tables
+ * (same pattern already used for project_requests' goals/capabilities/
+ * platforms) — editorial metadata at this scale doesn't earn a
+ * separate normalized table yet.
+ */
+export const articles = pgTable("articles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  type: text("type").notNull(),
+  category: text("category").notNull(),
+  tags: jsonb("tags").$type<string[]>().notNull().default([]),
+  author: text("author").notNull(),
+  featured: boolean("featured").notNull().default(false),
+  relatedServices: jsonb("related_services").$type<string[]>().notNull().default([]),
+  relatedCaseStudies: jsonb("related_case_studies").$type<string[]>().notNull().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Status lives HERE, per translation, not on the parent `articles` row
+ * — a French translation can be PUBLISHED while Arabic doesn't exist
+ * yet or is still DRAFT (Phase 8 §9). `(locale, slug)` is globally
+ * unique (a slug collision within one locale is a real bug, caught at
+ * write time, not just by the audit engine); `(article_id, locale)` is
+ * unique (one translation per locale per article).
+ */
+export const articleTranslations = pgTable(
+  "article_translations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    articleId: uuid("article_id")
+      .notNull()
+      .references(() => articles.id, { onDelete: "cascade" }),
+    locale: text("locale").notNull(),
+    status: text("status").notNull().default("DRAFT"),
+    slug: text("slug").notNull(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    excerpt: text("excerpt").notNull(),
+    // Markdown, rendered via react-markdown with raw HTML disabled by
+    // default (see lib/content/render-markdown.tsx) — never stored/
+    // rendered as trusted HTML.
+    content: text("content").notNull(),
+    seoTitle: text("seo_title"),
+    seoDescription: text("seo_description"),
+    ogImage: text("og_image"),
+    editorEmail: text("editor_email"),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("article_translations_locale_slug_idx").on(table.locale, table.slug),
+    uniqueIndex("article_translations_article_locale_idx").on(table.articleId, table.locale),
+    index("article_translations_status_idx").on(table.status),
+  ],
+);
+
+/**
+ * Anti-chain redirect design (Phase 8 §15): this maps an OLD slug
+ * directly to the article, never to another slug string. Resolving a
+ * redirect always looks up that article's CURRENT slug at request
+ * time, so a slug changed twice (A → B → C) still redirects A straight
+ * to C with no intermediate hop and no stale "B" row to maintain.
+ */
+export const articleSlugRedirects = pgTable(
+  "article_slug_redirects",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    locale: text("locale").notNull(),
+    oldSlug: text("old_slug").notNull(),
+    articleId: uuid("article_id")
+      .notNull()
+      .references(() => articles.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("article_slug_redirects_locale_old_slug_idx").on(table.locale, table.oldSlug)],
+);
+
+// --- Phase 8: SEO intelligence ----------------------------------------
+
+/**
+ * Connection *state* only — never a credential/token (see
+ * domain/seo-intelligence.ts and docs/SEO_STRATEGY.md §51). If secure
+ * OAuth token storage is ever added, it does not belong in this table.
+ */
+export const seoConnections = pgTable("seo_connections", {
+  provider: text("provider").primaryKey(),
+  status: text("status").notNull().default("NOT_CONFIGURED"),
+  propertyIdentifier: text("property_identifier"),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+  lastError: text("last_error"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Approval-first (Phase 8 §42-43): a row here is never auto-applied to
+ * anything public. `confidence` is a plain float 0-1, not a magic
+ * "AI score" — see the opportunity-engine functions that populate it.
+ */
+export const seoRecommendations = pgTable(
+  "seo_recommendations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: text("type").notNull(),
+    severity: text("severity").notNull(),
+    page: text("page").notNull(),
+    locale: text("locale"),
+    reason: text("reason").notNull(),
+    recommendedAction: text("recommended_action").notNull(),
+    source: text("source").notNull(),
+    confidence: real("confidence").notNull(),
+    status: text("status").notNull().default("RECOMMENDED"),
+    reviewedByEmail: text("reviewed_by_email"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    generatedAt: timestamp("generated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("seo_recommendations_status_idx").on(table.status)],
 );

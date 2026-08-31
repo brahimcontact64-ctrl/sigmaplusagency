@@ -10,6 +10,7 @@ export async function SiteHeader({ locale }: { locale: string }) {
   const nav = {
     services: t("services"),
     work: t("work"),
+    insights: t("insights"),
     about: t("about"),
     contact: t("contact"),
     startProject: t("startProject"),

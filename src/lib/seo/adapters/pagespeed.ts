@@ -1,16 +1,24 @@
-/**
- * Future PageSpeed Insights / Lighthouse data adapter. Not blocked on
- * an API key this phase (the brief is explicit about that) — reports
- * "not connected" until PAGESPEED_API_KEY is configured and a real
- * implementation calls the API. Architectural CWV risk review lives in
- * docs/SEO_STRATEGY.md "Core Web Vitals" instead, since that can be
- * written today without measured data.
- */
-export type PageSpeedStatus =
-  | { connected: false }
-  | { connected: true; summary: { lcpMs: number; cls: number; inpMs: number } };
+import { getSeoConnectionRepository } from "@/lib/repositories/seo-connection-repository";
+import type { SeoConnectionState, PageSpeedMetric } from "@/domain/seo-intelligence";
 
-export function getPageSpeedStatus(): PageSpeedStatus {
-  if (!process.env.PAGESPEED_API_KEY) return { connected: false };
-  return { connected: false };
+/**
+ * Future PageSpeed Insights adapter. FIELD (real-user CrUX) and LAB
+ * (synthetic Lighthouse) data are never merged — see
+ * `domain/seo-intelligence.ts`'s `PageSpeedDataKind`. Not blocked on
+ * an API key this phase; reports NOT_CONFIGURED until
+ * `PAGESPEED_API_KEY` exists and a real implementation calls the API.
+ */
+const PROVIDER = "PAGESPEED" as const;
+
+export async function getPageSpeedConnection(): Promise<SeoConnectionState> {
+  const repo = getSeoConnectionRepository();
+  if (!process.env.PAGESPEED_API_KEY) {
+    return repo.upsert(PROVIDER, { status: "NOT_CONFIGURED", lastError: undefined });
+  }
+  return repo.upsert(PROVIDER, { status: "ERROR", lastError: "API key configured but the PageSpeed Insights client is not yet implemented." });
+}
+
+export async function syncPageSpeed(): Promise<{ state: SeoConnectionState; metrics: PageSpeedMetric[] }> {
+  const state = await getPageSpeedConnection();
+  return { state, metrics: [] };
 }

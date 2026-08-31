@@ -16,8 +16,8 @@ function groupBySeverity(issues: SeoIssue[]): Record<SeoIssueSeverity, SeoIssue[
   return grouped;
 }
 
-function main() {
-  const issues = runSeoAudit();
+async function main() {
+  const issues = await runSeoAudit();
   const grouped = groupBySeverity(issues);
 
   console.log(`\nSIGMA+ SEO audit — ${issues.length} finding(s)\n`);
@@ -51,4 +51,7 @@ function main() {
   }
 }
 
-main();
+main().catch((error) => {
+  console.error("seo:audit crashed:", error);
+  process.exit(1);
+});

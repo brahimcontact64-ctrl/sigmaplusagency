@@ -4,6 +4,7 @@ import { routing, type Locale } from "@/i18n/routing";
 import { siteConfig } from "@/lib/site-config";
 import { getAllServiceIds, getServiceContent, getServiceMeta, getServiceSlug } from "@/content/services";
 import { getAllProjectIds, getCaseStudyContent, getCaseStudyMeta, getProjectSlug } from "@/content/case-studies";
+import { getArticleRepository } from "@/lib/repositories/article-repository";
 import type { ServiceId } from "@/domain/service";
 import type { ProjectId } from "@/domain/case-study";
 
@@ -116,6 +117,35 @@ function buildCaseStudyModel(locale: Locale, id: ProjectId): PageModel {
     indexable: true,
     h1: content.name,
   };
+}
+
+/**
+ * Published Insights articles, modeled the same way as static content
+ * — a DB read, so this (and anything that calls it) is async, unlike
+ * the rest of this file. Only PUBLISHED translations are ever fetched
+ * (`listAllPublishedTranslations()`'s own WHERE clause), so a
+ * DRAFT/REVIEW/ARCHIVED translation structurally cannot appear here —
+ * see docs/SEO_STRATEGY.md "SEO audit regression" for why that's the
+ * real enforcement, not a check bolted on afterward.
+ */
+export async function buildArticleModel(): Promise<PageModel[]> {
+  // Same guard as effective-config.ts/sitemap.ts — a production build/
+  // runtime with no DATABASE_URL is an already-documented, expected
+  // state; the caller's own try/catch (see runSeoAudit) still handles
+  // any other failure gracefully, this just avoids the doomed call.
+  if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) return [];
+
+  const items = await getArticleRepository().listAllPublishedTranslations();
+
+  return items.map(({ translation }) => ({
+    routeKey: `article:${translation.articleId}:${translation.locale}`,
+    locale: translation.locale,
+    path: `/${translation.locale}/insights/${translation.slug}`,
+    title: translation.seoTitle?.trim() || translation.title,
+    description: translation.seoDescription?.trim() || translation.description,
+    indexable: true,
+    h1: translation.title,
+  }));
 }
 
 export function buildSiteModel(): PageModel[] {

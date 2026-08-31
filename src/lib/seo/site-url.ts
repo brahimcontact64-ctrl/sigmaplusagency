@@ -32,6 +32,33 @@ export function buildAlternateLanguages(pathByLocale: Record<Locale, string>): R
   return languages;
 }
 
+/**
+ * Insights articles (Phase 8) may not have a translation in every
+ * locale yet — never fabricate a route for one that doesn't exist
+ * (§9/§16: "hreflang should include only actual published peers").
+ * `x-default` points at the default locale's URL when published,
+ * otherwise falls back to whichever published locale sorts first in
+ * `routing.locales` order, so there's always at least one x-default
+ * rather than omitting it just because French isn't the published one.
+ */
+export function buildPartialAlternateLanguages(publishedPathByLocale: Partial<Record<Locale, string>>): Record<string, string> {
+  const languages: Record<string, string> = {};
+  for (const locale of routing.locales) {
+    const path = publishedPathByLocale[locale];
+    if (path !== undefined) languages[locale] = buildCanonicalUrl(locale, path);
+  }
+
+  const defaultPath = publishedPathByLocale[X_DEFAULT_LOCALE];
+  if (defaultPath !== undefined) {
+    languages["x-default"] = buildCanonicalUrl(X_DEFAULT_LOCALE, defaultPath);
+  } else {
+    const firstPublishedLocale = routing.locales.find((l) => publishedPathByLocale[l] !== undefined);
+    if (firstPublishedLocale) languages["x-default"] = buildCanonicalUrl(firstPublishedLocale, publishedPathByLocale[firstPublishedLocale]!);
+  }
+
+  return languages;
+}
+
 /** Convenience for the common case: a page whose path segment is identical across every locale (contact, about, services/work index, start-project, ai-consultant). */
 export function buildFixedPathAlternates(
   locale: Locale,

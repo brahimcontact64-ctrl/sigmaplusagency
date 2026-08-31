@@ -9,12 +9,14 @@
     "about": "Approach",
     "contact": "Contact",
     "startProject": "Start a project",
-    "aiConsultant": "Talk to SIGMA AI"
+    "aiConsultant": "Talk to SIGMA AI",
+    "insights": "Insights"
   },
   "breadcrumbs": {
     "home": "Home",
     "services": "Services",
-    "work": "Work"
+    "work": "Work",
+    "insights": "Insights"
   },
   "hero": {
     "eyebrow": "Web · Mobile · SaaS · AI · Automation · E-commerce",
@@ -29,12 +31,30 @@
     "title": "What we build",
     "subtitle": "Complete solutions, from idea to production.",
     "items": [
-      { "title": "Web Development", "description": "Custom websites, platforms, and web apps — fast and built to last." },
-      { "title": "Mobile Applications", "description": "Native or cross-platform iOS and Android apps built around your users." },
-      { "title": "E-commerce", "description": "Full online stores with secure payments and inventory management." },
-      { "title": "SaaS & Platforms", "description": "Business tools and SaaS products designed to scale with you." },
-      { "title": "AI & Automation", "description": "AI agents, assistants, and automations that save your team time." },
-      { "title": "SEO & Growth", "description": "A solid technical foundation so customers can find and choose you." }
+      {
+        "title": "Web Development",
+        "description": "Custom websites, platforms, and web apps — fast and built to last."
+      },
+      {
+        "title": "Mobile Applications",
+        "description": "Native or cross-platform iOS and Android apps built around your users."
+      },
+      {
+        "title": "E-commerce",
+        "description": "Full online stores with secure payments and inventory management."
+      },
+      {
+        "title": "SaaS & Platforms",
+        "description": "Business tools and SaaS products designed to scale with you."
+      },
+      {
+        "title": "AI & Automation",
+        "description": "AI agents, assistants, and automations that save your team time."
+      },
+      {
+        "title": "SEO & Growth",
+        "description": "A solid technical foundation so customers can find and choose you."
+      }
     ]
   },
   "servicesPage": {
@@ -42,10 +62,22 @@
     "subtitle": "Complete solutions, organized around what we actually build.",
     "seeAll": "View service",
     "categories": {
-      "build": { "label": "Build", "description": "Websites, mobile apps, e-commerce, and SaaS platforms." },
-      "intelligence": { "label": "Intelligence", "description": "AI agents, voice AI, and automation." },
-      "experience": { "label": "Experience", "description": "Interface design and SEO growth." },
-      "infrastructure": { "label": "Infrastructure", "description": "Backend, cloud, and long-term maintenance." }
+      "build": {
+        "label": "Build",
+        "description": "Websites, mobile apps, e-commerce, and SaaS platforms."
+      },
+      "intelligence": {
+        "label": "Intelligence",
+        "description": "AI agents, voice AI, and automation."
+      },
+      "experience": {
+        "label": "Experience",
+        "description": "Interface design and SEO growth."
+      },
+      "infrastructure": {
+        "label": "Infrastructure",
+        "description": "Backend, cloud, and long-term maintenance."
+      }
     }
   },
   "serviceDetail": {
@@ -93,11 +125,26 @@
     "title": "Why SIGMA+",
     "subtitle": "A method, not promises.",
     "items": [
-      { "title": "Strategy", "description": "We frame the right problem before writing a line of code." },
-      { "title": "Design", "description": "Clear interfaces, built around your users and your market." },
-      { "title": "Engineering", "description": "Robust, tested code that's production-ready — not a throwaway prototype." },
-      { "title": "AI", "description": "Agents and automations that genuinely lighten your team's workload." },
-      { "title": "Growth", "description": "A technical and SEO foundation built to last well past launch." }
+      {
+        "title": "Strategy",
+        "description": "We frame the right problem before writing a line of code."
+      },
+      {
+        "title": "Design",
+        "description": "Clear interfaces, built around your users and your market."
+      },
+      {
+        "title": "Engineering",
+        "description": "Robust, tested code that's production-ready — not a throwaway prototype."
+      },
+      {
+        "title": "AI",
+        "description": "Agents and automations that genuinely lighten your team's workload."
+      },
+      {
+        "title": "Growth",
+        "description": "A technical and SEO foundation built to last well past launch."
+      }
     ]
   },
   "about": {
@@ -107,13 +154,34 @@
     "processTitle": "Our process",
     "processSubtitle": "Seven stages, on every project.",
     "process": [
-      { "title": "Discover", "description": "We understand your business, users, and real constraints before proposing a solution." },
-      { "title": "Define", "description": "We scope the project, set priorities, and define what success actually means here." },
-      { "title": "Design", "description": "We design flows and interfaces before writing code, to avoid costly rework later." },
-      { "title": "Build", "description": "We develop with a clean, tested, documented architecture." },
-      { "title": "Test", "description": "We verify the product actually works before anything goes live." },
-      { "title": "Launch", "description": "We ship to production with a clear rollout plan." },
-      { "title": "Improve", "description": "We support the product's evolution after launch." }
+      {
+        "title": "Discover",
+        "description": "We understand your business, users, and real constraints before proposing a solution."
+      },
+      {
+        "title": "Define",
+        "description": "We scope the project, set priorities, and define what success actually means here."
+      },
+      {
+        "title": "Design",
+        "description": "We design flows and interfaces before writing code, to avoid costly rework later."
+      },
+      {
+        "title": "Build",
+        "description": "We develop with a clean, tested, documented architecture."
+      },
+      {
+        "title": "Test",
+        "description": "We verify the product actually works before anything goes live."
+      },
+      {
+        "title": "Launch",
+        "description": "We ship to production with a clear rollout plan."
+      },
+      {
+        "title": "Improve",
+        "description": "We support the product's evolution after launch."
+      }
     ]
   },
   "contact": {
@@ -138,8 +206,22 @@
       "message": "Tell us about your project",
       "submit": "Send",
       "submitting": "Sending...",
-      "projectTypeOptions": ["Website", "Mobile app", "E-commerce", "SaaS", "AI agent", "Automation", "Other"],
-      "budgetOptions": ["Under $1,000", "$1,000 – $5,000", "$5,000 – $15,000", "Over $15,000", "Not sure yet"]
+      "projectTypeOptions": [
+        "Website",
+        "Mobile app",
+        "E-commerce",
+        "SaaS",
+        "AI agent",
+        "Automation",
+        "Other"
+      ],
+      "budgetOptions": [
+        "Under $1,000",
+        "$1,000 – $5,000",
+        "$5,000 – $15,000",
+        "Over $15,000",
+        "Not sure yet"
+      ]
     },
     "success": {
       "title": "Request received.",
@@ -184,15 +266,44 @@
       "edit": "Edit"
     },
     "steps": {
-      "whatToBuild": { "title": "What do you want to build?", "subtitle": "Pick the option closest to your project." },
-      "goals": { "title": "What's your main goal?", "subtitle": "Select everything that applies." },
-      "capabilities": { "title": "What capabilities do you need?", "subtitle": "Select what feels relevant — you can refine this later." },
-      "platforms": { "title": "Which platforms?", "subtitle": "Select everything that applies." },
-      "businessState": { "title": "Where are you starting from?", "subtitle": "This helps us frame the starting point.", "currentWebsiteLabel": "Current website or app (optional)" },
-      "timeline": { "title": "What's your desired timeline?", "subtitle": "A rough estimate is fine." },
-      "budget": { "title": "What's your estimated budget?", "subtitle": "This stays indicative — no commitment at this stage." },
-      "contact": { "title": "How can we reach you?", "subtitle": "Your details stay confidential." },
-      "message": { "title": "Anything else to add?", "subtitle": "Optional, but helpful.", "placeholder": "Tell us about your project, constraints, or anything on your mind..." }
+      "whatToBuild": {
+        "title": "What do you want to build?",
+        "subtitle": "Pick the option closest to your project."
+      },
+      "goals": {
+        "title": "What's your main goal?",
+        "subtitle": "Select everything that applies."
+      },
+      "capabilities": {
+        "title": "What capabilities do you need?",
+        "subtitle": "Select what feels relevant — you can refine this later."
+      },
+      "platforms": {
+        "title": "Which platforms?",
+        "subtitle": "Select everything that applies."
+      },
+      "businessState": {
+        "title": "Where are you starting from?",
+        "subtitle": "This helps us frame the starting point.",
+        "currentWebsiteLabel": "Current website or app (optional)"
+      },
+      "timeline": {
+        "title": "What's your desired timeline?",
+        "subtitle": "A rough estimate is fine."
+      },
+      "budget": {
+        "title": "What's your estimated budget?",
+        "subtitle": "This stays indicative — no commitment at this stage."
+      },
+      "contact": {
+        "title": "How can we reach you?",
+        "subtitle": "Your details stay confidential."
+      },
+      "message": {
+        "title": "Anything else to add?",
+        "subtitle": "Optional, but helpful.",
+        "placeholder": "Tell us about your project, constraints, or anything on your mind..."
+      }
     },
     "whatToBuild": {
       "website": "Website",
@@ -274,7 +385,11 @@
       "company": "Company (optional)",
       "country": "Country (optional)",
       "preferredContactMethod": "Preferred contact method",
-      "preferredContactOptions": { "whatsapp": "WhatsApp", "phone": "Phone", "email": "Email" }
+      "preferredContactOptions": {
+        "whatsapp": "WhatsApp",
+        "phone": "Phone",
+        "email": "Email"
+      }
     },
     "summary": {
       "title": "Your project summary",
@@ -348,5 +463,16 @@
     "expired": "This conversation has expired. Please start a new one.",
     "proposalSuccessTitle": "Thanks — we've got it.",
     "proposalSuccessBody": "Your reference is {reference}. The SIGMA+ team will follow up shortly."
+  },
+  "insights": {
+    "title": "Insights",
+    "subtitle": "Guides and analysis from SIGMA+ to help you make better technology decisions.",
+    "allCategories": "All",
+    "featured": "Featured",
+    "empty": "No articles yet",
+    "emptyHint": "Check back soon for our first articles.",
+    "publishedOn": "Published on",
+    "updatedOn": "Updated on",
+    "backToInsights": "Back to Insights"
   }
 }

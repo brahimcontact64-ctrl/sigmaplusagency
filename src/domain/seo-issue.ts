@@ -10,15 +10,19 @@ export const SEO_ISSUE_SEVERITIES = ["ERROR", "WARNING", "OPPORTUNITY"] as const
 export type SeoIssueSeverity = (typeof SEO_ISSUE_SEVERITIES)[number];
 
 /**
- * Full future provenance vocabulary (Phase 8+ SEO intelligence will use
- * the others once real external connections exist) — Phase 7's own
- * audit engine only ever emits INTERNAL_AUDIT.
+ * Full provenance vocabulary (Phase 8 §30) — the deterministic audit
+ * engine (this file's `SeoIssue`) only ever emits INTERNAL_AUDIT; the
+ * others are used by `src/domain/seo-intelligence.ts`'s opportunities
+ * and recommendations once a real external connection exists. Never
+ * blur an estimate/AI suggestion with an observed external fact by
+ * mislabeling its source.
  */
 export const SEO_PROVENANCE_LEVELS = [
   "INTERNAL_AUDIT",
-  "LIVE_VERIFIED",
-  "OFFICIAL",
-  "CONNECTED_DATA",
+  "GOOGLE_SEARCH_CONSOLE",
+  "GOOGLE_ANALYTICS",
+  "PAGESPEED",
+  "MANUAL",
   "ESTIMATE",
   "AI_RECOMMENDATION",
 ] as const;

@@ -29,6 +29,13 @@
       "when": 1788127757839,
       "tag": "0003_striped_lady_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788164351171,
+      "tag": "0004_clumsy_random",
+      "breakpoints": true
     }
   ]
 }
