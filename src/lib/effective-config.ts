@@ -21,6 +21,14 @@ export type { EffectiveSiteConfig };
  */
 const getCachedCompanyIdentity = unstable_cache(
   async (): Promise<CompanyIdentitySetting | null> => {
+    // Mirrors db/client.ts's own refusal condition exactly: a
+    // production build/runtime with no DATABASE_URL is already a
+    // known, documented state (every real write path throws the same
+    // way) — skip the doomed DB call here instead of letting every
+    // static page's build log fill with the same caught-and-logged
+    // stack trace for a path that's designed to degrade gracefully.
+    if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) return null;
+
     const rows = await getSettingsRepository().getAll();
     const row = rows.find((r) => r.key === "company_identity");
     return (row?.value as CompanyIdentitySetting | undefined) ?? null;

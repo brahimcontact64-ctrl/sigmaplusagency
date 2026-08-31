@@ -13,8 +13,8 @@ export default defineConfig({
     // independent of test correctness — capping concurrency keeps each
     // PGlite startup fast enough that a generous but bounded timeout
     // is reliable rather than needing to keep raising it every phase.
-    hookTimeout: 30000,
-    maxWorkers: 4,
+    hookTimeout: 60000,
+    maxWorkers: 2,
   },
   resolve: {
     alias: {
