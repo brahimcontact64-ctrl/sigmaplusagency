@@ -13,6 +13,7 @@ export function OptionGridStep({
   multi,
   onChange,
   columns = 2,
+  mobileColumns = 1,
 }: {
   title: string;
   subtitle: string;
@@ -21,6 +22,8 @@ export function OptionGridStep({
   multi: boolean;
   onChange: (next: string[]) => void;
   columns?: 2 | 3;
+  /** Compact 2-column mobile grid for short-label option sets (e.g. the 6 broad project-type cards) — defaults to a single column, unchanged from before. */
+  mobileColumns?: 1 | 2;
 }) {
   function toggle(id: string) {
     if (multi) {
@@ -41,7 +44,11 @@ export function OptionGridStep({
 
       <motion.div
         variants={fadeUp}
-        className={cn("mt-6 grid grid-cols-1 gap-3 sm:mt-8", columns === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}
+        className={cn(
+          "mt-6 grid gap-3 sm:mt-8",
+          mobileColumns === 2 ? "grid-cols-2" : "grid-cols-1",
+          columns === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2",
+        )}
       >
         {options.map((opt) => (
           <OptionCard

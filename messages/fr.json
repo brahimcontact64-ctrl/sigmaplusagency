@@ -265,7 +265,7 @@
     "hero": {
       "eyebrow": "Consultation guidée",
       "title": "Démarrons votre projet.",
-      "subtitle": "Quelques questions pour comprendre votre besoin — 3 minutes suffisent."
+      "subtitle": "Quelques étapes rapides — une minute suffit."
     },
     "nav": {
       "stepLabel": "Étape {current} sur {total}",
@@ -303,9 +303,22 @@
         "title": "Quel est votre budget estimé ?",
         "subtitle": "Cela reste indicatif — aucun engagement à ce stade."
       },
+      "idea": {
+        "title": "Parlez-nous de votre projet",
+        "subtitle": "Aucune connaissance technique nécessaire. Expliquez-nous simplement votre idée avec vos mots.",
+        "placeholder": "Exemple : Je souhaite créer une application permettant à mes clients de réserver des rendez-vous et de recevoir des rappels automatiquement…",
+        "helper": "Quelques phrases suffisent — vous pourrez préciser davantage par la suite si vous le souhaitez.",
+        "businessStateLabel": "Où en êtes-vous aujourd'hui ?"
+      },
+      "budgetTiming": {
+        "title": "Budget & calendrier",
+        "subtitle": "Les deux restent indicatifs — aucun engagement à ce stade.",
+        "timelineLabel": "Quand souhaitez-vous démarrer ?",
+        "budgetLabel": "Budget estimé"
+      },
       "contact": {
         "title": "Comment vous joindre ?",
-        "subtitle": "Vos coordonnées restent confidentielles."
+        "subtitle": "Vos coordonnées restent confidentielles — utilisées uniquement pour vous envoyer une proposition."
       },
       "message": {
         "title": "Autre chose à ajouter ?",
@@ -392,7 +405,8 @@
     "contact": {
       "name": "Nom",
       "email": "Email",
-      "phone": "Téléphone (optionnel)",
+      "emailHint": "Utilisé uniquement pour vous envoyer votre proposition.",
+      "phone": "Téléphone / WhatsApp",
       "company": "Entreprise (optionnel)",
       "country": "Pays (optionnel)",
       "preferredContactMethod": "Moyen de contact préféré",
@@ -401,6 +415,14 @@
         "phone": "Téléphone",
         "email": "Email"
       }
+    },
+    "optionalQualification": {
+      "cta": "Envie de nous en dire plus ? →",
+      "title": "Quelques détails supplémentaires",
+      "subtitle": "Totalement optionnel — cela peut nous aider à préparer une première réponse plus précise.",
+      "submit": "Envoyer ces détails",
+      "submitting": "Envoi en cours...",
+      "done": "Merci — ces détails ont été ajoutés à votre demande."
     },
     "summary": {
       "title": "Récapitulatif de votre projet",
@@ -422,6 +444,7 @@
       "title": "Votre demande a bien été enregistrée.",
       "description": "Nous allons l'étudier. Pour une réponse plus rapide, continuez directement sur WhatsApp.",
       "cta": "Continuer sur WhatsApp",
+      "aiCta": "Discuter avec SIGMA AI",
       "backHome": "Retour à l'accueil",
       "viewWork": "Voir nos réalisations"
     },
@@ -432,10 +455,11 @@
       "maintenance": "Nous suspendons temporairement les nouvelles demandes de projet pour une maintenance planifiée. Merci de réessayer bientôt, ou de nous contacter directement sur WhatsApp.",
       "unexpected": "Une erreur est survenue et votre demande n'a pas été enregistrée. Merci de réessayer ou de nous contacter directement sur WhatsApp."
     },
-    "whatsappSummary": "Bonjour SIGMA+,\nJe viens de soumettre une demande de projet.\n\nProjet: {projectType}\nObjectif: {goal}\nFonctionnalités: {capabilities}\nDélai: {timeline}\nRéférence: {reference}",
+    "whatsappSummary": "Bonjour SIGMA+,\nJe viens de soumettre une demande de projet.\n\nProjet: {projectType}\nIdée: {idea}\nDélai: {timeline}\nRéférence: {reference}",
     "brief": {
       "openQuestions": {
         "clarifyProjectType": "Clarifier le type de projet exact avec le client.",
+        "clarifyGoals": "Clarifier le ou les objectifs principaux du client avant de cadrer le scope.",
         "clarifyPlatforms": "Confirmer les plateformes cibles avant de cadrer le scope.",
         "confirmBudget": "Discuter du budget avant de proposer une estimation.",
         "getCurrentWebsite": "Obtenir l'URL ou l'accès au site/produit existant.",

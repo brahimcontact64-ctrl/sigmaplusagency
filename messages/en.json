@@ -265,7 +265,7 @@
     "hero": {
       "eyebrow": "Guided consultation",
       "title": "Let's start your project.",
-      "subtitle": "A few questions to understand your needs — takes about 3 minutes."
+      "subtitle": "A few quick steps — takes about a minute."
     },
     "nav": {
       "stepLabel": "Step {current} of {total}",
@@ -303,9 +303,22 @@
         "title": "What's your estimated budget?",
         "subtitle": "This stays indicative — no commitment at this stage."
       },
+      "idea": {
+        "title": "Tell us about your idea",
+        "subtitle": "No technical knowledge needed. Explain it simply, in your own words.",
+        "placeholder": "Example: I want an app that lets my customers book appointments and get automatic reminders...",
+        "helper": "A couple of sentences is enough — you'll be able to add more detail afterwards if you'd like.",
+        "businessStateLabel": "Where are you starting from?"
+      },
+      "budgetTiming": {
+        "title": "Budget & timing",
+        "subtitle": "Both stay indicative — no commitment at this stage.",
+        "timelineLabel": "When would you like to start?",
+        "budgetLabel": "Estimated budget"
+      },
       "contact": {
         "title": "How can we reach you?",
-        "subtitle": "Your details stay confidential."
+        "subtitle": "Your details stay confidential — used only to send you a proposal."
       },
       "message": {
         "title": "Anything else to add?",
@@ -392,7 +405,8 @@
     "contact": {
       "name": "Name",
       "email": "Email",
-      "phone": "Phone (optional)",
+      "emailHint": "Used only to send you your proposal.",
+      "phone": "Phone / WhatsApp",
       "company": "Company (optional)",
       "country": "Country (optional)",
       "preferredContactMethod": "Preferred contact method",
@@ -401,6 +415,14 @@
         "phone": "Phone",
         "email": "Email"
       }
+    },
+    "optionalQualification": {
+      "cta": "Want to give us more details? →",
+      "title": "A few more details",
+      "subtitle": "Completely optional — this can help us prepare a more precise first response.",
+      "submit": "Send these details",
+      "submitting": "Sending...",
+      "done": "Thanks — these details have been added to your request."
     },
     "summary": {
       "title": "Your project summary",
@@ -422,6 +444,7 @@
       "title": "Your request has been saved.",
       "description": "We'll review it. For a faster response, continue directly on WhatsApp.",
       "cta": "Continue on WhatsApp",
+      "aiCta": "Talk to SIGMA AI",
       "backHome": "Back to homepage",
       "viewWork": "See our work"
     },
@@ -432,10 +455,11 @@
       "maintenance": "We're temporarily pausing new project requests for scheduled maintenance. Please try again shortly, or reach us directly on WhatsApp.",
       "unexpected": "Something went wrong and your request was not saved. Please try again or reach us directly on WhatsApp."
     },
-    "whatsappSummary": "Hello SIGMA+,\nI just submitted a project request.\n\nProject: {projectType}\nGoal: {goal}\nFeatures: {capabilities}\nTimeline: {timeline}\nReference: {reference}",
+    "whatsappSummary": "Hello SIGMA+,\nI just submitted a project request.\n\nProject: {projectType}\nIdea: {idea}\nTimeline: {timeline}\nReference: {reference}",
     "brief": {
       "openQuestions": {
         "clarifyProjectType": "Clarify the exact project type with the client.",
+        "clarifyGoals": "Clarify the client's main goal(s) before scoping.",
         "clarifyPlatforms": "Confirm target platforms before scoping.",
         "confirmBudget": "Discuss budget before proposing an estimate.",
         "getCurrentWebsite": "Get the URL or access to the existing site/product.",

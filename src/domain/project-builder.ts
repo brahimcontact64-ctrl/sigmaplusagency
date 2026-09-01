@@ -31,9 +31,17 @@ const attributionSchema = z.object({
 export const projectBuilderSchema = z
   .object({
     projectType: z.enum(PROJECT_TYPES),
-    goals: z.array(z.enum(PROJECT_GOALS)).min(1).max(PROJECT_GOALS.length),
+    // Project Builder v2 (conversion simplification) — goals and
+    // platforms are no longer asked in the primary 4-step flow (they're
+    // solution-design decisions, deferred to the optional post-submit
+    // qualification step or the AI Consultant), so both default to an
+    // empty array rather than requiring at least one. An empty array is
+    // a legitimate "not asked" value here — never a fabricated guess —
+    // and the underlying DB columns are NOT NULL jsonb arrays that
+    // already accept `[]`, so no schema change was needed.
+    goals: z.array(z.enum(PROJECT_GOALS)).max(PROJECT_GOALS.length),
     capabilities: z.array(z.enum(PROJECT_CAPABILITIES)).max(PROJECT_CAPABILITIES.length),
-    platforms: z.array(z.enum(PROJECT_PLATFORMS)).min(1).max(PROJECT_PLATFORMS.length),
+    platforms: z.array(z.enum(PROJECT_PLATFORMS)).max(PROJECT_PLATFORMS.length),
 
     businessState: z.enum(BUSINESS_STATES),
     currentWebsite: z
@@ -52,13 +60,30 @@ export const projectBuilderSchema = z
     budgetCurrency: z.enum(SUPPORTED_CURRENCIES).optional(),
 
     name: z.string().trim().min(2, "Name is too short").max(120),
+    // `email` stays required even though the product spec for this
+    // redesign asks for it to be optional: `leads.email`/
+    // `email_normalized` are NOT NULL columns and the dedup logic keys
+    // off the normalized email first. Honoring "email optional" for
+    // real would need a migration (making those columns nullable and
+    // reworking dedup to fall back to phone) — per this task's explicit
+    // "stop and report, don't generate/apply" rule for a genuinely
+    // required migration, that change is flagged in the completion
+    // report rather than made here. `phone` becomes required instead
+    // (it was already nullable at the DB layer, so no migration is
+    // needed to make it mandatory at the application layer).
     email: z.string().trim().email("Invalid email"),
-    phone: z.string().trim().max(40).optional().or(z.literal("")),
+    phone: z.string().trim().min(6, "Phone number is too short").max(40),
     company: z.string().trim().max(120).optional().or(z.literal("")),
     country: z.string().trim().max(80).optional().or(z.literal("")),
     preferredContactMethod: z.enum(PREFERRED_CONTACT_METHODS).optional(),
 
-    message: z.string().trim().max(2000).optional().or(z.literal("")),
+    // Now the primary qualitative content of the whole flow (Step 2 —
+    // "Tell us about your idea"), so it's required with a floor length
+    // instead of the old optional "anything else to add?" step. Still
+    // the same `message` column as before (nullable, unchanged) — old
+    // rows and the Contact page's own shorter free-text messages remain
+    // valid without it.
+    message: z.string().trim().min(10, "Please tell us a bit more about your idea").max(2000),
     locale: z.enum(locales),
     [HONEYPOT_FIELD_NAME]: z.string().max(200).optional().or(z.literal("")),
   })
@@ -68,5 +93,5 @@ export const projectBuilderSchema = z
 export type ProjectBuilderInput = z.infer<typeof projectBuilderSchema>;
 
 export type ProjectBuilderResult =
-  | { success: true; reference: string; whatsappUrl: string }
+  | { success: true; reference: string; whatsappUrl: string; projectRequestId: string; projectType: ProjectBuilderInput["projectType"] }
   | { success: false; error: "validation_error" | "rate_limited" | "db_unavailable" | "maintenance" | "unexpected" };

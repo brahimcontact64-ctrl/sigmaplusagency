@@ -89,7 +89,7 @@ export type SubmitResult =
   | { success: false; error: "db_unavailable" | "unexpected" };
 
 export type SubmitProjectRequestResult =
-  | { success: true; reference: string; leadId: string; brief: StructuredBrief }
+  | { success: true; reference: string; leadId: string; projectRequestId: string; brief: StructuredBrief }
   | { success: false; error: "db_unavailable" | "unexpected" };
 
 async function findOrCreateLead(
@@ -256,7 +256,7 @@ export async function submitProjectRequest(
     const budgetCurrency = input.budgetCurrency ?? (budgetRangeConfig ? "EUR" : undefined);
     const budgetAmounts = budgetRangeConfig && budgetCurrency ? getBudgetAmounts(budgetRangeConfig, budgetCurrency) : undefined;
 
-    await repo.createProjectRequest({
+    const projectRequest = await repo.createProjectRequest({
       leadId: lead.id,
       projectType: input.projectType,
       goals: input.goals,
@@ -281,9 +281,79 @@ export async function submitProjectRequest(
     await attachAnalyticsSession(input.analyticsSessionId, lead.id);
     await sendLeadNotifications(repo, lead, lead.publicReference, brief);
 
-    return { success: true, reference: lead.publicReference, leadId: lead.id, brief };
+    return { success: true, reference: lead.publicReference, leadId: lead.id, projectRequestId: projectRequest.id, brief };
   } catch (error) {
     return toFailure(error);
+  }
+}
+
+export type AttachOptionalQualificationInput = {
+  reference: string;
+  projectRequestId: string;
+  goals: ProjectRequest["goals"];
+  capabilities: ProjectRequest["capabilities"];
+  platforms: ProjectRequest["platforms"];
+};
+
+export type AttachOptionalQualificationResult =
+  | { success: true }
+  | { success: false; error: "not_found" | "unexpected" };
+
+/**
+ * Project Builder v2 §3 — attaches optional, later-supplied
+ * qualification (goals/capabilities/platforms) to the *same* project
+ * request the primary submission already created. Never creates a
+ * lead or project request; ownership is verified by requiring both the
+ * public reference (shown to the visitor on the success screen) AND
+ * the project request id (returned to the client at submission time)
+ * to agree on the same lead — a guessed/tampered id for someone else's
+ * request is rejected as "not_found" rather than silently updating it.
+ */
+export async function attachOptionalQualification(
+  input: AttachOptionalQualificationInput,
+  repo: LeadRepository = getLeadRepository(),
+): Promise<AttachOptionalQualificationResult> {
+  try {
+    const lead = await repo.findByPublicReference(input.reference);
+    if (!lead) return { success: false, error: "not_found" };
+
+    const existing = await repo.getProjectRequestById(input.projectRequestId);
+    if (!existing || existing.leadId !== lead.id) return { success: false, error: "not_found" };
+
+    // Re-derive the structured brief from the merged fields so a
+    // salesperson opening this lead later sees an up-to-date brief,
+    // not one that still says "not specified" for something the
+    // visitor has since provided.
+    const brief = await buildStructuredBrief(
+      {
+        projectType: existing.projectType,
+        goals: input.goals,
+        capabilities: input.capabilities,
+        platforms: input.platforms,
+        businessState: existing.businessState,
+        currentWebsite: existing.currentWebsite,
+        timeline: existing.timeline,
+        budgetRange: existing.budgetRange,
+        budgetCurrency: existing.budgetCurrency,
+        message: existing.message,
+      },
+      existing.locale as Locale,
+    );
+
+    const updated = await repo.updateProjectRequestQualification(existing.id, {
+      goals: input.goals,
+      capabilities: input.capabilities,
+      platforms: input.platforms,
+      structuredBrief: brief,
+    });
+    if (!updated) return { success: false, error: "not_found" };
+
+    await repo.createActivity(lead.id, "project_request_submitted", { via: "optional_qualification" });
+
+    return { success: true };
+  } catch (error) {
+    console.error("[lead-service] optional qualification attach failed:", error instanceof Error ? error.message : error);
+    return { success: false, error: "unexpected" };
   }
 }
 

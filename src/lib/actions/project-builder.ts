@@ -84,11 +84,17 @@ export async function submitProjectBuilder(formData: unknown, analyticsSessionId
   // (no pre-filled message) rather than losing the success state.
   let whatsappUrl: string;
   try {
-    whatsappUrl = await buildProjectRequestWhatsAppUrl(result.brief, result.reference, data.locale);
+    whatsappUrl = await buildProjectRequestWhatsAppUrl(result.brief, result.reference, data.locale, data.message);
   } catch (error) {
     console.error("[project-builder] WhatsApp link build failed after successful persistence:", error);
     whatsappUrl = buildWhatsAppUrl();
   }
 
-  return { success: true, reference: result.reference, whatsappUrl };
+  return {
+    success: true,
+    reference: result.reference,
+    whatsappUrl,
+    projectRequestId: result.projectRequestId,
+    projectType: data.projectType,
+  };
 }

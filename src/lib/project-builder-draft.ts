@@ -7,7 +7,13 @@
  */
 
 const STORAGE_KEY = "sigma-project-builder-draft";
-const DRAFT_SCHEMA_VERSION = 1;
+// Bumped for Project Builder v2's 4-step flow: a version-1 draft was
+// written against the old 10-step STEP_IDS order, so its `stepIndex`
+// would point at the wrong step (or an out-of-range one) under the new
+// 4-step list. The version-mismatch branch below already discards an
+// incompatible draft safely — this bump is what makes that branch fire
+// for every pre-existing draft rather than trying to reinterpret it.
+const DRAFT_SCHEMA_VERSION = 2;
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export type DraftableFields = {
@@ -19,6 +25,8 @@ export type DraftableFields = {
   currentWebsite?: string;
   timeline?: string;
   budgetRange?: string;
+  /** The project idea/description (Step 2's textarea) — not strictly PII the way name/email/phone are, so unlike those it's fine to resume from a draft. */
+  message?: string;
   stepIndex?: number;
 };
 

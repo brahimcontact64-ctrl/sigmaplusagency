@@ -1,15 +1,20 @@
 "use client";
 
 import { motion } from "motion/react";
-import { MessageCircle, RotateCcw, ArrowRight, CheckCircle2, AlertTriangle } from "lucide-react";
+import { MessageCircle, RotateCcw, ArrowRight, Sparkles, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { ButtonLink, Button } from "@/components/ui/button";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { track } from "@/lib/integrations/analytics";
+import { OptionalQualificationPanel } from "./optional-qualification-panel";
 import type { ProjectBuilderResult } from "@/domain/project-builder";
 
 function handleWhatsAppClick() {
   track("whatsapp_handoff_clicked", { context: "project_builder" });
+}
+
+function handleAiClick() {
+  track("cta_click", { ctaId: "result_ai_consultant", context: "project_builder_success" });
 }
 
 type ErrorCopy = {
@@ -29,7 +34,7 @@ export function ResultScreen({
   onRetry,
 }: {
   result: ProjectBuilderResult;
-  successCopy: { title: string; description: string; cta: string; backHome: string; viewWork: string };
+  successCopy: { title: string; description: string; cta: string; backHome: string; viewWork: string; aiCta: string };
   errorCopy: ErrorCopy;
   whatsappFallbackUrl: string;
   retryLabel: string;
@@ -64,15 +69,31 @@ export function ResultScreen({
             {successCopy.cta}
           </ButtonLink>
           <Link
-            href="/work"
+            href="/ai-consultant"
+            onClick={handleAiClick}
             className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-foreground"
+          >
+            <Sparkles className="size-4" />
+            {successCopy.aiCta}
+          </Link>
+        </motion.div>
+
+        <motion.div variants={fadeUp} className="mx-auto flex justify-center">
+          <OptionalQualificationPanel
+            reference={result.reference}
+            projectRequestId={result.projectRequestId}
+            projectType={result.projectType}
+          />
+        </motion.div>
+
+        <motion.div variants={fadeUp} className="mt-6 flex items-center justify-center gap-4">
+          <Link
+            href="/work"
+            className="inline-flex items-center gap-2 text-sm text-muted underline-offset-4 hover:text-foreground hover:underline"
           >
             {successCopy.viewWork}
             <ArrowRight className="size-4 rtl:rotate-180" />
           </Link>
-        </motion.div>
-
-        <motion.div variants={fadeUp} className="mt-6">
           <Link href="/" className="text-sm text-muted underline-offset-4 hover:text-foreground hover:underline">
             {successCopy.backHome}
           </Link>

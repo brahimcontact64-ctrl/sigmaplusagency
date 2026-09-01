@@ -129,6 +129,70 @@ describe("submitProjectRequest", () => {
     expect(created?.structuredBrief).toBeTruthy();
   });
 
+  it("Project Builder v2 short-form request: persists empty goals/capabilities/platforms rather than fabricating a value", async () => {
+    const result = await submitProjectRequest(
+      {
+        projectType: "website",
+        goals: [],
+        capabilities: [],
+        platforms: [],
+        businessState: "new-idea",
+        timeline: "asap",
+        budgetRange: "not-sure",
+        name: "Short Form Person",
+        email: "short-form@example.com",
+        phone: "0550111222",
+        message: "I need a simple website for my new bakery.",
+        locale: "fr",
+      },
+      repo(),
+    );
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const requests = await db.select().from(projectRequests);
+    const created = requests.find((r) => r.id === result.projectRequestId);
+    // Never a guessed default like ["web"] — a genuinely empty array is
+    // the correct representation of "not asked in the short-form flow".
+    expect(created?.goals).toEqual([]);
+    expect(created?.capabilities).toEqual([]);
+    expect(created?.platforms).toEqual([]);
+    expect(created?.message).toBe("I need a simple website for my new bakery.");
+    // An empty-goals brief should flag it as an open question for the sales team.
+    expect(result.brief.openQuestions.length).toBeGreaterThan(0);
+  });
+
+  it("stays backward compatible with a fully-specified legacy-shaped submission (e.g. an AI Consultant handoff)", async () => {
+    const result = await submitProjectRequest(
+      {
+        projectType: "saas-platform",
+        goals: ["launch-mvp", "automate-operations"],
+        capabilities: ["authentication", "admin-dashboard"],
+        platforms: ["web", "ios"],
+        businessState: "existing-business",
+        currentWebsite: "https://example.com",
+        timeline: "3-6-months",
+        budgetRange: "15000-plus",
+        name: "Legacy Shape Person",
+        email: "legacy-shape@example.com",
+        phone: "0550333444",
+        message: "Full detail supplied all at once, as the AI Consultant handoff would.",
+        locale: "en",
+      },
+      repo(),
+    );
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const requests = await db.select().from(projectRequests);
+    const created = requests.find((r) => r.id === result.projectRequestId);
+    expect(created?.goals).toEqual(["launch-mvp", "automate-operations"]);
+    expect(created?.platforms).toEqual(["web", "ios"]);
+    expect(created?.currentWebsite).toBe("https://example.com");
+  });
+
   it("flags an open question when platform is unclear", async () => {
     const result = await submitProjectRequest(
       {

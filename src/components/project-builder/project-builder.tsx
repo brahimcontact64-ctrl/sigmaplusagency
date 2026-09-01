@@ -8,12 +8,10 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StepIndicator } from "./step-indicator";
 import { OptionGridStep } from "./option-grid-step";
-import { BusinessStateStep } from "./business-state-step";
+import { IdeaStep } from "./idea-step";
+import { BudgetTimingStep } from "./budget-timing-step";
 import { ContactStep } from "./contact-step";
-import { MessageStep } from "./message-step";
-import { SummaryStep, type SummarySection } from "./summary-step";
 import { ResultScreen } from "./result-screen";
-import { CurrencySwitcher } from "./currency-switcher";
 import { STEP_IDS, EMPTY_FORM_DATA, type BuilderFormData, type StepId } from "./types";
 import { saveDraft, loadDraft, clearDraft } from "@/lib/project-builder-draft";
 import { getClientAttribution } from "@/lib/attribution";
@@ -22,44 +20,27 @@ import { getOrCreateAnalyticsSessionId } from "@/lib/analytics/session-id";
 import { submitProjectBuilder } from "@/lib/actions/project-builder";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { persistShownCurrency, setCurrencyOverride } from "@/lib/pricing/currency-cookie-client";
+import { PRIMARY_PROJECT_TYPE_IDS } from "@/config/project-builder-flow";
+import { isStepValid } from "@/lib/project-builder/step-validity";
 import type { ProjectBuilderResult } from "@/domain/project-builder";
 import type { Locale } from "@/i18n/routing";
 import type { CurrencyCode } from "@/lib/money";
-import {
-  PROJECT_TYPES,
-  PROJECT_GOALS,
-  PROJECT_CAPABILITIES,
-  PROJECT_PLATFORMS,
-  PROJECT_TIMELINES,
-} from "@/domain/project-request";
+import type { BusinessState, ProjectTimeline } from "@/domain/project-request";
 import { BUDGET_RANGES, formatBudgetRangeLabel } from "@/config/budget-ranges";
 
-const REQUIRED_NAME_MIN = 2;
-
-function isStepValid(stepId: StepId, data: BuilderFormData): boolean {
-  switch (stepId) {
-    case "whatToBuild":
-      return !!data.projectType;
-    case "goals":
-      return data.goals.length > 0;
-    case "capabilities":
-      return true; // optional
-    case "platforms":
-      return data.platforms.length > 0;
-    case "businessState":
-      return !!data.businessState;
-    case "timeline":
-      return !!data.timeline;
-    case "budget":
-      return !!data.budgetRange;
-    case "contact":
-      return data.name.trim().length >= REQUIRED_NAME_MIN && /\S+@\S+\.\S+/.test(data.email);
-    case "message":
-      return true; // optional
-    case "summary":
-      return true;
-  }
-}
+/**
+ * Maps the internal step id to the non-PII, stable identifier used in
+ * analytics (Project Builder v2 §7) — deliberately a separate, small
+ * dictionary rather than reusing STEP_IDS values directly, so the
+ * analytics dimension stays stable even if an internal step id is ever
+ * renamed for code-clarity reasons.
+ */
+const ANALYTICS_STEP_ID: Record<StepId, string> = {
+  whatToBuild: "project_type",
+  idea: "idea",
+  budgetTiming: "budget_timing",
+  contact: "contact",
+};
 
 export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: CurrencyCode }) {
   const t = useTranslations("projectBuilder");
@@ -115,6 +96,8 @@ export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: 
     const behavior: ScrollBehavior = isFirstStepRender.current || prefersReducedMotion ? "auto" : "smooth";
     isFirstStepRender.current = false;
     stepContentRef.current?.scrollIntoView({ behavior, block: "start" });
+    track("project_builder_step_viewed", { builderStep: ANALYTICS_STEP_ID[stepId], builderStepIndex: stepIndex });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stepId is derived from stepIndex; including it would be redundant, not a missing dependency
   }, [stepIndex]);
 
   useEffect(() => {
@@ -171,6 +154,7 @@ export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: 
           currentWebsite: draft.currentWebsite ?? prev.currentWebsite,
           timeline: (draft.timeline as BuilderFormData["timeline"]) ?? prev.timeline,
           budgetRange: draft.budgetRange ?? prev.budgetRange,
+          message: draft.message ?? prev.message,
         }));
         if (restoredIndex !== null) setStepIndex(restoredIndex);
         setDraftNotice(true);
@@ -190,14 +174,26 @@ export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: 
       currentWebsite: data.currentWebsite,
       timeline: data.timeline,
       budgetRange: data.budgetRange,
+      message: data.message,
       stepIndex,
     });
-  }, [data.projectType, data.goals, data.capabilities, data.platforms, data.businessState, data.currentWebsite, data.timeline, data.budgetRange, stepIndex]);
+  }, [
+    data.projectType,
+    data.goals,
+    data.capabilities,
+    data.platforms,
+    data.businessState,
+    data.currentWebsite,
+    data.timeline,
+    data.budgetRange,
+    data.message,
+    stepIndex,
+  ]);
 
   useEffect(() => {
     function handleUnload() {
       if (hasStarted.current && !hasCompleted.current) {
-        track("project_builder_abandoned", { builderStep: stepId });
+        track("project_builder_abandoned", { builderStep: ANALYTICS_STEP_ID[stepId] });
       }
     }
     window.addEventListener("beforeunload", handleUnload);
@@ -214,7 +210,7 @@ export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: 
 
   function goNext() {
     if (!isStepValid(stepId, data)) return;
-    track("project_builder_step_completed", { builderStep: stepId, builderStepIndex: stepIndex });
+    track("project_builder_step_completed", { builderStep: ANALYTICS_STEP_ID[stepId], builderStepIndex: stepIndex });
     setStepIndex((i) => Math.min(i + 1, STEP_IDS.length - 1));
   }
 
@@ -222,11 +218,8 @@ export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: 
     setStepIndex((i) => Math.max(i - 1, 0));
   }
 
-  function jumpTo(id: StepId) {
-    setStepIndex(STEP_IDS.indexOf(id));
-  }
-
   async function handleSubmit() {
+    if (!isStepValid("contact", data) || submitting) return;
     setSubmitting(true);
     const res = await submitProjectBuilder({
       projectType: data.projectType,
@@ -240,11 +233,11 @@ export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: 
       budgetCurrency: currency,
       name: data.name,
       email: data.email,
-      phone: data.phone || undefined,
+      phone: data.phone,
       company: data.company || undefined,
       country: data.country || undefined,
       preferredContactMethod: data.preferredContactMethod,
-      message: data.message || undefined,
+      message: data.message,
       locale,
       ...getClientAttribution(),
     }, getOrCreateAnalyticsSessionId());
@@ -254,7 +247,9 @@ export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: 
     if (res.success) {
       hasCompleted.current = true;
       clearDraft();
+      track("project_builder_step_completed", { builderStep: ANALYTICS_STEP_ID.contact, builderStepIndex: stepIndex });
       track("project_builder_completed");
+      track("proposal_requested");
       track("lead_created", { source: "project_builder" });
     }
   }
@@ -279,12 +274,6 @@ export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: 
     );
   }
 
-  const optionLabel = (namespace: string, id?: string) => {
-    if (!id) return "";
-    const map = t.raw(namespace) as Record<string, string>;
-    return map[id] ?? id;
-  };
-
   // Currency-aware budget labels (Phase 11 §6) — replaces the old
   // static per-locale `budget` translation map, which hardcoded EUR
   // regardless of the visitor's currency. `formatBudgetRangeLabel`
@@ -295,38 +284,7 @@ export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: 
     label: formatBudgetRangeLabel(range, currency, locale, (key, values) => t(`budgetTemplates.${key}` as never, values as never)),
   }));
 
-  function budgetOptionLabel(id?: string): string {
-    if (!id) return "";
-    return budgetOptions.find((o) => o.id === id)?.label ?? id;
-  }
-
-  const summarySections: SummarySection[] = [
-    { label: t("summary.projectLabel"), value: optionLabel("whatToBuild", data.projectType), editStep: "whatToBuild" },
-    {
-      label: t("summary.goalsLabel"),
-      value: data.goals.map((g) => optionLabel("goals", g)).join(", "),
-      editStep: "goals",
-    },
-    {
-      label: t("summary.capabilitiesLabel"),
-      value: data.capabilities.map((c) => optionLabel("capabilities", c)).join(", "),
-      editStep: "capabilities",
-    },
-    {
-      label: t("summary.platformsLabel"),
-      value: data.platforms.map((p) => optionLabel("platforms", p)).join(", "),
-      editStep: "platforms",
-    },
-    { label: t("summary.businessLabel"), value: optionLabel("businessState", data.businessState), editStep: "businessState" },
-    { label: t("summary.timelineLabel"), value: optionLabel("timeline", data.timeline), editStep: "timeline" },
-    { label: t("summary.budgetLabel"), value: budgetOptionLabel(data.budgetRange), editStep: "budget" },
-    {
-      label: t("summary.contactLabel"),
-      value: [data.name, data.email, data.phone].filter(Boolean).join(" · "),
-      editStep: "contact",
-    },
-    { label: t("summary.messageLabel"), value: data.message, editStep: "message" },
-  ];
+  const isLastStep = stepId === "contact";
 
   return (
     <div>
@@ -335,8 +293,8 @@ export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: 
         target, not just the inner content, so advancing/going back
         never leaves the progress bar scrolled out of view above the
         header while the new step's own heading is visible (or vice
-        versa). `scroll-mt-[var(--site-header-height)]` reads the same
-        CSS variable header-client.tsx keeps in sync with the sticky
+        versa). `scroll-mt-(--site-header-height)` reads the same CSS
+        variable header-client.tsx keeps in sync with the sticky
         header's real, current (unscrolled vs. scrolled) height — never
         a hardcoded pixel margin.
       */}
@@ -365,82 +323,48 @@ export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: 
             <OptionGridStep
               title={t("steps.whatToBuild.title")}
               subtitle={t("steps.whatToBuild.subtitle")}
-              options={optionsFor("whatToBuild", PROJECT_TYPES)}
+              options={optionsFor("whatToBuild", PRIMARY_PROJECT_TYPE_IDS)}
               selected={data.projectType ? [data.projectType] : []}
               multi={false}
               onChange={([v]) => patch({ projectType: v as BuilderFormData["projectType"] })}
               columns={3}
+              mobileColumns={2}
             />
           )}
-          {stepId === "goals" && (
-            <OptionGridStep
-              title={t("steps.goals.title")}
-              subtitle={t("steps.goals.subtitle")}
-              options={optionsFor("goals", PROJECT_GOALS)}
-              selected={data.goals}
-              multi
-              onChange={(v) => patch({ goals: v as BuilderFormData["goals"] })}
-            />
-          )}
-          {stepId === "capabilities" && (
-            <OptionGridStep
-              title={t("steps.capabilities.title")}
-              subtitle={t("steps.capabilities.subtitle")}
-              options={optionsFor("capabilities", PROJECT_CAPABILITIES)}
-              selected={data.capabilities}
-              multi
-              onChange={(v) => patch({ capabilities: v as BuilderFormData["capabilities"] })}
-              columns={3}
-            />
-          )}
-          {stepId === "platforms" && (
-            <OptionGridStep
-              title={t("steps.platforms.title")}
-              subtitle={t("steps.platforms.subtitle")}
-              options={optionsFor("platforms", PROJECT_PLATFORMS)}
-              selected={data.platforms}
-              multi
-              onChange={(v) => patch({ platforms: v as BuilderFormData["platforms"] })}
-              columns={3}
-            />
-          )}
-          {stepId === "businessState" && (
-            <BusinessStateStep
-              title={t("steps.businessState.title")}
-              subtitle={t("steps.businessState.subtitle")}
+          {stepId === "idea" && (
+            <IdeaStep
+              title={t("steps.idea.title")}
+              subtitle={t("steps.idea.subtitle")}
+              placeholder={t("steps.idea.placeholder")}
+              helper={t("steps.idea.helper")}
+              message={data.message}
+              onChangeMessage={(v) => patch({ message: v })}
+              businessStateLabel={t("steps.idea.businessStateLabel")}
+              businessStateOptions={t.raw("businessState") as Record<BusinessState, string>}
+              businessState={data.businessState}
+              onChangeBusinessState={(v) => patch({ businessState: v })}
               currentWebsiteLabel={t("steps.businessState.currentWebsiteLabel")}
-              labels={t.raw("businessState")}
-              value={data.businessState}
               currentWebsite={data.currentWebsite}
-              onChangeValue={(v) => patch({ businessState: v })}
               onChangeWebsite={(v) => patch({ currentWebsite: v })}
             />
           )}
-          {stepId === "timeline" && (
-            <OptionGridStep
-              title={t("steps.timeline.title")}
-              subtitle={t("steps.timeline.subtitle")}
-              options={optionsFor("timeline", PROJECT_TIMELINES)}
-              selected={data.timeline ? [data.timeline] : []}
-              multi={false}
-              onChange={([v]) => patch({ timeline: v as BuilderFormData["timeline"] })}
+          {stepId === "budgetTiming" && (
+            <BudgetTimingStep
+              title={t("steps.budgetTiming.title")}
+              subtitle={t("steps.budgetTiming.subtitle")}
+              timelineLabel={t("steps.budgetTiming.timelineLabel")}
+              timelineOptions={t.raw("timeline") as Record<ProjectTimeline, string>}
+              timeline={data.timeline}
+              onChangeTimeline={(v) => patch({ timeline: v })}
+              budgetLabel={t("steps.budgetTiming.budgetLabel")}
+              budgetOptions={budgetOptions}
+              budgetRange={data.budgetRange}
+              onChangeBudgetRange={(v) => patch({ budgetRange: v })}
+              currency={currency}
+              onChangeCurrency={handleCurrencyChange}
+              currencyLabel={t("currencySwitcher.label")}
+              currencyHint={t("currencySwitcher.hint", { currency })}
             />
-          )}
-          {stepId === "budget" && (
-            <div>
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-muted">{t("currencySwitcher.hint", { currency })}</p>
-                <CurrencySwitcher value={currency} onChange={handleCurrencyChange} label={t("currencySwitcher.label")} />
-              </div>
-              <OptionGridStep
-                title={t("steps.budget.title")}
-                subtitle={t("steps.budget.subtitle")}
-                options={budgetOptions}
-                selected={data.budgetRange ? [data.budgetRange] : []}
-                multi={false}
-                onChange={([v]) => patch({ budgetRange: v })}
-              />
-            </div>
           )}
           {stepId === "contact" && (
             <ContactStep
@@ -450,25 +374,6 @@ export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: 
               data={data}
               onChange={patch}
               errors={{}}
-            />
-          )}
-          {stepId === "message" && (
-            <MessageStep
-              title={t("steps.message.title")}
-              subtitle={t("steps.message.subtitle")}
-              placeholder={t("steps.message.placeholder")}
-              value={data.message}
-              onChange={(v) => patch({ message: v })}
-            />
-          )}
-          {stepId === "summary" && (
-            <SummaryStep
-              title={t("summary.title")}
-              subtitle={t("summary.subtitle")}
-              sections={summarySections}
-              editLabel={t("nav.edit")}
-              privacyNote={t("summary.privacyNote")}
-              onEdit={jumpTo}
             />
           )}
         </motion.div>
@@ -488,8 +393,8 @@ export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: 
           {t("nav.back")}
         </Button>
 
-        {stepId === "summary" ? (
-          <Button type="button" size="lg" onClick={handleSubmit} disabled={submitting}>
+        {isLastStep ? (
+          <Button type="button" size="lg" onClick={handleSubmit} disabled={submitting || !isStepValid(stepId, data)}>
             {submitting ? t("summary.submitting") : t("summary.submit")}
           </Button>
         ) : (

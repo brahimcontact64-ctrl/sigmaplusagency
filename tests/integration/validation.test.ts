@@ -10,16 +10,23 @@ const validContact = {
   locale: "fr" as const,
 };
 
+// Project Builder v2 (conversion simplification) — goals/capabilities/
+// platforms are no longer required (the primary flow doesn't ask for
+// them any more), but `phone` and `message` (the idea description) are
+// now required where they used to be optional. This fixture reflects
+// what the new 4-step UI actually collects.
 const validProjectBuilder = {
   projectType: "website" as const,
-  goals: ["generate-leads" as const],
+  goals: [] as string[],
   capabilities: [] as string[],
-  platforms: ["web" as const],
+  platforms: [] as string[],
   businessState: "new-idea" as const,
   timeline: "flexible" as const,
   budgetRange: "not-sure",
   name: "Valid Name",
   email: "valid@example.com",
+  phone: "+213555000000",
+  message: "I want an app that lets my customers book appointments online.",
   locale: "fr" as const,
 };
 
@@ -59,8 +66,42 @@ describe("projectBuilderSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects an empty goals array (min 1 required)", () => {
+  it("accepts an empty goals array — no longer required in the 4-step primary flow", () => {
     const result = projectBuilderSchema.safeParse({ ...validProjectBuilder, goals: [] });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an empty platforms array — no longer required, and never fabricated (e.g. never defaulted to [\"web\"])", () => {
+    const result = projectBuilderSchema.safeParse({ ...validProjectBuilder, platforms: [] });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a submission missing phone — now required (name + phone/WhatsApp are the two mandatory contact fields)", () => {
+    const withoutPhone: Record<string, unknown> = { ...validProjectBuilder };
+    delete withoutPhone.phone;
+    const result = projectBuilderSchema.safeParse(withoutPhone);
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a phone that's too short to be real", () => {
+    const result = projectBuilderSchema.safeParse({ ...validProjectBuilder, phone: "12" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a submission missing the idea description (message) — now the required Step 2 content", () => {
+    const withoutMessage: Record<string, unknown> = { ...validProjectBuilder };
+    delete withoutMessage.message;
+    const result = projectBuilderSchema.safeParse(withoutMessage);
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an idea description shorter than the minimum", () => {
+    const result = projectBuilderSchema.safeParse({ ...validProjectBuilder, message: "too short" });
+    expect(result.success).toBe(false);
+  });
+
+  it("still requires a valid email even though the spec asked for it to be optional — leads.email is a NOT NULL column (see domain/project-builder.ts)", () => {
+    const result = projectBuilderSchema.safeParse({ ...validProjectBuilder, email: "not-an-email" });
     expect(result.success).toBe(false);
   });
 

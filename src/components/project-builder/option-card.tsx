@@ -7,10 +7,12 @@ export function OptionCard({
   label,
   selected,
   onToggle,
+  className,
 }: {
   label: string;
   selected: boolean;
   onToggle: () => void;
+  className?: string;
 }) {
   return (
     <button
@@ -24,6 +26,7 @@ export function OptionCard({
         selected
           ? "border-primary-bright bg-primary/10 text-foreground"
           : "border-border bg-surface text-muted hover:border-primary-bright/50 hover:text-foreground",
+        className,
       )}
     >
       <span>{label}</span>

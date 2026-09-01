@@ -265,7 +265,7 @@
     "hero": {
       "eyebrow": "Geführte Beratung",
       "title": "Starten wir Ihr Projekt.",
-      "subtitle": "Ein paar Fragen, um Ihren Bedarf zu verstehen — dauert etwa 3 Minuten."
+      "subtitle": "Ein paar schnelle Schritte — dauert etwa eine Minute."
     },
     "nav": {
       "stepLabel": "Schritt {current} von {total}",
@@ -303,9 +303,22 @@
         "title": "Wie hoch ist Ihr geschätztes Budget?",
         "subtitle": "Dies bleibt unverbindlich — keine Verpflichtung an dieser Stelle."
       },
+      "idea": {
+        "title": "Erzählen Sie uns von Ihrer Idee",
+        "subtitle": "Keine technischen Kenntnisse nötig — beschreiben Sie sie einfach mit Ihren eigenen Worten.",
+        "placeholder": "Beispiel: Ich möchte eine App, mit der meine Kunden Termine buchen und automatisch erinnert werden können...",
+        "helper": "Ein paar Sätze reichen — Sie können später gerne mehr Details ergänzen.",
+        "businessStateLabel": "Wo stehen Sie aktuell?"
+      },
+      "budgetTiming": {
+        "title": "Budget & Zeitrahmen",
+        "subtitle": "Beides bleibt unverbindlich — keine Verpflichtung an dieser Stelle.",
+        "timelineLabel": "Wann möchten Sie starten?",
+        "budgetLabel": "Geschätztes Budget"
+      },
       "contact": {
         "title": "Wie erreichen wir Sie?",
-        "subtitle": "Ihre Angaben bleiben vertraulich."
+        "subtitle": "Ihre Angaben bleiben vertraulich — sie dienen nur dazu, Ihnen ein Angebot zu senden."
       },
       "message": {
         "title": "Möchten Sie noch etwas ergänzen?",
@@ -392,7 +405,8 @@
     "contact": {
       "name": "Name",
       "email": "E-Mail",
-      "phone": "Telefon (optional)",
+      "emailHint": "Wird nur verwendet, um Ihnen Ihr Angebot zu senden.",
+      "phone": "Telefon / WhatsApp",
       "company": "Unternehmen (optional)",
       "country": "Land (optional)",
       "preferredContactMethod": "Bevorzugter Kontaktweg",
@@ -401,6 +415,14 @@
         "phone": "Telefon",
         "email": "E-Mail"
       }
+    },
+    "optionalQualification": {
+      "cta": "Möchten Sie uns mehr Details geben? →",
+      "title": "Ein paar weitere Details",
+      "subtitle": "Völlig optional — das kann uns helfen, eine präzisere erste Antwort vorzubereiten.",
+      "submit": "Details senden",
+      "submitting": "Wird gesendet...",
+      "done": "Danke — diese Details wurden Ihrer Anfrage hinzugefügt."
     },
     "summary": {
       "title": "Ihre Projektübersicht",
@@ -422,6 +444,7 @@
       "title": "Ihre Anfrage wurde gespeichert.",
       "description": "Wir prüfen sie. Für eine schnellere Rückmeldung setzen Sie direkt auf WhatsApp fort.",
       "cta": "Auf WhatsApp fortsetzen",
+      "aiCta": "Mit SIGMA AI sprechen",
       "backHome": "Zurück zur Startseite",
       "viewWork": "Unsere Projekte ansehen"
     },
@@ -432,10 +455,11 @@
       "maintenance": "Wir pausieren neue Projektanfragen vorübergehend für geplante Wartungsarbeiten. Bitte versuchen Sie es bald erneut oder schreiben Sie uns direkt auf WhatsApp.",
       "unexpected": "Etwas ist schiefgelaufen und Ihre Anfrage wurde nicht gespeichert. Bitte versuchen Sie es erneut oder schreiben Sie uns direkt auf WhatsApp."
     },
-    "whatsappSummary": "Hallo SIGMA+,\nich habe gerade eine Projektanfrage gesendet.\n\nProjekt: {projectType}\nZiel: {goal}\nFunktionen: {capabilities}\nZeitrahmen: {timeline}\nReferenz: {reference}",
+    "whatsappSummary": "Hallo SIGMA+,\nich habe gerade eine Projektanfrage gesendet.\n\nProjekt: {projectType}\nIdee: {idea}\nZeitrahmen: {timeline}\nReferenz: {reference}",
     "brief": {
       "openQuestions": {
         "clarifyProjectType": "Den genauen Projekttyp mit dem Kunden klären.",
+        "clarifyGoals": "Die Hauptziele des Kunden vor der Umfangsplanung klären.",
         "clarifyPlatforms": "Zielplattformen vor der Umfangsplanung bestätigen.",
         "confirmBudget": "Budget besprechen, bevor eine Schätzung angeboten wird.",
         "getCurrentWebsite": "URL oder Zugang zur bestehenden Website/Produkt einholen.",

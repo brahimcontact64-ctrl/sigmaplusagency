@@ -127,22 +127,33 @@ export default async function AdminLeadDetailPage({ params }: { params: Promise<
                   <span>{formatDateTime(pr.createdAt)}</span>
                   <span className="uppercase">{pr.locale}</span>
                 </div>
+                {pr.message && (
+                  <div className="mb-3">
+                    <div className="text-xs font-medium text-muted">Idea / project description</div>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{pr.message}</p>
+                  </div>
+                )}
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Project type" value={pr.projectType} />
                   <Field label="Business state" value={pr.businessState} />
                   <Field label="Timeline" value={pr.timeline} />
                   <Field label="Budget range" value={formatBudgetField(pr)} />
                   <Field label="Current website" value={pr.currentWebsite} />
-                  <Field label="Goals" value={pr.goals.join(", ")} />
-                  <Field label="Capabilities" value={pr.capabilities.join(", ")} />
-                  <Field label="Platforms" value={pr.platforms.join(", ")} />
+                  {/*
+                    Project Builder v2 — goals/capabilities/platforms are
+                    no longer collected in the primary flow, so an empty
+                    array is now the normal case for a short-form
+                    request, not a data-loading bug. `Field` silently
+                    hides an empty value everywhere else in this page,
+                    which would make that ambiguous here — explicitly
+                    say "Not provided yet" so it reads as "not asked",
+                    distinct from a lead that supplied these via the
+                    optional qualification step or the AI Consultant.
+                  */}
+                  <FieldOrNote label="Goals" values={pr.goals} note="Not provided yet — short-form request." />
+                  <FieldOrNote label="Capabilities" values={pr.capabilities} note="Not provided yet — short-form request." />
+                  <FieldOrNote label="Platforms" values={pr.platforms} note="Not provided yet — short-form request." />
                 </div>
-                {pr.message && (
-                  <div className="mt-3">
-                    <div className="text-xs font-medium text-muted">Original message</div>
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{pr.message}</p>
-                  </div>
-                )}
                 <div className="mt-3">
                   <div className="text-xs font-medium text-muted">Structured brief</div>
                   <dl className="mt-1 flex flex-col gap-1 text-sm">
@@ -218,6 +229,18 @@ function Field({ label, value, mono }: { label: string; value?: string | null; m
     <div className="flex flex-col gap-0.5 py-1">
       <dt className="text-xs text-muted">{label}</dt>
       <dd className={mono ? "font-mono text-xs text-foreground" : "text-sm text-foreground"}>{value}</dd>
+    </div>
+  );
+}
+
+/** Like `Field`, but for a list value that's *expected* to sometimes be empty (Project Builder v2 — see the call site above) — shows an explicit note instead of silently disappearing, so "not asked" reads distinctly from a rendering bug. */
+function FieldOrNote({ label, values, note }: { label: string; values: string[]; note: string }) {
+  return (
+    <div className="flex flex-col gap-0.5 py-1">
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className={values.length > 0 ? "text-sm text-foreground" : "text-sm italic text-muted"}>
+        {values.length > 0 ? values.join(", ") : note}
+      </dd>
     </div>
   );
 }

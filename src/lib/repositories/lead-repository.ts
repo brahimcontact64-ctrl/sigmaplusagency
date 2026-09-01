@@ -28,8 +28,22 @@ export type NewProjectRequestInput = Omit<ProjectRequest, "id" | "createdAt">;
  */
 export interface LeadRepository {
   findByNormalizedIdentity(emailNormalized: string, phoneNormalized?: string): Promise<Lead | null>;
+  /** Public-reference lookup (the `SP-XXXXXX` code already shown to the visitor) — used only by the optional progressive-qualification pathway to find which lead a follow-up update belongs to, never for anything requiring authentication. */
+  findByPublicReference(reference: string): Promise<Lead | null>;
   createLead(input: NewLeadInput): Promise<Lead>;
   createProjectRequest(input: NewProjectRequestInput): Promise<ProjectRequest>;
+  getProjectRequestById(id: string): Promise<ProjectRequest | null>;
+  /**
+   * Project Builder v2 §3 — attaches additional, later-supplied
+   * qualification to an *existing* project request row. Never creates
+   * a new row; the caller (lead-service's `attachOptionalQualification`)
+   * is responsible for verifying the request belongs to the lead
+   * identified by the public reference before calling this.
+   */
+  updateProjectRequestQualification(
+    id: string,
+    patch: Pick<ProjectRequest, "goals" | "capabilities" | "platforms" | "structuredBrief">,
+  ): Promise<ProjectRequest | null>;
   createActivity(leadId: string, type: LeadActivityType, metadata?: Record<string, unknown>): Promise<void>;
 }
 
@@ -101,6 +115,12 @@ export class DrizzleLeadRepository implements LeadRepository {
     return null;
   }
 
+  async findByPublicReference(reference: string): Promise<Lead | null> {
+    const db = await this.getDbInstance();
+    const [row] = await db.select().from(leads).where(eq(leads.publicReference, reference)).limit(1);
+    return row ? toLead(row) : null;
+  }
+
   async createLead(input: NewLeadInput): Promise<Lead> {
     const db = await this.getDbInstance();
     const [row] = await db.insert(leads).values(input).returning();
@@ -111,6 +131,25 @@ export class DrizzleLeadRepository implements LeadRepository {
     const db = await this.getDbInstance();
     const [row] = await db.insert(projectRequests).values(input).returning();
     return toProjectRequest(row);
+  }
+
+  async getProjectRequestById(id: string): Promise<ProjectRequest | null> {
+    const db = await this.getDbInstance();
+    const [row] = await db.select().from(projectRequests).where(eq(projectRequests.id, id)).limit(1);
+    return row ? toProjectRequest(row) : null;
+  }
+
+  async updateProjectRequestQualification(
+    id: string,
+    patch: Pick<ProjectRequest, "goals" | "capabilities" | "platforms" | "structuredBrief">,
+  ): Promise<ProjectRequest | null> {
+    const db = await this.getDbInstance();
+    const [row] = await db
+      .update(projectRequests)
+      .set({ goals: patch.goals, capabilities: patch.capabilities, platforms: patch.platforms, structuredBrief: patch.structuredBrief })
+      .where(eq(projectRequests.id, id))
+      .returning();
+    return row ? toProjectRequest(row) : null;
   }
 
   async createActivity(leadId: string, type: LeadActivityType, metadata?: Record<string, unknown>): Promise<void> {

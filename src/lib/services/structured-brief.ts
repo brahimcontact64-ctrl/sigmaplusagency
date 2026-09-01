@@ -48,6 +48,14 @@ export async function buildStructuredBrief(input: BriefInput, locale: Locale): P
   if (input.projectType === "not-sure") {
     openQuestions.push(t("brief.openQuestions.clarifyProjectType"));
   }
+  // Project Builder v2 — goals are no longer asked in the primary
+  // flow, so an empty array is the normal case for a short-form
+  // request, not an edge case; flag it the same way an unclear
+  // platform choice already was, so a salesperson knows to ask rather
+  // than assuming the request has no goal at all.
+  if (input.goals.length === 0) {
+    openQuestions.push(t("brief.openQuestions.clarifyGoals"));
+  }
   if (input.platforms.includes("not-sure") || input.platforms.length === 0) {
     openQuestions.push(t("brief.openQuestions.clarifyPlatforms"));
   }
