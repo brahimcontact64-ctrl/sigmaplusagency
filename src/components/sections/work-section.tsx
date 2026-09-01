@@ -61,27 +61,33 @@ export function WorkSection({
                 <Link
                   href={`/work/${project.slug}`}
                   aria-label={`${viewProjectLabel} — ${project.name}`}
-                  className="group relative block overflow-hidden rounded-2xl border border-border bg-graphite p-8 transition-colors hover:border-[--accent] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-bright"
+                  // Deliberate mobile card composition (Phase 11 §3):
+                  // tighter padding/spacing and a smaller decorative
+                  // number at small widths, original generous spacing
+                  // preserved from `sm:` up. No image-sized space is
+                  // reserved — this codebase never uses project imagery.
+                  className="group relative block overflow-hidden rounded-2xl border border-border bg-graphite p-5 transition-colors hover:border-[--accent] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-bright sm:p-8"
                   style={{ ["--accent" as string]: accent }}
                 >
                   <span
                     aria-hidden
-                    className="pointer-events-none absolute -right-4 -top-6 select-none font-mono text-[6rem] font-bold leading-none opacity-[0.06] transition-opacity duration-300 group-hover:opacity-[0.1] rtl:-left-4 rtl:right-auto"
+                    className="pointer-events-none absolute -right-3 -top-4 select-none font-mono text-5xl font-bold leading-none opacity-[0.06] transition-opacity duration-300 group-hover:opacity-[0.1] rtl:-left-3 rtl:right-auto sm:-right-4 sm:-top-6 sm:text-[6rem] rtl:sm:-left-4"
                   >
                     {String(i + 1).padStart(2, "0")}
                   </span>
 
                   <span
-                    className="mb-4 inline-block rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide"
+                    className="mb-3 inline-block rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide sm:mb-4"
                     style={{ borderColor: accent, color: accent }}
                   >
                     {project.tag}
                   </span>
 
                   <h3 className="relative text-xl font-bold">{project.name}</h3>
-                  <p className="relative mt-3 max-w-sm text-sm text-muted">{project.description}</p>
+                  <p className="relative mt-2 max-w-sm text-sm text-muted sm:mt-3">{project.description}</p>
 
-                  <span className="relative mt-5 flex items-center gap-2 text-sm font-semibold text-primary-bright opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  {/* Always visible on touch devices (no hover state to reveal it) — fades in on hover only where hover actually exists. */}
+                  <span className="relative mt-4 flex items-center gap-2 text-sm font-semibold text-primary-bright sm:mt-5 sm:opacity-0 sm:transition-opacity sm:duration-200 sm:group-hover:opacity-100">
                     {viewProjectLabel}
                     <ArrowRight className="size-4 rtl:rotate-180" />
                   </span>

@@ -41,7 +41,7 @@ export function OptionGridStep({
 
       <motion.div
         variants={fadeUp}
-        className={cn("mt-8 grid grid-cols-1 gap-3", columns === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}
+        className={cn("mt-6 grid grid-cols-1 gap-3 sm:mt-8", columns === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}
       >
         {options.map((opt) => (
           <OptionCard

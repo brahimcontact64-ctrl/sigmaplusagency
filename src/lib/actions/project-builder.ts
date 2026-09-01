@@ -46,6 +46,7 @@ export async function submitProjectBuilder(formData: unknown, analyticsSessionId
     currentWebsite: data.currentWebsite || undefined,
     timeline: data.timeline,
     budgetRange: data.budgetRange,
+    budgetCurrency: data.budgetCurrency,
     message: data.message || undefined,
   };
 

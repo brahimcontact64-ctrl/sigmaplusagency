@@ -2,6 +2,7 @@ import { z } from "zod";
 import { locales } from "@/i18n/routing";
 import { HONEYPOT_FIELD_NAME } from "@/lib/security/honeypot";
 import { BUDGET_RANGE_IDS } from "@/config/budget-ranges";
+import { SUPPORTED_CURRENCIES } from "@/lib/money";
 import {
   PROJECT_TYPES,
   PROJECT_GOALS,
@@ -45,6 +46,10 @@ export const projectBuilderSchema = z
 
     timeline: z.enum(PROJECT_TIMELINES),
     budgetRange: z.string().refine((v) => BUDGET_RANGE_IDS.includes(v), "Invalid budget range"),
+    // Phase 11 §6 — which currency the visitor was actually shown when
+    // picking budgetRange. Optional so older/unrelated callers of this
+    // schema keep working unchanged.
+    budgetCurrency: z.enum(SUPPORTED_CURRENCIES).optional(),
 
     name: z.string().trim().min(2, "Name is too short").max(120),
     email: z.string().trim().email("Invalid email"),

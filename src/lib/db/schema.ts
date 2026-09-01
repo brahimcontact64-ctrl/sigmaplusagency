@@ -64,6 +64,13 @@ export const projectRequests = pgTable(
     currentWebsite: text("current_website"),
     timeline: text("timeline").notNull(),
     budgetRange: text("budget_range").notNull(),
+    // Phase 11 §6 — nullable: absent on every row created before this
+    // existed (and on AI-consultant-sourced rows). Never backfilled by
+    // guessing; an absent budgetCurrency means "EUR, the only currency
+    // ever shown before this feature existed."
+    budgetCurrency: text("budget_currency"),
+    budgetMinAmount: integer("budget_min_amount"),
+    budgetMaxAmount: integer("budget_max_amount"),
     message: text("message"),
     structuredBrief: jsonb("structured_brief").notNull(),
     locale: text("locale").notNull(),

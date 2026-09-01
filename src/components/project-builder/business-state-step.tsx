@@ -35,7 +35,7 @@ export function BusinessStateStep({
         {subtitle}
       </motion.p>
 
-      <motion.div variants={fadeUp} className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <motion.div variants={fadeUp} className="mt-6 grid grid-cols-1 gap-3 sm:mt-8 sm:grid-cols-2">
         {BUSINESS_STATES.map((id) => (
           <OptionCard key={id} label={labels[id]} selected={value === id} onToggle={() => onChangeValue(id)} />
         ))}

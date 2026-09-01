@@ -379,12 +379,15 @@
       "6-plus-months": "6 mois ou plus",
       "flexible": "Flexible / Pas encore sûr"
     },
-    "budget": {
-      "under-1000": "Moins de 1 000 €",
-      "1000-5000": "1 000 € – 5 000 €",
-      "5000-15000": "5 000 € – 15 000 €",
-      "15000-plus": "Plus de 15 000 €",
-      "not-sure": "Pas encore sûr"
+    "budgetTemplates": {
+      "under": "Moins de {amount}",
+      "between": "{min} – {max}",
+      "over": "Plus de {amount}",
+      "notSure": "Pas encore sûr"
+    },
+    "currencySwitcher": {
+      "label": "Devise",
+      "hint": "Prix affichés en {currency}. Pas sûr ? Changez ci-dessous."
     },
     "contact": {
       "name": "Nom",

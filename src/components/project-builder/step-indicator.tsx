@@ -14,7 +14,7 @@ export function StepIndicator({
   const progress = (current / total) * 100;
 
   return (
-    <div className="mb-8">
+    <div className="mb-6 sm:mb-8">
       <p className="mb-2 font-mono text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
       <div className="h-1 w-full overflow-hidden rounded-full bg-border" role="progressbar" aria-valuenow={current} aria-valuemin={1} aria-valuemax={total}>
         <motion.div

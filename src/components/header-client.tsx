@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useScroll } from "motion/react";
 import { Menu, X, MessageCircle, ArrowRight } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -41,6 +41,29 @@ export function HeaderClient({
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { scrollYProgress } = useScroll();
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Keeps a real, always-current `--site-header-height` CSS variable
+  // in sync with the header's actual rendered height (which toggles
+  // between the unscrolled 64px and scrolled 56px states, and could
+  // change again in the future) — this is what lets any page
+  // structurally offset scroll position/sticky elements by "however
+  // tall the header currently is" instead of a hardcoded pixel value
+  // (see project-builder.tsx's `scroll-mt-(--site-header-height)` and
+  // the mobile menu's `top-(--site-header-height)` below).
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+
+    const setHeightVar = () => {
+      document.documentElement.style.setProperty("--site-header-height", `${el.offsetHeight}px`);
+    };
+    setHeightVar();
+
+    const observer = new ResizeObserver(setHeightVar);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // ButtonLink renders a plain <a>, not the locale-aware <Link/>, so a
   // real cross-page route needs the locale prefix built in manually.
@@ -75,6 +98,7 @@ export function HeaderClient({
 
   return (
     <header
+      ref={headerRef}
       className={cn(
         "sticky top-0 z-50 transition-[background-color,border-color,padding] duration-300",
         scrolled
@@ -137,13 +161,13 @@ export function HeaderClient({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-x-0 top-14 bottom-0 z-40 bg-void lg:hidden"
+            className="fixed inset-x-0 bottom-0 top-(--site-header-height) z-40 overflow-y-auto bg-void lg:hidden"
           >
             <motion.nav
               initial="hidden"
               animate="show"
               variants={{ show: { transition: { staggerChildren: 0.06, delayChildren: 0.05 } } }}
-              className="flex h-full flex-col justify-between px-6 py-10"
+              className="flex min-h-full flex-col justify-between px-6 pb-[max(2.5rem,calc(env(safe-area-inset-bottom)+1.5rem))] pt-10"
             >
               <div className="flex flex-col gap-1">
                 {NAV_LINKS.map((item) => (

@@ -9,7 +9,8 @@ import type {
   BusinessState,
   ProjectTimeline,
 } from "@/domain/project-request";
-import { BUDGET_RANGES } from "@/config/budget-ranges";
+import { BUDGET_RANGES, formatBudgetRangeLabel } from "@/config/budget-ranges";
+import type { CurrencyCode } from "@/lib/money";
 
 export type BriefInput = {
   projectType: ProjectType;
@@ -20,6 +21,8 @@ export type BriefInput = {
   currentWebsite?: string;
   timeline: ProjectTimeline;
   budgetRange: string;
+  /** The currency the visitor was actually shown when they picked a budget band — absent for older/AI-consultant-sourced submissions that predate currency-awareness, in which case EUR (the original, only-ever-shown currency) is the correct assumption. */
+  budgetCurrency?: CurrencyCode;
   message?: string;
 };
 
@@ -62,7 +65,11 @@ export async function buildStructuredBrief(input: BriefInput, locale: Locale): P
   }
 
   const budgetRange = BUDGET_RANGES.find((r) => r.id === input.budgetRange);
-  const investmentRange = budgetRange ? label("budget", budgetRange.id) : input.budgetRange;
+  const investmentRange = budgetRange
+    ? formatBudgetRangeLabel(budgetRange, input.budgetCurrency ?? "EUR", locale, (key, values) =>
+        t(`budgetTemplates.${key}` as never, values as never),
+      )
+    : input.budgetRange;
 
   return {
     projectType: label("whatToBuild", input.projectType),

@@ -12,6 +12,23 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { AiConsultationSection } from "@/components/admin/ai-consultation-section";
 import { DealForm } from "@/components/admin/deal-form";
 import { formatDateTime, activityLabel } from "@/lib/admin/format";
+import { formatBudgetAmount } from "@/config/budget-ranges";
+import type { ProjectRequest } from "@/domain/project-request";
+
+/**
+ * Phase 11 §6 — shows the real captured currency/amount range when
+ * present, so an OWNER/ADMIN can tell a DZD budget apart from a EUR
+ * one without parsing the id. Rows created before this existed have
+ * no `budgetCurrency` and fall back to just the stable id — never
+ * guessed as a currency it wasn't actually shown in.
+ */
+function formatBudgetField(pr: ProjectRequest): string {
+  if (!pr.budgetCurrency) return pr.budgetRange;
+  const min = pr.budgetMinAmount !== undefined ? formatBudgetAmount(pr.budgetMinAmount, pr.budgetCurrency, "en-US") : undefined;
+  const max = pr.budgetMaxAmount !== undefined ? formatBudgetAmount(pr.budgetMaxAmount, pr.budgetCurrency, "en-US") : undefined;
+  const range = min && max ? `${min} – ${max}` : (min ?? max);
+  return range ? `${pr.budgetRange} (${range})` : pr.budgetRange;
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -114,7 +131,7 @@ export default async function AdminLeadDetailPage({ params }: { params: Promise<
                   <Field label="Project type" value={pr.projectType} />
                   <Field label="Business state" value={pr.businessState} />
                   <Field label="Timeline" value={pr.timeline} />
-                  <Field label="Budget range" value={pr.budgetRange} />
+                  <Field label="Budget range" value={formatBudgetField(pr)} />
                   <Field label="Current website" value={pr.currentWebsite} />
                   <Field label="Goals" value={pr.goals.join(", ")} />
                   <Field label="Capabilities" value={pr.capabilities.join(", ")} />

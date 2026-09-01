@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { PageHero } from "@/components/ui/page-hero";
 import { ProjectBuilder } from "@/components/project-builder/project-builder";
 import { buildFixedPathAlternates } from "@/lib/seo/site-url";
+import { resolveCurrencyPreference } from "@/lib/pricing/currency-preference";
 import { routing, type Locale } from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -37,6 +38,12 @@ export default async function StartProjectPage({ params }: { params: Promise<{ l
 
   const t = await getTranslations("projectBuilder");
   const tBreadcrumbs = await getTranslations("breadcrumbs");
+  // Reading cookies/headers here (Phase 11 §5/§8) makes this route
+  // render dynamically per-request rather than at build time — the
+  // necessary, deliberate cost of resolving a real, per-visitor
+  // currency without a client-side "flash of wrong currency" or a
+  // hydration mismatch. Metadata/canonical above are unaffected.
+  const currency = await resolveCurrencyPreference();
 
   return (
     <>
@@ -52,7 +59,7 @@ export default async function StartProjectPage({ params }: { params: Promise<{ l
 
         <div className="mx-auto max-w-3xl px-6 pb-24">
           <Suspense fallback={null}>
-            <ProjectBuilder />
+            <ProjectBuilder initialCurrency={currency} />
           </Suspense>
         </div>
       </main>

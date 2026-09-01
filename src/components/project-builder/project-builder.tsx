@@ -13,6 +13,7 @@ import { ContactStep } from "./contact-step";
 import { MessageStep } from "./message-step";
 import { SummaryStep, type SummarySection } from "./summary-step";
 import { ResultScreen } from "./result-screen";
+import { CurrencySwitcher } from "./currency-switcher";
 import { STEP_IDS, EMPTY_FORM_DATA, type BuilderFormData, type StepId } from "./types";
 import { saveDraft, loadDraft, clearDraft } from "@/lib/project-builder-draft";
 import { getClientAttribution } from "@/lib/attribution";
@@ -20,8 +21,10 @@ import { track } from "@/lib/integrations/analytics";
 import { getOrCreateAnalyticsSessionId } from "@/lib/analytics/session-id";
 import { submitProjectBuilder } from "@/lib/actions/project-builder";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { persistShownCurrency, setCurrencyOverride } from "@/lib/pricing/currency-cookie-client";
 import type { ProjectBuilderResult } from "@/domain/project-builder";
 import type { Locale } from "@/i18n/routing";
+import type { CurrencyCode } from "@/lib/money";
 import {
   PROJECT_TYPES,
   PROJECT_GOALS,
@@ -29,7 +32,7 @@ import {
   PROJECT_PLATFORMS,
   PROJECT_TIMELINES,
 } from "@/domain/project-request";
-import { BUDGET_RANGES } from "@/config/budget-ranges";
+import { BUDGET_RANGES, formatBudgetRangeLabel } from "@/config/budget-ranges";
 
 const REQUIRED_NAME_MIN = 2;
 
@@ -58,7 +61,7 @@ function isStepValid(stepId: StepId, data: BuilderFormData): boolean {
   }
 }
 
-export function ProjectBuilder() {
+export function ProjectBuilder({ initialCurrency = "EUR" }: { initialCurrency?: CurrencyCode }) {
   const t = useTranslations("projectBuilder");
   const locale = useLocale() as Locale;
   const searchParams = useSearchParams();
@@ -69,11 +72,50 @@ export function ProjectBuilder() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ProjectBuilderResult | null>(null);
   const [draftNotice, setDraftNotice] = useState(false);
+  // Server-resolved on first render (Phase 11 §5/§8 — the same value
+  // the server used, so there's nothing for the client to "correct"
+  // after hydration). A manual switch in the budget step updates this
+  // client-side only; it never triggers a server round trip.
+  const [currency, setCurrency] = useState<CurrencyCode>(initialCurrency);
   const hasStarted = useRef(false);
   const hasCompleted = useRef(false);
+  const stepContentRef = useRef<HTMLDivElement>(null);
+  const isFirstStepRender = useRef(true);
 
   const stepId = STEP_IDS[stepIndex]!;
   const totalSteps = STEP_IDS.length;
+
+  // Records whatever currency actually ended up shown (server-derived
+  // or later manually switched) as the "last known" value — backs
+  // priority tier 3 in currency-preference.ts the next time a fresh
+  // geo signal isn't available. Never marks it as an override; only
+  // handleCurrencyChange below does that.
+  useEffect(() => {
+    persistShownCurrency(currency);
+  }, [currency]);
+
+  function handleCurrencyChange(next: CurrencyCode) {
+    setCurrency(next);
+    setCurrencyOverride(next);
+  }
+
+  // Structural fix for the sticky-header-clips-step-content bug
+  // (Phase 11 §1): every step change re-anchors scroll to the start of
+  // the new step's content, offset by the site header's real current
+  // height via `scroll-mt-(--site-header-height)` on the target
+  // element (see header-client.tsx, which keeps that CSS variable in
+  // sync via ResizeObserver) — never a hardcoded per-page margin. The
+  // very first render uses an immediate jump rather than a smooth
+  // scroll so restoring a mid-flow draft doesn't animate the page on
+  // load. `scrollIntoView`'s explicit `behavior` option is honored by
+  // browsers even over a reduced-motion CSS override, so
+  // prefers-reduced-motion is checked directly here too.
+  useEffect(() => {
+    const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const behavior: ScrollBehavior = isFirstStepRender.current || prefersReducedMotion ? "auto" : "smooth";
+    isFirstStepRender.current = false;
+    stepContentRef.current?.scrollIntoView({ behavior, block: "start" });
+  }, [stepIndex]);
 
   useEffect(() => {
     // One-time client-only read (localStorage isn't available during
@@ -195,6 +237,7 @@ export function ProjectBuilder() {
       currentWebsite: data.currentWebsite || undefined,
       timeline: data.timeline,
       budgetRange: data.budgetRange,
+      budgetCurrency: currency,
       name: data.name,
       email: data.email,
       phone: data.phone || undefined,
@@ -242,6 +285,21 @@ export function ProjectBuilder() {
     return map[id] ?? id;
   };
 
+  // Currency-aware budget labels (Phase 11 §6) — replaces the old
+  // static per-locale `budget` translation map, which hardcoded EUR
+  // regardless of the visitor's currency. `formatBudgetRangeLabel`
+  // does the amount formatting; the phrasing itself ("Under {amount}",
+  // etc.) still comes entirely from messages/*.json, translator-owned.
+  const budgetOptions = BUDGET_RANGES.map((range) => ({
+    id: range.id,
+    label: formatBudgetRangeLabel(range, currency, locale, (key, values) => t(`budgetTemplates.${key}` as never, values as never)),
+  }));
+
+  function budgetOptionLabel(id?: string): string {
+    if (!id) return "";
+    return budgetOptions.find((o) => o.id === id)?.label ?? id;
+  }
+
   const summarySections: SummarySection[] = [
     { label: t("summary.projectLabel"), value: optionLabel("whatToBuild", data.projectType), editStep: "whatToBuild" },
     {
@@ -261,7 +319,7 @@ export function ProjectBuilder() {
     },
     { label: t("summary.businessLabel"), value: optionLabel("businessState", data.businessState), editStep: "businessState" },
     { label: t("summary.timelineLabel"), value: optionLabel("timeline", data.timeline), editStep: "timeline" },
-    { label: t("summary.budgetLabel"), value: optionLabel("budget", data.budgetRange), editStep: "budget" },
+    { label: t("summary.budgetLabel"), value: budgetOptionLabel(data.budgetRange), editStep: "budget" },
     {
       label: t("summary.contactLabel"),
       value: [data.name, data.email, data.phone].filter(Boolean).join(" · "),
@@ -272,26 +330,37 @@ export function ProjectBuilder() {
 
   return (
     <div>
-      <StepIndicator
-        current={stepIndex + 1}
-        total={totalSteps}
-        label={t("nav.stepLabel", { current: stepIndex + 1, total: totalSteps })}
-      />
+      {/*
+        The whole step region — progress bar included — is the scroll
+        target, not just the inner content, so advancing/going back
+        never leaves the progress bar scrolled out of view above the
+        header while the new step's own heading is visible (or vice
+        versa). `scroll-mt-[var(--site-header-height)]` reads the same
+        CSS variable header-client.tsx keeps in sync with the sticky
+        header's real, current (unscrolled vs. scrolled) height — never
+        a hardcoded pixel margin.
+      */}
+      <div ref={stepContentRef} className="scroll-mt-(--site-header-height)">
+        <StepIndicator
+          current={stepIndex + 1}
+          total={totalSteps}
+          label={t("nav.stepLabel", { current: stepIndex + 1, total: totalSteps })}
+        />
 
-      {draftNotice && (
-        <div className="mb-6 rounded-xl border border-primary-bright/30 bg-primary/5 px-4 py-2.5 text-sm text-primary-bright">
-          {t("draftRestored")}
-        </div>
-      )}
+        {draftNotice && (
+          <div className="mb-6 rounded-xl border border-primary-bright/30 bg-primary/5 px-4 py-2.5 text-sm text-primary-bright">
+            {t("draftRestored")}
+          </div>
+        )}
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={stepId}
-          initial={{ opacity: 0, x: 16 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -16 }}
-          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={stepId}
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -16 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          >
           {stepId === "whatToBuild" && (
             <OptionGridStep
               title={t("steps.whatToBuild.title")}
@@ -358,17 +427,20 @@ export function ProjectBuilder() {
             />
           )}
           {stepId === "budget" && (
-            <OptionGridStep
-              title={t("steps.budget.title")}
-              subtitle={t("steps.budget.subtitle")}
-              options={optionsFor(
-                "budget",
-                BUDGET_RANGES.map((r) => r.id),
-              )}
-              selected={data.budgetRange ? [data.budgetRange] : []}
-              multi={false}
-              onChange={([v]) => patch({ budgetRange: v })}
-            />
+            <div>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-muted">{t("currencySwitcher.hint", { currency })}</p>
+                <CurrencySwitcher value={currency} onChange={handleCurrencyChange} label={t("currencySwitcher.label")} />
+              </div>
+              <OptionGridStep
+                title={t("steps.budget.title")}
+                subtitle={t("steps.budget.subtitle")}
+                options={budgetOptions}
+                selected={data.budgetRange ? [data.budgetRange] : []}
+                multi={false}
+                onChange={([v]) => patch({ budgetRange: v })}
+              />
+            </div>
           )}
           {stepId === "contact" && (
             <ContactStep
@@ -400,9 +472,10 @@ export function ProjectBuilder() {
             />
           )}
         </motion.div>
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
 
-      <div className="mt-10 flex items-center justify-between">
+      <div className="mt-8 flex items-center justify-between sm:mt-10">
         <Button
           type="button"
           variant="ghost"

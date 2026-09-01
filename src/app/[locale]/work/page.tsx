@@ -60,12 +60,18 @@ export default async function WorkIndexPage({ params }: { params: Promise<{ loca
                 <Link
                   key={id}
                   href={`/work/${content.slug}`}
-                  className="group relative overflow-hidden rounded-2xl border border-border bg-graphite p-8 transition-colors hover:border-[--accent]"
+                  // Deliberate mobile card composition (Phase 11 §3),
+                  // not an inherited desktop size: tighter padding and
+                  // a smaller decorative number at small widths, back
+                  // to the original generous spacing from `sm:` up.
+                  // No image-sized space is reserved anywhere here —
+                  // this codebase never uses project imagery, by design.
+                  className="group relative overflow-hidden rounded-2xl border border-border bg-graphite p-5 transition-colors hover:border-[--accent] sm:p-8"
                   style={{ ["--accent" as string]: accent }}
                 >
                   <span
                     aria-hidden
-                    className="pointer-events-none absolute -right-4 -top-6 select-none font-mono text-[6rem] font-bold leading-none opacity-[0.06] transition-opacity duration-300 group-hover:opacity-[0.1] rtl:-left-4 rtl:right-auto"
+                    className="pointer-events-none absolute -right-3 -top-4 select-none font-mono text-5xl font-bold leading-none opacity-[0.06] transition-opacity duration-300 group-hover:opacity-[0.1] rtl:-left-3 rtl:right-auto sm:-right-4 sm:-top-6 sm:text-[6rem] rtl:sm:-left-4"
                   >
                     {String(i + 1).padStart(2, "0")}
                   </span>
@@ -82,10 +88,10 @@ export default async function WorkIndexPage({ params }: { params: Promise<{ loca
                     </span>
                   </div>
 
-                  <h2 className="relative mt-4 text-xl font-bold">{content.name}</h2>
-                  <p className="relative mt-3 max-w-sm text-sm text-muted">{content.summary}</p>
+                  <h2 className="relative mt-3 text-xl font-bold sm:mt-4">{content.name}</h2>
+                  <p className="relative mt-2 max-w-sm text-sm text-muted sm:mt-3">{content.summary}</p>
 
-                  <span className="relative mt-6 flex items-center gap-2 text-sm font-semibold text-primary-bright">
+                  <span className="relative mt-4 flex items-center gap-2 text-sm font-semibold text-primary-bright sm:mt-6">
                     {t("viewCaseStudy")}
                     <ArrowRight className="size-4 rtl:rotate-180 transition-transform duration-200 group-hover:translate-x-1 rtl:group-hover:-translate-x-1" />
                   </span>

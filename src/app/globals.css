@@ -24,6 +24,23 @@
 
   --background: var(--color-void);
   --foreground: var(--color-foreground);
+
+  /*
+   * Kept in sync with the real, current sticky header height by
+   * header-client.tsx's ResizeObserver (it toggles between an
+   * unscrolled and scrolled height, and could change again in the
+   * future) — this fallback only matters for the brief moment before
+   * that effect first runs, or if JS is unavailable. Matches the
+   * header's unscrolled height (h-16).
+   */
+  --site-header-height: 4rem;
+}
+
+/* Site-wide scroll offset for the sticky header (Phase 11 §1) — makes
+   any native anchor/scrollIntoView target land below the header by
+   default, not just the Project Builder's explicit scroll-mt usage. */
+html {
+  scroll-padding-top: var(--site-header-height);
 }
 
 @theme inline {

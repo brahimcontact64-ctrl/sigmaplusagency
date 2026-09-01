@@ -1,3 +1,5 @@
+import type { CurrencyCode } from "@/lib/money";
+
 /**
  * Stable canonical IDs for the Project Builder. These — never translated
  * labels — are what gets stored, validated, and matched against. UI
@@ -109,7 +111,21 @@ export type ProjectRequest = {
   businessState: BusinessState;
   currentWebsite?: string;
   timeline: ProjectTimeline;
+  /** Stable, currency-independent qualification bucket — the only budget field that existed before Phase 11 and the only one guaranteed to be set on every row, old or new. */
   budgetRange: BudgetRangeId;
+  /**
+   * Phase 11 §6 — the currency the visitor was actually shown when
+   * they picked `budgetRange`, plus the resolved min/max amount in
+   * that currency, so Admin can distinguish "DZD 700,000–2,000,000"
+   * from "EUR 5,000–15,000" without parsing the range id or any
+   * display string. All three are absent on rows created before this
+   * existed (and on AI-consultant-sourced rows, which don't currently
+   * carry a currency context) — treat an absent `budgetCurrency` as
+   * "EUR, the only currency ever shown before this feature existed."
+   */
+  budgetCurrency?: CurrencyCode;
+  budgetMinAmount?: number;
+  budgetMaxAmount?: number;
   message?: string;
   structuredBrief: StructuredBrief;
   locale: string;

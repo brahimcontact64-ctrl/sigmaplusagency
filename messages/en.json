@@ -379,12 +379,15 @@
       "6-plus-months": "6+ months",
       "flexible": "Flexible / Not sure"
     },
-    "budget": {
-      "under-1000": "Under €1,000",
-      "1000-5000": "€1,000 – €5,000",
-      "5000-15000": "€5,000 – €15,000",
-      "15000-plus": "Over €15,000",
-      "not-sure": "Not sure yet"
+    "budgetTemplates": {
+      "under": "Under {amount}",
+      "between": "{min} – {max}",
+      "over": "Over {amount}",
+      "notSure": "Not sure yet"
+    },
+    "currencySwitcher": {
+      "label": "Currency",
+      "hint": "Prices shown in {currency}. Not sure? Switch below."
     },
     "contact": {
       "name": "Name",

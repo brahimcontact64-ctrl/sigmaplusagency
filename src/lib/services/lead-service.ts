@@ -3,6 +3,7 @@ import { getLeadRepository, type LeadRepository } from "@/lib/repositories/lead-
 import { generatePublicReference } from "./reference";
 import { normalizeEmail, normalizePhone } from "./identity";
 import { buildStructuredBrief, type BriefInput } from "./structured-brief";
+import { getBudgetRange, getBudgetAmounts } from "@/config/budget-ranges";
 import { sanitizeUtmValue, sanitizeUrlValue } from "@/lib/attribution/sanitize-utm";
 import { sendInternalLeadNotification, sendClientConfirmationEmail } from "@/lib/notifications/lead-notification-service";
 import type { Attribution, Lead, LeadSource, PreferredContactMethod } from "@/domain/lead";
@@ -246,6 +247,15 @@ export async function submitProjectRequest(
 
     const brief = await buildStructuredBrief(input, input.locale);
 
+    // Phase 11 §6 — resolved once, here, from the same stable id
+    // that's always been stored, never trusted from free-typed client
+    // input. Absent (undefined) when the id doesn't match a known
+    // range (e.g. "not-sure") or no currency context was supplied —
+    // never guessed.
+    const budgetRangeConfig = getBudgetRange(input.budgetRange);
+    const budgetCurrency = input.budgetCurrency ?? (budgetRangeConfig ? "EUR" : undefined);
+    const budgetAmounts = budgetRangeConfig && budgetCurrency ? getBudgetAmounts(budgetRangeConfig, budgetCurrency) : undefined;
+
     await repo.createProjectRequest({
       leadId: lead.id,
       projectType: input.projectType,
@@ -256,6 +266,9 @@ export async function submitProjectRequest(
       currentWebsite: input.currentWebsite,
       timeline: input.timeline,
       budgetRange: input.budgetRange,
+      budgetCurrency,
+      budgetMinAmount: budgetAmounts?.min,
+      budgetMaxAmount: budgetAmounts?.max,
       message: input.message,
       structuredBrief: brief,
       locale: input.locale,

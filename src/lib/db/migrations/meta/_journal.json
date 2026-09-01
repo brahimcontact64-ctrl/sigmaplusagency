@@ -43,6 +43,13 @@
       "when": 1788168926500,
       "tag": "0005_fantastic_supernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788249881856,
+      "tag": "0006_white_the_anarchist",
+      "breakpoints": true
     }
   ]
 }
