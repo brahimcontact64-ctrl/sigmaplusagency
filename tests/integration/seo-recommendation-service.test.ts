@@ -35,12 +35,37 @@ function issue(overrides: Partial<SeoIssue> = {}): SeoIssue {
 
 describe("SeoRecommendationService — approval-first workflow", () => {
   it("generates RECOMMENDED rows from audit issues, never auto-approved", async () => {
-    const count = await service.generateFromAudit([issue()]);
-    expect(count).toBe(1);
+    const result = await service.generateFromAudit([issue()]);
+    expect(result).toEqual({ created: 1, skippedDuplicate: 0 });
 
     const recommended = await service.list("RECOMMENDED");
     expect(recommended.length).toBeGreaterThan(0);
     expect(recommended.every((r) => r.status === "RECOMMENDED")).toBe(true);
+  });
+
+  it("Phase 12: a repeated run finding the same issue again does not create a duplicate recommendation", async () => {
+    const dedupIssue = issue({ page: "/dedup-test", message: "Meta description is short for dedup-test." });
+
+    const first = await service.generateFromAudit([dedupIssue]);
+    expect(first).toEqual({ created: 1, skippedDuplicate: 0 });
+
+    // Same exact issue again — as a scheduled re-run of the same audit would produce.
+    const second = await service.generateFromAudit([dedupIssue]);
+    expect(second).toEqual({ created: 0, skippedDuplicate: 1 });
+
+    const recommended = await service.list("RECOMMENDED");
+    expect(recommended.filter((r) => r.page === "/dedup-test")).toHaveLength(1);
+  });
+
+  it("Phase 12: once a duplicate is approved/rejected, a fresh finding of the same issue creates a new row (not suppressed forever)", async () => {
+    const dedupIssue = issue({ page: "/dedup-reopen-test", message: "Meta description is short for dedup-reopen-test." });
+
+    await service.generateFromAudit([dedupIssue]);
+    const [target] = await service.list("RECOMMENDED").then((rows) => rows.filter((r) => r.page === "/dedup-reopen-test"));
+    await service.reject(target!.id, actor);
+
+    const afterReject = await service.generateFromAudit([dedupIssue]);
+    expect(afterReject).toEqual({ created: 1, skippedDuplicate: 0 });
   });
 
   it("approve() moves a RECOMMENDED item to APPROVED and records who/when", async () => {

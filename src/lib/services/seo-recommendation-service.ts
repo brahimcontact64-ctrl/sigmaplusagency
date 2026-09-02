@@ -4,10 +4,10 @@ import {
   type NewSeoRecommendationInput,
 } from "@/lib/repositories/seo-recommendation-repository";
 import { getAuditLogRepository, type AuditLogRepository } from "@/lib/repositories/audit-log-repository";
-import { recommendationsFromAuditIssues } from "@/lib/seo/opportunity-engine";
+import { recommendationsFromAuditIssues, recommendationsFromOpportunities } from "@/lib/seo/opportunity-engine";
 import type { SeoIssue } from "@/domain/seo-issue";
 import type { AdminActor } from "@/domain/admin-user";
-import type { SeoRecommendationStatus } from "@/domain/seo-intelligence";
+import type { SeoRecommendationStatus, SeoOpportunity } from "@/domain/seo-intelligence";
 
 export type ReviewResult = { success: true } | { success: false; error: "not_found" | "invalid_transition" };
 
@@ -30,11 +30,37 @@ export class SeoRecommendationService {
     return this.repo.list({ status });
   }
 
-  /** Idempotent-ish seeding from the current audit run — call this to (re)populate the RECOMMENDED queue; does not deduplicate against prior runs yet (see docs/SEO_STRATEGY.md known limitations). */
-  async generateFromAudit(issues: SeoIssue[]): Promise<number> {
-    const inputs: NewSeoRecommendationInput[] = recommendationsFromAuditIssues(issues);
-    for (const input of inputs) await this.repo.create(input);
-    return inputs.length;
+  /**
+   * Seeding from the current audit run — (re)populates the open
+   * recommendation queue. Deduplicated against every already-open
+   * (DRAFT/RECOMMENDED) row for the same {type, page, locale} (Phase
+   * 12): a repeated/scheduled run finding the same issue again never
+   * creates a second row while one is already awaiting review. A row a
+   * human already approved/rejected/published never blocks a fresh one
+   * — see findOpenDuplicate's doc.
+   */
+  async generateFromAudit(issues: SeoIssue[]): Promise<{ created: number; skippedDuplicate: number }> {
+    return this.createDeduped(recommendationsFromAuditIssues(issues));
+  }
+
+  /** Same dedup-on-create pipeline as generateFromAudit, for opportunities detected from real GSC/PageSpeed metrics once those are connected (Phase 12 §8). */
+  async generateFromOpportunities(opportunities: SeoOpportunity[]): Promise<{ created: number; skippedDuplicate: number }> {
+    return this.createDeduped(recommendationsFromOpportunities(opportunities));
+  }
+
+  private async createDeduped(inputs: NewSeoRecommendationInput[]): Promise<{ created: number; skippedDuplicate: number }> {
+    let created = 0;
+    let skippedDuplicate = 0;
+    for (const input of inputs) {
+      const duplicate = await this.repo.findOpenDuplicate(input.type, input.page, input.locale, input.source);
+      if (duplicate) {
+        skippedDuplicate += 1;
+        continue;
+      }
+      await this.repo.create(input);
+      created += 1;
+    }
+    return { created, skippedDuplicate };
   }
 
   async approve(id: string, actor: AdminActor): Promise<ReviewResult> {

@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, jsonb, uuid, boolean, real, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, uuid, boolean, real, integer, index, uniqueIndex, check } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const leads = pgTable(
   "leads",
@@ -329,6 +330,52 @@ export const seoRecommendations = pgTable(
     generatedAt: timestamp("generated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("seo_recommendations_status_idx").on(table.status)],
+);
+
+/**
+ * Phase 12 — one row per SEO job execution (audit/sync/analysis/
+ * report), across every job type in `SEO_JOB_TYPES`. This is
+ * observability/history, not configuration — it never controls
+ * whether a job *should* run (that's Vercel Cron's schedule, or a
+ * manual admin trigger); it only records what happened.
+ *
+ * `seo_job_runs_one_running_per_type_idx` is the actual concurrency
+ * primitive (pre-commit review fix): a PARTIAL UNIQUE INDEX enforcing
+ * "at most one RUNNING row per job_type" at the database level. This
+ * is what makes job locking atomic across concurrent serverless
+ * instances — a plain SELECT-then-INSERT in application code cannot
+ * be, since two instances can both see "no active run" before either
+ * has inserted. The lock is acquired by attempting the INSERT itself
+ * and treating a unique-violation (Postgres error code 23505) as
+ * "already running" — see run-job.ts. A CHECK constraint on `status`
+ * is defense-in-depth against a future bug writing a value outside
+ * `SEO_JOB_STATUSES` — the TS union already prevents the app from
+ * intentionally doing so, but the constraint is free to add before
+ * this migration is ever applied, so there's no reason not to.
+ */
+export const seoJobRuns = pgTable(
+  "seo_job_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    jobType: text("job_type").notNull(),
+    runId: text("run_id").notNull(),
+    status: text("status").notNull().default("RUNNING"),
+    triggeredBy: text("triggered_by").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    counts: jsonb("counts").$type<Record<string, number>>(),
+    errorSummary: text("error_summary"),
+    sourceFreshness: jsonb("source_freshness").$type<Record<string, string>>(),
+    reportSnapshot: jsonb("report_snapshot"),
+  },
+  (table) => [
+    index("seo_job_runs_job_type_status_idx").on(table.jobType, table.status),
+    index("seo_job_runs_started_at_idx").on(table.startedAt),
+    uniqueIndex("seo_job_runs_one_running_per_type_idx")
+      .on(table.jobType)
+      .where(sql`${table.status} = 'RUNNING'`),
+    check("seo_job_runs_status_check", sql`${table.status} IN ('RUNNING', 'SUCCEEDED', 'FAILED', 'PARTIAL', 'TIMED_OUT')`),
+  ],
 );
 
 // --- Phase 9: first-party analytics ----------------------------------

@@ -18,7 +18,16 @@ export async function getPageSpeedConnection(): Promise<SeoConnectionState> {
   return repo.upsert(PROVIDER, { status: "ERROR", lastError: "API key configured but the PageSpeed Insights client is not yet implemented." });
 }
 
-export async function syncPageSpeed(): Promise<{ state: SeoConnectionState; metrics: PageSpeedMetric[] }> {
+/**
+ * `pages` documents which pages the job layer wants tracked (Phase 12
+ * §6 — homepage, major services, start-project, contact, key case
+ * studies, top-performing articles; see
+ * src/lib/seo/jobs/tracked-pages.ts) — unused while disconnected, but
+ * part of this function's real contract so a future implementation
+ * doesn't need a signature change to receive it.
+ */
+export async function syncPageSpeed(pages: string[] = []): Promise<{ state: SeoConnectionState; metrics: PageSpeedMetric[] }> {
+  void pages;
   const state = await getPageSpeedConnection();
   return { state, metrics: [] };
 }

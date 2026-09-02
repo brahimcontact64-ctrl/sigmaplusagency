@@ -162,3 +162,35 @@ export function recommendationsFromAuditIssues(issues: SeoIssue[]): NewSeoRecomm
       confidence: issue.type === "WARNING" ? 0.7 : 0.4,
     }));
 }
+
+const OPPORTUNITY_RECOMMENDED_ACTION: Record<SeoOpportunity["type"], string> = {
+  HIGH_IMPRESSIONS_LOW_CTR: "Improve this page's title/meta description to lift click-through — the ranking is already earning impressions.",
+  MID_RANKING_POSITION: "Strengthen this page's content/internal links to push it out of the 'close but not winning' band.",
+  DECLINING_CLICKS: "Investigate the click decline — check for a ranking drop, a content-freshness issue, or a SERP feature change.",
+  WEAK_METADATA_WITH_IMPRESSIONS: "Rewrite this page's title/meta description — it's already earning visibility despite weak metadata.",
+  CANNIBALIZATION: "Consolidate or differentiate these pages so one clear page targets this query.",
+  HIGH_TRAFFIC_LOW_CONVERSION: "Review this landing page's conversion path — traffic exists but isn't converting.",
+  PERFORMANCE_REGRESSION: "Investigate the Core Web Vitals regression on this page.",
+};
+
+/**
+ * Turns detected opportunities (from the detect* functions above, once
+ * real GSC/PageSpeed data exists) into draft recommendations — same
+ * approval-first, dedup-on-create pipeline as
+ * `recommendationsFromAuditIssues`, just for a different upstream
+ * source. `severity` is derived from confidence rather than invented
+ * per type, since an opportunity's own confidence already reflects how
+ * strong its evidence is.
+ */
+export function recommendationsFromOpportunities(opportunities: SeoOpportunity[]): NewSeoRecommendationInput[] {
+  return opportunities.map((opp) => ({
+    type: `opportunity:${opp.type.toLowerCase()}`,
+    severity: opp.confidence >= 0.7 ? ("HIGH" as const) : opp.confidence >= 0.4 ? ("MEDIUM" as const) : ("LOW" as const),
+    page: opp.page,
+    locale: opp.locale,
+    reason: opp.evidence,
+    recommendedAction: OPPORTUNITY_RECOMMENDED_ACTION[opp.type],
+    source: opp.source,
+    confidence: opp.confidence,
+  }));
+}

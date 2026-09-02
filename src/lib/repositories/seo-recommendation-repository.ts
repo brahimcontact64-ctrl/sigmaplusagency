@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { seoRecommendations } from "@/lib/db/schema";
 import type { SeoRecommendation, SeoRecommendationStatus } from "@/domain/seo-intelligence";
@@ -31,6 +31,23 @@ export interface SeoRecommendationRepository {
   list(filters: { status?: SeoRecommendationStatus }): Promise<SeoRecommendation[]>;
   get(id: string): Promise<SeoRecommendation | null>;
   updateStatus(id: string, status: SeoRecommendationStatus, reviewedByEmail: string): Promise<SeoRecommendation | null>;
+  /**
+   * Phase 12 dedup fix (job orchestration §3/§17: "retries must not
+   * create duplicate recommendations") — deterministic identity is
+   * {type, page, locale, source}. `type` already namespaces by
+   * originating engine (`audit:*` vs `opportunity:<opportunity-type>`),
+   * and `source` is included explicitly too so two different providers
+   * could never collide on an identical type/page/locale in the
+   * future. Deliberately NOT windowed by analysis period/version: the
+   * goal is "don't pile a duplicate onto an already-open, not-yet-
+   * reviewed recommendation," not "one row per analysis run" — an open
+   * (DRAFT/RECOMMENDED) row already covering this identity is the
+   * dedup boundary. A rejected/approved/published row never counts as
+   * a duplicate: if a human already acted on it, a fresh finding of
+   * the same underlying issue later deserves a new row, not silent
+   * suppression forever.
+   */
+  findOpenDuplicate(type: string, page: string, locale: string | undefined, source: string): Promise<SeoRecommendation | null>;
 }
 
 export class DrizzleSeoRecommendationRepository implements SeoRecommendationRepository {
@@ -65,6 +82,24 @@ export class DrizzleSeoRecommendationRepository implements SeoRecommendationRepo
       .set({ status, reviewedByEmail, reviewedAt: new Date() })
       .where(and(eq(seoRecommendations.id, id)))
       .returning();
+    return row ? toRecommendation(row) : null;
+  }
+
+  async findOpenDuplicate(type: string, page: string, locale: string | undefined, source: string): Promise<SeoRecommendation | null> {
+    const db = await this.getDbInstance();
+    const [row] = await db
+      .select()
+      .from(seoRecommendations)
+      .where(
+        and(
+          eq(seoRecommendations.type, type),
+          eq(seoRecommendations.page, page),
+          locale ? eq(seoRecommendations.locale, locale) : isNull(seoRecommendations.locale),
+          eq(seoRecommendations.source, source),
+          inArray(seoRecommendations.status, ["DRAFT", "RECOMMENDED"]),
+        ),
+      )
+      .limit(1);
     return row ? toRecommendation(row) : null;
   }
 }

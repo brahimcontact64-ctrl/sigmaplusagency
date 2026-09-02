@@ -10,7 +10,7 @@ import type { SeoProvenance } from "./seo-issue";
  * can't arrive without credentials that don't exist yet.
  */
 
-export const SEO_CONNECTION_PROVIDERS = ["GOOGLE_SEARCH_CONSOLE", "GOOGLE_ANALYTICS", "PAGESPEED"] as const;
+export const SEO_CONNECTION_PROVIDERS = ["GOOGLE_SEARCH_CONSOLE", "GOOGLE_ANALYTICS", "PAGESPEED", "SERP"] as const;
 export type SeoConnectionProvider = (typeof SEO_CONNECTION_PROVIDERS)[number];
 
 /** Never show CONNECTED unless a real successful sync actually happened — see Phase 8 §41 "do not show green/healthy when no external connection exists." */
@@ -138,8 +138,33 @@ export type SeoCompetitor = {
   active: boolean;
 };
 
-/** Prepared, not implemented — Phase 8 §45. Algeria keyword hypotheses (docs/SEO_STRATEGY.md §13) remain hypotheses; this is the shape a real provider would fill. */
+/** One seed to check a real SERP provider against — never invented from thin air; see docs/SEO_STRATEGY.md §13's Algeria hypotheses, which stay hypotheses until a real provider validates them. */
+export type SeoKeywordSeed = { keyword: string; country: string; language: string };
+
+/**
+ * Phase 12 §7 — the fuller SERP-check shape a real keyword/rank-
+ * tracking vendor would fill in. `source` names the specific provider
+ * (e.g. a vendor id), never blurred with `INTERNAL_AUDIT`/GSC
+ * provenance. Nothing here is ever fabricated when unconfigured — see
+ * `src/lib/seo/providers/keyword-provider.ts`, which returns `[]`
+ * rather than guessed positions.
+ */
+export type SeoKeywordCheck = {
+  keyword: string;
+  country: string;
+  language: string;
+  /** Current SERP position, when found — absent (not zero, not a guess) when the domain doesn't rank in the checked results at all. */
+  position?: number;
+  competingDomains: string[];
+  serpUrl?: string;
+  checkedAt: string;
+  source: string;
+};
+
+/** Prepared, not implemented — Phase 8 §45 / Phase 12 §7. Algeria keyword hypotheses (docs/SEO_STRATEGY.md §13) remain hypotheses; this is the shape a real provider would fill. No vendor is hardwired — see KeywordProvider. */
 export interface KeywordProvider {
   isConfigured(): boolean;
-  research(seed: string, locale: string): Promise<{ keyword: string; note: string }[]>;
+  /** The provider/vendor id this implementation represents (e.g. "NONE" when unconfigured) — never a display label, and never GOOGLE_SEARCH_CONSOLE/GOOGLE_ANALYTICS/PAGESPEED (those are read via their own dedicated adapters, not this interface). */
+  providerId(): string;
+  checkPositions(seeds: SeoKeywordSeed[]): Promise<SeoKeywordCheck[]>;
 }

@@ -5,8 +5,9 @@ import {
   detectCannibalization,
   detectContentDecay,
   recommendationsFromAuditIssues,
+  recommendationsFromOpportunities,
 } from "@/lib/seo/opportunity-engine";
-import type { SeoPageMetric, SeoQueryMetric } from "@/domain/seo-intelligence";
+import type { SeoPageMetric, SeoQueryMetric, SeoOpportunity } from "@/domain/seo-intelligence";
 import type { SeoIssue } from "@/domain/seo-issue";
 
 const range = { start: "2026-08-01", end: "2026-08-31" };
@@ -138,5 +139,47 @@ describe("recommendationsFromAuditIssues", () => {
     expect(result!.reason).toBe("Short description.");
     expect(result!.recommendedAction).toBe("Expand it.");
     expect(result!.source).toBe("INTERNAL_AUDIT");
+  });
+});
+
+describe("recommendationsFromOpportunities — Phase 12 §8/§9", () => {
+  function makeOpportunity(overrides: Partial<SeoOpportunity> = {}): SeoOpportunity {
+    return {
+      id: "opp-x",
+      type: "HIGH_IMPRESSIONS_LOW_CTR",
+      page: "/en/services/web-development",
+      confidence: 0.8,
+      evidence: "500 impressions, 1.2% CTR.",
+      dateRange: { start: "2026-08-01", end: "2026-08-07" },
+      source: "GOOGLE_SEARCH_CONSOLE",
+      generatedAt: new Date().toISOString(),
+      ...overrides,
+    };
+  }
+
+  it("derives severity from confidence rather than a fixed per-type value", () => {
+    const [high] = recommendationsFromOpportunities([makeOpportunity({ confidence: 0.9 })]);
+    const [medium] = recommendationsFromOpportunities([makeOpportunity({ confidence: 0.5 })]);
+    const [low] = recommendationsFromOpportunities([makeOpportunity({ confidence: 0.2 })]);
+    expect(high!.severity).toBe("HIGH");
+    expect(medium!.severity).toBe("MEDIUM");
+    expect(low!.severity).toBe("LOW");
+  });
+
+  it("carries the opportunity's own evidence/page/locale/source through as reason/provenance, never inventing a metric", () => {
+    const [result] = recommendationsFromOpportunities([makeOpportunity({ locale: "fr", evidence: "Real evidence string." })]);
+    expect(result!.reason).toBe("Real evidence string.");
+    expect(result!.locale).toBe("fr");
+    expect(result!.source).toBe("GOOGLE_SEARCH_CONSOLE");
+    expect(result!.confidence).toBe(0.8);
+  });
+
+  it("prefixes the type so it never collides with an audit-sourced recommendation's type namespace", () => {
+    const [result] = recommendationsFromOpportunities([makeOpportunity({ type: "CANNIBALIZATION" })]);
+    expect(result!.type).toBe("opportunity:cannibalization");
+  });
+
+  it("returns an empty array for an empty input, never a fabricated recommendation", () => {
+    expect(recommendationsFromOpportunities([])).toEqual([]);
   });
 });

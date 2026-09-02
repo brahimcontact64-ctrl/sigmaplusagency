@@ -280,3 +280,240 @@ Upgraded the Phase 7 boolean adapters into real, persisted connection state (`se
 3. Configure `PAGESPEED_API_KEY` → `pagespeed.ts` real LCP/CLS/INP field/lab data, replacing the architectural risk review in §17 with actual measurements.
 4. Once real Search Console data exists, run the opportunity engine (`src/lib/seo/opportunity-engine.ts`) against it for real — `detectHighImpressionsLowCtr`/`detectMidRankingPositions`/`detectCannibalization`/`detectContentDecay` are already implemented and tested against synthetic data, waiting only for real input.
 5. Re-evaluate the §13 keyword hypotheses against real Search Console query data — promote confirmed high-value phrases, drop ones with no real signal, and only then consider whether any genuinely deserve their own page (still subject to §14's anti-doorway-page policy).
+
+## 28. SEO job orchestration & automation (Phase 12)
+
+Turns the intelligence layer above from "run manually from /admin/seo"
+into a real, schedulable production system — without connecting a
+single external account, spending an API credit, or activating a cron
+job. Everything in this section is **prepared, not activated**; see
+"Production activation steps" below for what an OWNER still has to do
+explicitly.
+
+### Architecture
+
+```
+src/domain/seo-job.ts                    job types/statuses/counts (pure types)
+src/lib/repositories/seo-job-repository.ts   persistence: one row per run (seo_job_runs)
+src/lib/seo/jobs/run-job.ts               shared orchestrator: lock, timing, structured logs, history
+src/lib/seo/jobs/<job-name>.ts            one function per job type — thin, calls existing services/adapters
+src/lib/seo/jobs/index.ts                 SEO_JOB_DISPATCH — the one job-type → function map
+src/lib/seo/providers/keyword-provider.ts SERP/keyword abstraction (Phase 8 §45, filled in properly)
+src/lib/seo/services/weekly-report.ts     deterministic weekly report builder
+src/lib/notifications/seo-notification-service.ts   reuses the existing Resend-backed email plumbing
+src/app/api/internal/seo/run/route.ts     the one protected trigger point (cron or manual)
+src/lib/security/cron-auth.ts             constant-time CRON_SECRET check
+```
+
+8 job types (`SEO_JOB_TYPES` in `domain/seo-job.ts`) — the 7 the brief
+named plus `WEEKLY_EXECUTIVE_REPORT` as its own schedulable unit (it
+has a distinct weekly cadence and its own persisted snapshot, so
+folding it into another job would have hidden its own history):
+
+`DAILY_TECHNICAL_AUDIT`, `DAILY_SEARCH_CONSOLE_SYNC`, `DAILY_ANALYTICS_SYNC`, `WEEKLY_PAGESPEED_AUDIT`, `WEEKLY_KEYWORD_ANALYSIS`, `WEEKLY_SEO_OPPORTUNITY_ANALYSIS`, `WEEKLY_CONTENT_DECAY_ANALYSIS`, `WEEKLY_EXECUTIVE_REPORT`.
+
+Every job is a thin wrapper around infrastructure that already existed
+(the Phase 7 audit, the Phase 8 adapters/opportunity engine, the Phase
+9 first-party analytics) — `run-job.ts` never contains any SEO logic
+itself, only orchestration (lock → run → record).
+
+### Reliability
+
+- **Idempotency/locking — DB-enforced, atomic across instances**: the
+  first version of this (pre-commit-review) was a plain application-
+  level check-then-insert (`SELECT` for an active run, then `INSERT` if
+  none found), which is **not** atomic — two concurrent serverless
+  instances (simultaneous cron delivery, or a manual "Run now" racing
+  the cron) could both observe "nothing running" before either had
+  written anything, and both start. Fixed before commit with a
+  **partial unique index**: `UNIQUE (job_type) WHERE status = 'RUNNING'`
+  (`seo_job_runs_one_running_per_type_idx`, schema.ts). `acquire()`
+  (seo-job-repository.ts) now works by *attempting* the `INSERT`
+  directly and treating a `23505` unique-violation as "already
+  running" — the database itself is the lock, not a race-prone read
+  beforehand. Proven, not just asserted: `tests/integration/
+  seo-job-repository.test.ts` fires 10 genuinely concurrent (`Promise.
+  all`, not sequential `await`s) `acquire()` calls for the same job
+  type and asserts exactly one wins.
+  - **No open transaction spans the external job**: `acquire()`'s
+    insert and the later `complete()` update are each their own short,
+    auto-committed statement — nothing wraps them (and the job body in
+    between) in a single `db.transaction()`. A slow/hanging GSC/
+    PageSpeed/SERP/AI call therefore never holds a Postgres connection
+    open, which matters specifically for Supabase's pooler under
+    Vercel's serverless model (a held-open transaction across an
+    external call would starve the pool under concurrent invocations).
+  - **Stale reclaim uses the database's own clock, not the caller's**:
+    the reclaim `UPDATE`'s `WHERE` clause is `started_at < now() -
+    make_interval(mins => 30)`, evaluated inside Postgres — never a
+    `Date` computed in the Node process. The reclaim step is itself
+    race-safe via ordinary Postgres row-level locking (if two workers
+    run it at once, at most one actually flips the row — the second's
+    `WHERE status = 'RUNNING'` no longer matches once the first
+    commits); the partial unique index in step two is what actually
+    guarantees only one worker proceeds to a live RUNNING row either
+    way. Also proven in `seo-job-repository.test.ts` (two concurrent
+    `acquire()` calls against the same stale row — exactly one wins).
+  - **Job status is a closed, DB-enforced set**: `RUNNING`,
+    `SUCCEEDED`, `FAILED`, `PARTIAL`, `TIMED_OUT` — enforced both by the
+    TS union (`SeoJobStatus`) and a Postgres `CHECK` constraint on the
+    column (defense-in-depth against a future direct-SQL mistake,
+    added while the migration was still unapplied so it was free). No
+    `SKIPPED` status: a rejected acquire attempt never gets a row at
+    all, so there's nothing for one to describe.
+- **One provider's failure never corrupts another job's data**: each
+  job only ever touches its own provider(s); a `syncSearchConsole()`
+  error doesn't affect the PageSpeed job's run.
+- **NOT_CONFIGURED vs. a real degraded state**: a job whose provider
+  isn't configured yet completes `SUCCEEDED` (correctly determined
+  there was nothing to sync) — only a real `ERROR`/`EXPIRED` connection
+  status (credentials present but broken) marks a run `PARTIAL`, so a
+  genuine misconfiguration stays visible without every routine "not
+  connected yet" run looking like a failure.
+- **Job audit history is never deleted** — `/admin/seo`'s "Recent Job
+  Runs" reads the same table directly.
+- **Structured, redacted logs** via the existing observability logger
+  (`src/lib/observability/logger.ts`, Phase 9) — every job run gets a
+  `correlationId` (= its `runId`), and error summaries are redacted
+  (connection strings/bearer tokens stripped) before being logged or
+  persisted.
+
+### Recommendation dedup fix
+
+`SeoRecommendationService.generateFromAudit`/`generateFromOpportunities`
+now check `findOpenDuplicate(type, page, locale)` before creating a
+row — a repeated/scheduled run finding the same issue again is
+skipped, not duplicated. A row a human already approved/rejected/
+published never blocks a fresh finding of the same issue later (see
+`seo-recommendation-repository.ts`'s doc comment). This closes the gap
+that used to be documented here as a known limitation.
+
+### SERP/keyword provider (Phase 8 §45, filled in)
+
+`KeywordProvider` (domain/seo-intelligence.ts) now has a real shape —
+`checkPositions(seeds): Promise<SeoKeywordCheck[]>` returning
+`{keyword, country, language, position?, competingDomains, serpUrl?,
+checkedAt, source}` — and a connection-state adapter
+(`getKeywordProviderConnection()`) following the exact same honesty
+policy as GSC/GA4/PageSpeed. No vendor is implemented; `SERP_PROVIDER`/
+`SERP_API_KEY` unset (or `SERP_PROVIDER=NONE`) → `NOT_CONFIGURED`. The
+§13 Algeria keyword hypotheses now also exist in code
+(`src/config/keyword-hypotheses.ts`) as the real seed list the weekly
+keyword-analysis job will check once a provider exists — they remain
+**hypotheses** until then.
+
+### Weekly executive report
+
+`src/lib/seo/services/weekly-report.ts` builds a deterministic report
+from real, already-tested sources only: `GrowthAnalyticsService`
+(first-party sessions/leads/proposals/WhatsApp/AI-assisted/won, plus
+the `organic_search` channel row from `getAcquisitionBreakdown` — the
+real, honest "SEO commercial intent" signal, since GSC isn't connected
+yet), the SEO connection states, the recommendation queue, and recent
+job history. AI (when `ANTHROPIC_API_KEY` is configured) is given only
+these already-computed numbers and asked to explain them in plain
+language — it is structurally unable to introduce a new metric, since
+it never receives anything else. The report is persisted as the
+`WEEKLY_EXECUTIVE_REPORT` job's own `reportSnapshot` (no separate
+reports table was needed).
+
+**Known limitation**: the per-channel conversion *funnel* (started →
+completed → proposal per traffic source) isn't available yet — `page_
+view` doesn't carry UTM dimensions (a pre-existing Phase 9 limitation,
+see `docs/ANALYTICS_MEASUREMENT_PLAN.md`), so only the lead-level
+organic-search count is real and reported; a fabricated per-channel
+funnel is never substituted.
+
+### Autonomy policy (unchanged from Phase 8, now enforced structurally by what jobs are allowed to call)
+
+**AUTO** (every job in this phase does only this): collect data, run
+audits, detect problems, create `RECOMMENDED` rows, send internal
+alerts. **REQUIRE APPROVAL** (nothing here does this — still only
+`SeoRecommendationService.approve()`, an explicit admin action):
+change title/meta, modify published copy, publish an article, change
+canonical/hreflang, create a redirect, change indexability, change
+Schema.org content, create a landing page. **NEVER AUTO**: spam pages,
+fake reviews/locations, purchased/generated backlinks, keyword
+stuffing, mass low-quality AI content — none of this phase's code path
+can reach any of these regardless of input, since nothing here writes
+to public content at all.
+
+### Notifications
+
+`src/lib/notifications/seo-notification-service.ts` reuses the exact
+Resend-backed plumbing `lead-notification-service.ts` already uses
+(same `LEAD_NOTIFICATION_EMAIL`/`LEAD_NOTIFICATION_FROM_EMAIL`, no new
+vendor). Alert kinds: `critical_indexing_failure`, `sitemap_failure`,
+`large_ranking_loss`, `severe_traffic_drop`, `cwv_regression`,
+`weekly_report_ready` — only the last is actually wired to a trigger
+this phase (the weekly report job); the others are prepared but have
+no real data source to trigger them from yet (GSC/PageSpeed aren't
+connected). A notification failure is always caught and logged,
+never allowed to fail the job it's attached to.
+
+### Environment variables (new this phase)
+
+| Variable | Required? | Purpose |
+|---|---|---|
+| `CRON_SECRET` | For cron only | Authorizes `/api/internal/seo/run` (`Authorization: Bearer <value>`). Missing → every request rejected. |
+| `SERP_PROVIDER` | No | Names a SERP vendor once one is chosen. Unset/`NONE` → honest `NOT_CONFIGURED`. |
+| `SERP_API_KEY` | No | Paired with `SERP_PROVIDER`. Never logged. |
+
+(`GOOGLE_SEARCH_CONSOLE_*`, `GA4_*`, `PAGESPEED_API_KEY` already existed — see §16/§25.)
+
+### Production activation steps (NOT done by this phase — requires explicit OWNER approval)
+
+1. Generate a real secret: `openssl rand -base64 32` → set as `CRON_SECRET` in Vercel's project environment variables (Production scope).
+2. Add cron entries to `vercel.json` (create it if absent), one per job type, e.g.:
+   ```json
+   {
+     "crons": [
+       { "path": "/api/internal/seo/run?job=DAILY_TECHNICAL_AUDIT", "schedule": "0 3 * * *" },
+       { "path": "/api/internal/seo/run?job=DAILY_SEARCH_CONSOLE_SYNC", "schedule": "15 3 * * *" },
+       { "path": "/api/internal/seo/run?job=DAILY_ANALYTICS_SYNC", "schedule": "30 3 * * *" },
+       { "path": "/api/internal/seo/run?job=WEEKLY_PAGESPEED_AUDIT", "schedule": "0 4 * * 1" },
+       { "path": "/api/internal/seo/run?job=WEEKLY_KEYWORD_ANALYSIS", "schedule": "15 4 * * 1" },
+       { "path": "/api/internal/seo/run?job=WEEKLY_SEO_OPPORTUNITY_ANALYSIS", "schedule": "30 4 * * 1" },
+       { "path": "/api/internal/seo/run?job=WEEKLY_CONTENT_DECAY_ANALYSIS", "schedule": "45 4 * * 1" },
+       { "path": "/api/internal/seo/run?job=WEEKLY_EXECUTIVE_REPORT", "schedule": "0 5 * * 1" }
+     ]
+   }
+   ```
+   Vercel automatically sends `Authorization: Bearer $CRON_SECRET` on
+   its own scheduled invocations when `CRON_SECRET` is set — no
+   additional wiring needed for Vercel Cron specifically.
+3. Deploy. Verify with a manual, authenticated `curl` (never commit the
+   secret): `curl -X GET "https://<domain>/api/internal/seo/run?job=DAILY_TECHNICAL_AUDIT" -H "Authorization: Bearer <CRON_SECRET>"`.
+4. Watch `/admin/seo`'s "Recent Job Runs" for the first few scheduled
+   firings before trusting the schedule unattended.
+5. Only once real value is confirmed: configure `GOOGLE_SEARCH_CONSOLE_*`/`GA4_*`/`PAGESPEED_API_KEY`/`SERP_PROVIDER`+`SERP_API_KEY` one at a time (§27's existing measurement plan), re-verifying `/admin/seo`'s Connections panel shows real `CONNECTED` after each.
+
+### Known limitations (Phase 12)
+
+- No real GSC/GA4-reporting/PageSpeed/SERP vendor is implemented —
+  every job that depends on one runs today and honestly reports
+  `NOT_CONFIGURED`, never a fabricated result. This was a deliberate
+  scope boundary (no Google account connection, no API spend, no
+  invented data), not an oversight.
+- `sitemap_failure`/`critical_indexing_failure`/`large_ranking_loss`/
+  `severe_traffic_drop`/`cwv_regression` alerts are wired end-to-end
+  (the sending mechanism) but have no real trigger condition yet —
+  they need real GSC/PageSpeed/analytics data to detect against.
+- The weekly report's organic-traffic signal is lead-level only (no
+  session-level per-channel funnel) — see the "Known limitation" note
+  under "Weekly executive report" above.
+- Cron is not activated — see "Production activation steps."
+- **Runtime/timeout**: no `maxDuration` is set on `/api/internal/seo/
+  run` — today's jobs never call a real external API (all adapters are
+  `NOT_CONFIGURED`), so every run completes in well under Vercel's
+  default function timeout regardless of plan, and setting a duration
+  now would just be a guess. Once a real GSC/PageSpeed/SERP/AI call is
+  added, revisit both `maxDuration` (Vercel route config) and
+  `STALE_AFTER_MINUTES` (run-job.ts, currently 30) together — the
+  staleness window should stay comfortably above whatever `maxDuration`
+  ends up being, so a legitimately-still-running job is never reclaimed
+  out from under itself. If a function IS killed mid-run (timeout or
+  otherwise) today, its row simply stays RUNNING until the next
+  `acquire()` attempt for that job type reclaims it past the staleness
+  window — never a permanent lock, but recovery is only as prompt as
+  the next scheduled/manual attempt.

@@ -57,6 +57,13 @@
       "when": 1788282596949,
       "tag": "0007_brainy_whistler",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788356540393,
+      "tag": "0008_perfect_maverick",
+      "breakpoints": true
     }
   ]
 }

@@ -4,15 +4,38 @@ import { buildSiteModel, buildArticleModel } from "@/lib/seo/site-model";
 import { getSearchConsoleConnection } from "@/lib/seo/adapters/search-console";
 import { getAnalyticsReportingConnection } from "@/lib/seo/adapters/analytics-reporting";
 import { getPageSpeedConnection } from "@/lib/seo/adapters/pagespeed";
+import { getKeywordProviderConnection } from "@/lib/seo/providers/keyword-provider";
 import { getSeoRecommendationService } from "@/lib/services/seo-recommendation-service";
+import { getSeoJobRepository } from "@/lib/repositories/seo-job-repository";
 import { getArticleRepository } from "@/lib/repositories/article-repository";
 import { StatCard } from "@/components/admin/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SeoRecommendationActions } from "@/components/admin/seo-recommendation-actions";
 import { GenerateRecommendationsButton } from "@/components/admin/generate-recommendations-button";
+import { SeoJobsPanel } from "@/components/admin/seo-jobs-panel";
+import { DataProvenanceBadge } from "@/components/admin/data-provenance-badge";
 import { formatDateTime } from "@/lib/admin/format";
 import { SEO_ISSUE_SEVERITIES } from "@/domain/seo-issue";
 import type { SeoConnectionState } from "@/domain/seo-intelligence";
+import { SEO_JOB_TYPES, type SeoJobRun, type SeoJobType } from "@/domain/seo-job";
+import type { WeeklySeoReport } from "@/lib/seo/services/weekly-report";
+
+/**
+ * Phase 12 §16 — the recommended (NOT active; see docs/SEO_STRATEGY.md
+ * §28 for exact Vercel cron activation steps) cadence per job type,
+ * shown next to each job's real last-successful-run timestamp so
+ * "next scheduled run" reads as a plan, never as a live guarantee.
+ */
+const JOB_SCHEDULE_LABEL: Record<SeoJobType, string> = {
+  DAILY_TECHNICAL_AUDIT: "Daily",
+  DAILY_SEARCH_CONSOLE_SYNC: "Daily",
+  DAILY_ANALYTICS_SYNC: "Daily",
+  WEEKLY_PAGESPEED_AUDIT: "Weekly",
+  WEEKLY_KEYWORD_ANALYSIS: "Weekly",
+  WEEKLY_SEO_OPPORTUNITY_ANALYSIS: "Weekly",
+  WEEKLY_CONTENT_DECAY_ANALYSIS: "Weekly",
+  WEEKLY_EXECUTIVE_REPORT: "Weekly",
+};
 
 export const metadata = { title: "SEO — SIGMA+ Admin" };
 
@@ -24,7 +47,20 @@ export const metadata = { title: "SEO — SIGMA+ Admin" };
 const NOINDEX_ADMIN_ROUTES = ["/admin", "/admin/login", "/admin/leads", "/admin/pipeline", "/admin/project-requests", "/admin/activities", "/admin/settings", "/admin/seo", "/admin/content"];
 
 export default async function AdminSeoPage() {
-  const [staticPages, articlePages, issues, sitemapEntries, searchConsole, analyticsReporting, pageSpeed, recommendations, articleCounts] = await Promise.all([
+  const [
+    staticPages,
+    articlePages,
+    issues,
+    sitemapEntries,
+    searchConsole,
+    analyticsReporting,
+    pageSpeed,
+    serp,
+    recommendations,
+    articleCounts,
+    recentJobRuns,
+    latestReportRun,
+  ] = await Promise.all([
     Promise.resolve(buildSiteModel()),
     buildArticleModel(),
     runSeoAudit(),
@@ -32,9 +68,18 @@ export default async function AdminSeoPage() {
     getSearchConsoleConnection(),
     getAnalyticsReportingConnection(),
     getPageSpeedConnection(),
+    getKeywordProviderConnection(),
     getSeoRecommendationService().list("RECOMMENDED"),
     getArticleRepository().countByStatus(),
+    getSeoJobRepository().history(undefined, 10),
+    getSeoJobRepository().lastSuccessful("WEEKLY_EXECUTIVE_REPORT"),
   ]);
+
+  const latestReport = latestReportRun?.reportSnapshot as WeeklySeoReport | undefined;
+
+  const lastSuccessfulByJob = Object.fromEntries(
+    await Promise.all(SEO_JOB_TYPES.map(async (jobType) => [jobType, await getSeoJobRepository().lastSuccessful(jobType)] as const)),
+  ) as Record<SeoJobType, SeoJobRun | null>;
 
   const pages = [...staticPages, ...articlePages];
   const bySeverity = Object.fromEntries(SEO_ISSUE_SEVERITIES.map((s) => [s, issues.filter((i) => i.type === s)]));
@@ -56,11 +101,58 @@ export default async function AdminSeoPage() {
       </div>
 
       <Section title="Connections" hint="Truthful state only — never shown as connected without a real successful sync.">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-4">
           <ConnectionCard label="Google Search Console" state={searchConsole} />
           <ConnectionCard label="GA4 reporting" state={analyticsReporting} />
           <ConnectionCard label="PageSpeed Insights" state={pageSpeed} />
+          <ConnectionCard label="SERP / keyword provider" state={serp} />
         </div>
+      </Section>
+
+      <Section title="SEO Jobs" hint="Manual trigger — runs go through the exact same lock/history mechanism as the scheduled cron endpoint, tagged MANUAL instead of CRON.">
+        <SeoJobsPanel />
+      </Section>
+
+      <Section title="Job Schedule &amp; Freshness" hint="Recommended cadence — cron is NOT active yet (see docs/SEO_STRATEGY.md §28 for exact activation steps).">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-150 text-left text-sm">
+            <thead>
+              <tr className="border-b border-border text-xs text-muted">
+                <th className="py-2 pr-4 font-medium">Job</th>
+                <th className="py-2 pr-4 font-medium">Recommended cadence</th>
+                <th className="py-2 font-medium">Last successful run</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SEO_JOB_TYPES.map((jobType) => {
+                const last = lastSuccessfulByJob[jobType];
+                return (
+                  <tr key={jobType} className="border-b border-border last:border-0">
+                    <td className="py-2 pr-4 text-foreground">{jobType}</td>
+                    <td className="py-2 pr-4 text-muted">{JOB_SCHEDULE_LABEL[jobType]}</td>
+                    <td className="py-2 text-muted">{last ? formatDateTime(last.completedAt ?? last.startedAt) : "Never"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+
+      <Section title="Recent Job Runs" hint="Job audit history — never deleted.">
+        {recentJobRuns.length === 0 ? (
+          <EmptyState title="No jobs have run yet" hint="Trigger one above, or wait for the cron schedule once activated." />
+        ) : (
+          <JobRunsTable runs={recentJobRuns} />
+        )}
+      </Section>
+
+      <Section
+        title="Weekly Executive Report"
+        hint="The most recent successful WEEKLY_EXECUTIVE_REPORT run's snapshot."
+        action={latestReport ? <DataProvenanceBadge kind="LIVE_DATA" /> : <DataProvenanceBadge kind="NOT_CONNECTED" />}
+      >
+        {latestReport ? <WeeklyReportSummary report={latestReport} /> : <EmptyState title="No report generated yet" hint="Run the Weekly executive report job above." />}
       </Section>
 
       <Section title="Search Performance" hint="Requires Google Search Console.">
@@ -187,6 +279,87 @@ function ConnectionCard({ label, state }: { label: string; state: SeoConnectionS
       </div>
       {state.lastError && <p className="mt-1 text-xs text-muted">{state.lastError}</p>}
       {state.lastSyncedAt && <p className="mt-1 text-xs text-muted">Last synced {formatDateTime(state.lastSyncedAt)}</p>}
+    </div>
+  );
+}
+
+const JOB_RUN_STATUS_STYLE: Record<SeoJobRun["status"], string> = {
+  RUNNING: "bg-primary/15 text-primary-bright",
+  SUCCEEDED: "bg-emerald-500/15 text-emerald-400",
+  PARTIAL: "bg-amber-500/15 text-amber-400",
+  FAILED: "bg-red-500/15 text-red-400",
+  TIMED_OUT: "bg-graphite text-muted",
+};
+
+function JobRunsTable({ runs }: { runs: SeoJobRun[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-150 text-left text-sm">
+        <thead>
+          <tr className="border-b border-border text-xs text-muted">
+            <th className="py-2 pr-4 font-medium">Job</th>
+            <th className="py-2 pr-4 font-medium">Status</th>
+            <th className="py-2 pr-4 font-medium">Trigger</th>
+            <th className="py-2 pr-4 font-medium">Started</th>
+            <th className="py-2 font-medium">Counts / error</th>
+          </tr>
+        </thead>
+        <tbody>
+          {runs.map((run) => (
+            <tr key={run.id} className="border-b border-border last:border-0 align-top">
+              <td className="py-2 pr-4 text-foreground">{run.jobType}</td>
+              <td className="py-2 pr-4">
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${JOB_RUN_STATUS_STYLE[run.status]}`}>{run.status}</span>
+              </td>
+              <td className="py-2 pr-4 text-muted">{run.triggeredBy}</td>
+              <td className="py-2 pr-4 text-muted">{formatDateTime(run.startedAt)}</td>
+              <td className="py-2 text-muted">
+                {run.errorSummary ?? (run.counts ? Object.entries(run.counts).map(([k, v]) => `${k}: ${v}`).join(", ") : "—")}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function WeeklyReportSummary({ report }: { report: WeeklySeoReport }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-xs text-muted">
+        Period {report.period.start.slice(0, 10)} → {report.period.end.slice(0, 10)}, vs. {report.previousPeriod.start.slice(0, 10)} →{" "}
+        {report.previousPeriod.end.slice(0, 10)}
+      </p>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {report.metrics.map((m) => (
+          <StatCard
+            key={m.label}
+            label={m.label}
+            value={m.current}
+            hint={m.deltaPct === null ? `was ${m.previous}` : `${m.deltaPct >= 0 ? "+" : ""}${m.deltaPct.toFixed(0)}% vs. prior period`}
+          />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatCard label="Awaiting approval" value={report.recommendationsAwaitingApproval} />
+        <StatCard label="Actions completed" value={report.actionsCompletedThisPeriod} hint="Approved/rejected/published this period" />
+        <StatCard label="Top opportunities" value={report.topOpportunities.length} />
+      </div>
+
+      {report.aiSummary ? (
+        <div>
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="text-xs font-medium text-muted">Summary</span>
+            <DataProvenanceBadge kind="AI_RECOMMENDATION" />
+          </div>
+          <p className="whitespace-pre-wrap text-sm text-foreground">{report.aiSummary}</p>
+        </div>
+      ) : (
+        <EmptyState title="No AI summary" hint="Configure ANTHROPIC_API_KEY to have SIGMA AI explain this report in plain language." />
+      )}
     </div>
   );
 }

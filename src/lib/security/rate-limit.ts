@@ -140,3 +140,11 @@ export const aiMessageIpRateLimiter: RateLimiter = createRateLimiter(40, 10 * 60
 // caller-supplied anonymous session id and the request IP, same
 // belt-and-suspenders shape as the login limiter above.
 export const analyticsEventRateLimiter: RateLimiter = createRateLimiter(120, 10 * 60 * 1000);
+
+// SEO job cron endpoint (/api/internal/seo/run): this is an
+// authenticated (CRON_SECRET), internal, machine-to-machine endpoint —
+// the schedule itself already bounds how often a legitimate caller
+// hits it (at most daily/weekly per job type). This limit exists only
+// as a second layer in case the secret ever leaks, not to throttle
+// real scheduled traffic.
+export const seoJobRateLimiter: RateLimiter = createRateLimiter(30, 60 * 60 * 1000);
