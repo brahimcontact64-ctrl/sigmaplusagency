@@ -24,6 +24,60 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 
+/**
+ * Defense-in-depth: strips anything URL-shaped that looks like a
+ * Postgres connection string, in case a library ever embeds one
+ * verbatim in an error message. Applied to every string this script
+ * prints from an error, not just ones we expect to be safe.
+ */
+function redactConnectionStrings(value: string): string {
+  return value.replace(/postgres(?:ql)?:\/\/\S+/gi, "postgres://[redacted]");
+}
+
+/**
+ * Diagnostic-only error unwrapping (added after a real incident: a
+ * failed `db:migrate:prod` run only ever printed
+ * "Failed query: CREATE SCHEMA IF NOT EXISTS \"drizzle\"" with no
+ * further detail). That message comes from drizzle-orm's own
+ * `DrizzleQueryError` (see node_modules/drizzle-orm/errors.js and
+ * pg-core/session.js's `queryWithCache`), which wraps ANY error the
+ * underlying `postgres` driver throws — a real Postgres error (with
+ * `.code`/`.severity`), a network failure, anything — and puts the
+ * real cause on `.cause` without ever including it in `.message`.
+ * This function surfaces the safe, structured parts of that cause
+ * without ever printing a raw connection string, password, or
+ * anything from `.detail`/`.hint` (which, for other error types, can
+ * occasionally embed the actual offending value — e.g. a constraint
+ * violation's message repeats the offending row data).
+ */
+function describeError(error: unknown): Record<string, unknown> {
+  if (!(error instanceof Error)) {
+    return { value: redactConnectionStrings(String(error)) };
+  }
+
+  const details: Record<string, unknown> = {
+    errorName: error.name,
+    message: redactConnectionStrings(error.message),
+  };
+
+  const cause = (error as { cause?: unknown }).cause;
+  if (cause instanceof Error) {
+    details.causeName = cause.name;
+    details.causeMessage = redactConnectionStrings(cause.message);
+    // Real Postgres client errors (from the `postgres` package) carry
+    // these fields directly on the error object — never guaranteed to
+    // exist (e.g. a plain network error like ECONNREFUSED won't have
+    // them), so each is included only when actually present.
+    const pgFields = cause as { code?: string; severity?: string; severity_local?: string };
+    if (pgFields.code) details.postgresErrorCode = pgFields.code;
+    if (pgFields.severity || pgFields.severity_local) details.postgresSeverity = pgFields.severity ?? pgFields.severity_local;
+  } else if (cause !== undefined) {
+    details.cause = redactConnectionStrings(String(cause));
+  }
+
+  return details;
+}
+
 async function main() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
@@ -53,6 +107,21 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("db:migrate:prod failed:", error instanceof Error ? error.message : error);
+  const databaseUrl = process.env.DATABASE_URL;
+  let target: { host: string; port: string } = { host: "(unparseable)", port: "(unknown)" };
+  if (databaseUrl) {
+    try {
+      const parsed = new URL(databaseUrl);
+      target = { host: parsed.hostname, port: parsed.port || "(default)" };
+    } catch {
+      // leave the "(unparseable)" placeholder — never attempt to log the raw string itself
+    }
+  }
+
+  console.error("db:migrate:prod failed:", {
+    hasDatabaseUrl: Boolean(databaseUrl),
+    target,
+    ...describeError(error),
+  });
   process.exit(1);
 });
