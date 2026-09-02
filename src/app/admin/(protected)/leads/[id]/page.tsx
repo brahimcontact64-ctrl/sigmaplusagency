@@ -91,7 +91,15 @@ export default async function AdminLeadDetailPage({ params }: { params: Promise<
         </Section>
 
         <Section title="Contact information">
-          <Field label="Email" value={lead.email} />
+          {/*
+            Email is optional since the Project Builder email-
+            optionality change (phone/WhatsApp is the only contact
+            detail guaranteed to exist) — an explicit "Not provided"
+            note here reads as "genuinely not given", distinct from a
+            rendering bug, the same reasoning as the goals/
+            capabilities/platforms fields below.
+          */}
+          <FieldWithFallback label="Email" value={lead.email} fallback="Not provided" />
           <Field label="Phone" value={lead.phone} />
           <Field label="Preferred contact" value={lead.preferredContactMethod} />
         </Section>
@@ -229,6 +237,16 @@ function Field({ label, value, mono }: { label: string; value?: string | null; m
     <div className="flex flex-col gap-0.5 py-1">
       <dt className="text-xs text-muted">{label}</dt>
       <dd className={mono ? "font-mono text-xs text-foreground" : "text-sm text-foreground"}>{value}</dd>
+    </div>
+  );
+}
+
+/** Like `Field`, but for a scalar value that's *expected* to sometimes be absent (e.g. email, since the Project Builder email-optionality change) — shows an explicit fallback note instead of silently disappearing. */
+function FieldWithFallback({ label, value, fallback }: { label: string; value?: string | null; fallback: string }) {
+  return (
+    <div className="flex flex-col gap-0.5 py-1">
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className={value ? "text-sm text-foreground" : "text-sm italic text-muted"}>{value || fallback}</dd>
     </div>
   );
 }

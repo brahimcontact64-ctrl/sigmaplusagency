@@ -100,9 +100,29 @@ describe("projectBuilderSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("still requires a valid email even though the spec asked for it to be optional — leads.email is a NOT NULL column (see domain/project-builder.ts)", () => {
+  // Email optionality follow-up: leads.email/email_normalized are now
+  // nullable (migration 0007) and dedup is phone-first — see
+  // domain/project-builder.ts and lead-service.ts's findOrCreateLead.
+  it("accepts a blank email — genuinely optional now that phone is the required contact detail", () => {
+    const result = projectBuilderSchema.safeParse({ ...validProjectBuilder, email: "" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a submission with email omitted entirely", () => {
+    const withoutEmail: Record<string, unknown> = { ...validProjectBuilder };
+    delete withoutEmail.email;
+    const result = projectBuilderSchema.safeParse(withoutEmail);
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a malformed email when one is actually supplied — blank is valid, garbage is not", () => {
     const result = projectBuilderSchema.safeParse({ ...validProjectBuilder, email: "not-an-email" });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts a well-formed supplied email", () => {
+    const result = projectBuilderSchema.safeParse({ ...validProjectBuilder, email: "real@example.com" });
+    expect(result.success).toBe(true);
   });
 
   it("rejects an invalid budgetRange not present in configuration", () => {

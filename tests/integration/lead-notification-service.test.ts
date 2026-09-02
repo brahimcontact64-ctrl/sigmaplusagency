@@ -82,6 +82,16 @@ describe("sendInternalLeadNotification", () => {
     const result = await sendInternalLeadNotification(fakeLead(), "SP-TEST01", undefined, provider);
     expect(result).toEqual({ outcome: "FAILED", error: "Resend responded with status 500" });
   });
+
+  it("still sends the internal (to-the-agency) notification for a phone-only lead with no email — this one never depends on lead.email", async () => {
+    vi.stubEnv("LEAD_NOTIFICATION_EMAIL", "ops@sigmaplus.agency");
+    vi.stubEnv("LEAD_NOTIFICATION_FROM_EMAIL", "notifications@sigmaplus.agency");
+    const provider = new RecordingProvider();
+
+    const result = await sendInternalLeadNotification(fakeLead({ email: undefined, phone: "0550475248" }), "SP-TEST01", undefined, provider);
+    expect(result.outcome).toBe("SENT");
+    expect(provider.sent[0]!.to).toBe("ops@sigmaplus.agency");
+  });
 });
 
 describe("sendClientConfirmationEmail", () => {
@@ -109,5 +119,15 @@ describe("sendClientConfirmationEmail", () => {
     const message = provider.sent[0]!;
     expect(message.to).toBe("jane@example.com");
     expect(message.text).not.toMatch(/\d+\s*(hour|hours|day|days|minute|minutes)/i);
+  });
+
+  it("is SKIPPED (not a thrown error) for a phone-only lead with no email, even when otherwise fully enabled", async () => {
+    vi.stubEnv("LEAD_NOTIFICATION_FROM_EMAIL", "notifications@sigmaplus.agency");
+    vi.stubEnv("NEXT_PUBLIC_ENABLE_CLIENT_CONFIRMATION_EMAIL", "true");
+    const provider = new RecordingProvider();
+
+    const result = await sendClientConfirmationEmail(fakeLead({ email: undefined, phone: "0550475248" }), "SP-TEST01", provider);
+    expect(result.outcome).toBe("SKIPPED");
+    expect(provider.sent).toHaveLength(0);
   });
 });

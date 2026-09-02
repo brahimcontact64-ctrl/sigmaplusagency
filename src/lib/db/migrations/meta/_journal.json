@@ -50,6 +50,13 @@
       "when": 1788249881856,
       "tag": "0006_white_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788282596949,
+      "tag": "0007_brainy_whistler",
+      "breakpoints": true
     }
   ]
 }

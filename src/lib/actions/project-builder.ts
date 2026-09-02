@@ -53,7 +53,7 @@ export async function submitProjectBuilder(formData: unknown, analyticsSessionId
   const result = await submitProjectRequest({
     ...briefInput,
     name: data.name,
-    email: data.email,
+    email: data.email || undefined,
     phone: data.phone || undefined,
     company: data.company || undefined,
     country: data.country || undefined,

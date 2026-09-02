@@ -82,7 +82,10 @@ export async function sendClientConfirmationEmail(
   provider: EmailNotificationProvider | null = getEmailProvider(),
 ): Promise<NotificationResult> {
   const fromEmail = getFromEmail();
-  if (!provider || !fromEmail || !isClientConfirmationEnabled()) return { outcome: "SKIPPED" };
+  // A lead created phone-only (Project Builder email optionality) has
+  // no recipient address for this — safely skip rather than fail; the
+  // lead itself has already been persisted by the time this runs.
+  if (!provider || !fromEmail || !isClientConfirmationEnabled() || !lead.email) return { outcome: "SKIPPED" };
 
   const text = [
     `Hi ${oneLine(lead.name)},`,

@@ -60,18 +60,13 @@ export const projectBuilderSchema = z
     budgetCurrency: z.enum(SUPPORTED_CURRENCIES).optional(),
 
     name: z.string().trim().min(2, "Name is too short").max(120),
-    // `email` stays required even though the product spec for this
-    // redesign asks for it to be optional: `leads.email`/
-    // `email_normalized` are NOT NULL columns and the dedup logic keys
-    // off the normalized email first. Honoring "email optional" for
-    // real would need a migration (making those columns nullable and
-    // reworking dedup to fall back to phone) — per this task's explicit
-    // "stop and report, don't generate/apply" rule for a genuinely
-    // required migration, that change is flagged in the completion
-    // report rather than made here. `phone` becomes required instead
-    // (it was already nullable at the DB layer, so no migration is
-    // needed to make it mandatory at the application layer).
-    email: z.string().trim().email("Invalid email"),
+    // Email is now genuinely optional (follow-up to the conversion
+    // simplification): blank is valid, but a supplied value must still
+    // be a real email address. `leads.email`/`email_normalized` are now
+    // nullable columns (see migration 0007) and dedup is phone-first —
+    // see lead-service.ts's findOrCreateLead for the full identity
+    // model. `phone` is the one truly required contact detail.
+    email: z.string().trim().email("Invalid email").optional().or(z.literal("")),
     phone: z.string().trim().min(6, "Phone number is too short").max(40),
     company: z.string().trim().max(120).optional().or(z.literal("")),
     country: z.string().trim().max(80).optional().or(z.literal("")),

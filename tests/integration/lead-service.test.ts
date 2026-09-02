@@ -193,6 +193,62 @@ describe("submitProjectRequest", () => {
     expect(created?.currentWebsite).toBe("https://example.com");
   });
 
+  it("phone + no email succeeds and persists email as NULL, never an empty string or a fabricated value", async () => {
+    const result = await submitProjectRequest(
+      {
+        projectType: "website",
+        goals: [],
+        capabilities: [],
+        platforms: [],
+        businessState: "new-idea",
+        timeline: "asap",
+        budgetRange: "not-sure",
+        name: "Phone Only Person",
+        phone: "0550999888",
+        message: "I need a website but prefer WhatsApp only.",
+        locale: "fr",
+      },
+      repo(),
+    );
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const rows = await db.select().from(leads);
+    const created = rows.find((r) => r.id === result.leadId);
+    expect(created?.email).toBeNull();
+    expect(created?.emailNormalized).toBeNull();
+    expect(created?.phone).toBe("0550999888");
+  });
+
+  it("phone + a valid email both succeed and are both persisted", async () => {
+    const result = await submitProjectRequest(
+      {
+        projectType: "website",
+        goals: [],
+        capabilities: [],
+        platforms: [],
+        businessState: "new-idea",
+        timeline: "asap",
+        budgetRange: "not-sure",
+        name: "Both Provided Person",
+        email: "both-provided@example.com",
+        phone: "0550999777",
+        message: "I need a website, either channel works.",
+        locale: "fr",
+      },
+      repo(),
+    );
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const rows = await db.select().from(leads);
+    const created = rows.find((r) => r.id === result.leadId);
+    expect(created?.email).toBe("both-provided@example.com");
+    expect(created?.phone).toBe("0550999777");
+  });
+
   it("flags an open question when platform is unclear", async () => {
     const result = await submitProjectRequest(
       {

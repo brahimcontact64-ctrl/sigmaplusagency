@@ -10,7 +10,7 @@ function toLead(row: typeof leads.$inferSelect): Lead {
     id: row.id,
     publicReference: row.publicReference,
     name: row.name,
-    email: row.email,
+    email: row.email ?? undefined,
     phone: row.phone ?? undefined,
     company: row.company ?? undefined,
     country: row.country ?? undefined,

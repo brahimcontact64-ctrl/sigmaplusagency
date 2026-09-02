@@ -22,11 +22,14 @@ export function isStepValid(stepId: StepId, data: BuilderFormData): boolean {
       return data.message.trim().length >= REQUIRED_MESSAGE_MIN && !!data.businessState;
     case "budgetTiming":
       return !!data.timeline && !!data.budgetRange;
-    case "contact":
-      return (
-        data.name.trim().length >= REQUIRED_NAME_MIN &&
-        data.phone.trim().length >= REQUIRED_PHONE_MIN &&
-        /\S+@\S+\.\S+/.test(data.email)
-      );
+    case "contact": {
+      const email = data.email.trim();
+      // Email is optional — blank is valid, but a supplied value must
+      // still look like a real address (follow-up to the conversion
+      // simplification: phone/WhatsApp is the only required contact
+      // detail here now).
+      const emailOk = email === "" || /\S+@\S+\.\S+/.test(email);
+      return data.name.trim().length >= REQUIRED_NAME_MIN && data.phone.trim().length >= REQUIRED_PHONE_MIN && emailOk;
+    }
   }
 }

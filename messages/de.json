@@ -404,8 +404,8 @@
     },
     "contact": {
       "name": "Name",
-      "email": "E-Mail",
-      "emailHint": "Wird nur verwendet, um Ihnen Ihr Angebot zu senden.",
+      "email": "E-Mail (optional)",
+      "emailHint": "Optional — wenn Sie lieber nur über WhatsApp erreichbar sein möchten, lassen Sie dieses Feld einfach leer.",
       "phone": "Telefon / WhatsApp",
       "company": "Unternehmen (optional)",
       "country": "Land (optional)",

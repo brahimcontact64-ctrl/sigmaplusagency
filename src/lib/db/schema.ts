@@ -7,8 +7,14 @@ export const leads = pgTable(
     publicReference: text("public_reference").notNull().unique(),
 
     name: text("name").notNull(),
-    email: text("email").notNull(),
-    emailNormalized: text("email_normalized").notNull(),
+    // Nullable since the Project Builder email-optionality change —
+    // phone/WhatsApp is required there instead. Still required by the
+    // Contact form and AI-proposal-capture schemas at the application
+    // layer, so most rows still have one; a lead created phone-only
+    // simply has both of these as NULL, never an empty string (see
+    // identity.ts / lead-service.ts's findOrCreateLead).
+    email: text("email"),
+    emailNormalized: text("email_normalized"),
     phone: text("phone"),
     phoneNormalized: text("phone_normalized"),
     company: text("company"),

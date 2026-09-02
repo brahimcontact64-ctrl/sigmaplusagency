@@ -41,7 +41,7 @@ export function leadsToCsv(leadsList: LeadListItem[]): string {
       [
         lead.publicReference,
         lead.name,
-        lead.email,
+        lead.email ?? "",
         lead.phone ?? "",
         lead.company ?? "",
         lead.country ?? "",

@@ -404,8 +404,8 @@
     },
     "contact": {
       "name": "Name",
-      "email": "Email",
-      "emailHint": "Used only to send you your proposal.",
+      "email": "Email (optional)",
+      "emailHint": "Optional — if you'd rather we only use WhatsApp, just leave this blank.",
       "phone": "Phone / WhatsApp",
       "company": "Company (optional)",
       "country": "Country (optional)",

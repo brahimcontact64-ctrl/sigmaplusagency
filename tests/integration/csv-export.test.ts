@@ -40,4 +40,25 @@ describe("leadsToCsv", () => {
     expect(lines[1]).toContain('"\'=EVIL()"');
     expect(lines[1]).toContain("SP-ABC123");
   });
+
+  it("represents a missing email as an empty cell rather than crashing or printing 'undefined' (Project Builder email-optionality)", () => {
+    const lead = {
+      id: "2",
+      publicReference: "SP-NOMAIL",
+      name: "Phone Only Person",
+      email: undefined,
+      phone: "0550475248",
+      language: "fr",
+      source: "project_builder",
+      status: "NEW",
+      createdAt: new Date("2026-01-01T00:00:00Z"),
+      updatedAt: new Date("2026-01-01T00:00:00Z"),
+    } as unknown as LeadListItem;
+
+    expect(() => leadsToCsv([lead])).not.toThrow();
+    const csv = leadsToCsv([lead]);
+    const lines = csv.split("\r\n");
+    expect(lines[1]).toContain("SP-NOMAIL");
+    expect(lines[1]).not.toContain("undefined");
+  });
 });

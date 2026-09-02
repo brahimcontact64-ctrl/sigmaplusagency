@@ -6,11 +6,16 @@ import { buildStructuredBrief, type BriefInput } from "./structured-brief";
 import { getBudgetRange, getBudgetAmounts } from "@/config/budget-ranges";
 import { sanitizeUtmValue, sanitizeUrlValue } from "@/lib/attribution/sanitize-utm";
 import { sendInternalLeadNotification, sendClientConfirmationEmail } from "@/lib/notifications/lead-notification-service";
-import type { Attribution, Lead, LeadSource, PreferredContactMethod } from "@/domain/lead";
+import type { Attribution, Lead, LeadSource, PreferredContactMethod, IdentityConflictMetadata } from "@/domain/lead";
 import type { ProjectRequest, StructuredBrief } from "@/domain/project-request";
 
 export type SubmitContactInput = {
   name: string;
+  // Still required by contactFormSchema at the Zod layer (a different
+  // acquisition surface than the Project Builder — the audit for the
+  // email-optionality change found no reason to loosen this one too),
+  // typed `string` here for that reason; findOrCreateLead below accepts
+  // the wider `email?: string` so both callers share one identity path.
   email: string;
   phone?: string;
   company?: string;
@@ -25,7 +30,8 @@ export type SubmitContactInput = {
 
 export type SubmitProjectRequestInput = BriefInput & {
   name: string;
-  email: string;
+  /** Optional — Project Builder Step 4 requires phone/WhatsApp instead; email is a nice-to-have here (see findOrCreateLead's identity model). */
+  email?: string;
   phone?: string;
   company?: string;
   country?: string;
@@ -92,11 +98,33 @@ export type SubmitProjectRequestResult =
   | { success: true; reference: string; leadId: string; projectRequestId: string; brief: StructuredBrief }
   | { success: false; error: "db_unavailable" | "unexpected" };
 
+/**
+ * The shared identity/dedup model for every lead-acquisition surface
+ * (Contact form, Project Builder, AI proposal capture). Priority order
+ * — deliberately phone-first now that email is no longer guaranteed to
+ * exist:
+ *
+ *   1. A normalized-phone match wins and is reused immediately.
+ *   2. Otherwise, a normalized-email match (if an email was supplied)
+ *      is reused.
+ *   3. Otherwise, a new lead is created.
+ *
+ * Conservative-by-construction for the "phone points at Lead A, email
+ * points at a DIFFERENT Lead B" case: since a phone match is checked
+ * and returned FIRST, Lead B is never looked up, read, or written —
+ * there is no merge, destructive or otherwise. The submission simply
+ * belongs to Lead A. If Lead A is missing whatever contact detail this
+ * submission *does* supply, that gap is filled in (never a known value
+ * overwritten — see `backfillContactInfo`), and the fill itself is
+ * skipped if the value would collide with a different existing lead
+ * (checked inside `backfillContactInfo`), so two lead rows can never
+ * end up silently sharing the same normalized email or phone.
+ */
 async function findOrCreateLead(
   repo: LeadRepository,
   params: {
     name: string;
-    email: string;
+    email?: string;
     phone?: string;
     company?: string;
     country?: string;
@@ -106,11 +134,50 @@ async function findOrCreateLead(
     attribution: Attribution;
   },
 ) {
-  const emailNormalized = normalizeEmail(params.email);
+  const emailNormalized = params.email ? normalizeEmail(params.email) : undefined;
   const phoneNormalized = params.phone ? normalizePhone(params.phone) : undefined;
 
-  const existing = await repo.findByNormalizedIdentity(emailNormalized, phoneNormalized);
-  if (existing) return { lead: existing, isNew: false };
+  const identity = await repo.resolveIdentity({ emailNormalized, phoneNormalized });
+  if (identity) {
+    const { lead } = identity;
+
+    // Identity conflict signal (never a merge — see the identity_conflict_detected
+    // doc in domain/lead.ts). Only reachable when BOTH an email and a
+    // phone were supplied and phone won the match (the only way
+    // `resolveIdentity` can return here with a *different* identifier
+    // still unaccounted for, since phone is always checked first): if
+    // the supplied email independently identifies a DIFFERENT existing
+    // lead, that's recorded as a non-PII activity on the lead this
+    // submission actually landed on — the other lead is still never
+    // read again beyond this one lookup, never written, and never
+    // exposed to this prospect.
+    if (identity.matchedVia === "phone" && emailNormalized) {
+      const emailMatch = await repo.resolveIdentity({ emailNormalized });
+      if (emailMatch && emailMatch.lead.id !== lead.id) {
+        await repo.createActivity(lead.id, "identity_conflict_detected", {
+          source: params.source,
+          hasPhoneConflict: false,
+          hasEmailConflict: true,
+        } satisfies IdentityConflictMetadata);
+      }
+    }
+
+    // Only ever attempt to fill a column that's currently genuinely
+    // empty on the matched lead — a value it already has is never
+    // touched, regardless of what this submission supplied.
+    const needsEmail = !lead.email && params.email;
+    const needsPhone = !lead.phone && params.phone;
+    if (needsEmail || needsPhone) {
+      const updated = await repo.backfillContactInfo(lead.id, {
+        email: needsEmail ? params.email : undefined,
+        emailNormalized: needsEmail ? emailNormalized : undefined,
+        phone: needsPhone ? params.phone : undefined,
+        phoneNormalized: needsPhone ? phoneNormalized : undefined,
+      });
+      return { lead: updated ?? lead, isNew: false };
+    }
+    return { lead, isNew: false };
+  }
 
   // This is the entire "First Touch" attribution model (Phase 9 §9):
   // attribution is captured exactly once, right here, at the visit

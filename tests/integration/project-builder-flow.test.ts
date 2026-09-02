@@ -131,4 +131,9 @@ describe("Project Builder v2 — 4-step state progression", () => {
     // Company stays optional — its absence must never block a valid submission.
     expect(valid.company).toBe("");
   });
+
+  it("email is genuinely optional — blank email + valid name/phone is a valid step 4", () => {
+    const phoneOnly: BuilderFormData = { ...EMPTY_FORM_DATA, name: "Amine", email: "", phone: "0550475248" };
+    expect(isStepValid("contact", phoneOnly)).toBe(true);
+  });
 });

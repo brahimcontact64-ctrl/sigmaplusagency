@@ -34,6 +34,10 @@ const ACTIVITY_LABELS: Record<string, (metadata?: Record<string, unknown>) => st
   whatsapp_handoff_clicked: () => "WhatsApp handoff clicked",
   status_changed: (m) => `Status changed: ${m?.previousStatus ?? "?"} → ${m?.newStatus ?? "?"}`,
   internal_note_added: () => "Internal note added",
+  identity_conflict_detected: (m) => {
+    const parts = [m?.hasPhoneConflict && "phone", m?.hasEmailConflict && "email"].filter(Boolean);
+    return `Identity conflict detected during ${m?.source ?? "submission"} (${parts.join(" & ") || "identity"} pointed at a different existing lead — not merged)`;
+  },
 };
 
 export function activityLabel(type: string, metadata?: Record<string, unknown>): string {
