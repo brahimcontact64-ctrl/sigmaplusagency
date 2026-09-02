@@ -461,32 +461,69 @@ never allowed to fail the job it's attached to.
 
 (`GOOGLE_SEARCH_CONSOLE_*`, `GA4_*`, `PAGESPEED_API_KEY` already existed — see §16/§25.)
 
-### Production activation steps (NOT done by this phase — requires explicit OWNER approval)
+### Production activation steps
 
-1. Generate a real secret: `openssl rand -base64 32` → set as `CRON_SECRET` in Vercel's project environment variables (Production scope).
-2. Add cron entries to `vercel.json` (create it if absent), one per job type, e.g.:
-   ```json
-   {
-     "crons": [
-       { "path": "/api/internal/seo/run?job=DAILY_TECHNICAL_AUDIT", "schedule": "0 3 * * *" },
-       { "path": "/api/internal/seo/run?job=DAILY_SEARCH_CONSOLE_SYNC", "schedule": "15 3 * * *" },
-       { "path": "/api/internal/seo/run?job=DAILY_ANALYTICS_SYNC", "schedule": "30 3 * * *" },
-       { "path": "/api/internal/seo/run?job=WEEKLY_PAGESPEED_AUDIT", "schedule": "0 4 * * 1" },
-       { "path": "/api/internal/seo/run?job=WEEKLY_KEYWORD_ANALYSIS", "schedule": "15 4 * * 1" },
-       { "path": "/api/internal/seo/run?job=WEEKLY_SEO_OPPORTUNITY_ANALYSIS", "schedule": "30 4 * * 1" },
-       { "path": "/api/internal/seo/run?job=WEEKLY_CONTENT_DECAY_ANALYSIS", "schedule": "45 4 * * 1" },
-       { "path": "/api/internal/seo/run?job=WEEKLY_EXECUTIVE_REPORT", "schedule": "0 5 * * 1" }
-     ]
-   }
-   ```
-   Vercel automatically sends `Authorization: Bearer $CRON_SECRET` on
-   its own scheduled invocations when `CRON_SECRET` is set — no
-   additional wiring needed for Vercel Cron specifically.
-3. Deploy. Verify with a manual, authenticated `curl` (never commit the
-   secret): `curl -X GET "https://<domain>/api/internal/seo/run?job=DAILY_TECHNICAL_AUDIT" -H "Authorization: Bearer <CRON_SECRET>"`.
-4. Watch `/admin/seo`'s "Recent Job Runs" for the first few scheduled
-   firings before trusting the schedule unattended.
-5. Only once real value is confirmed: configure `GOOGLE_SEARCH_CONSOLE_*`/`GA4_*`/`PAGESPEED_API_KEY`/`SERP_PROVIDER`+`SERP_API_KEY` one at a time (§27's existing measurement plan), re-verifying `/admin/seo`'s Connections panel shows real `CONNECTED` after each.
+Activation is incremental and gated, not all-at-once — each step below
+requires its own explicit approval before proceeding to the next.
+
+**Step 1 (done)**: `CRON_SECRET` generated and set in Vercel's
+Production environment variables. Verified working via a manual
+authenticated production run of `DAILY_TECHNICAL_AUDIT`
+(`seo_job_runs` recorded it as `SUCCEEDED`).
+
+**Step 2 (done — this activation)**: `vercel.json` now schedules
+exactly one cron entry:
+```json
+{
+  "crons": [
+    { "path": "/api/internal/seo/run?job=DAILY_TECHNICAL_AUDIT", "schedule": "0 3 * * *" }
+  ]
+}
+```
+`0 3 * * *` = 03:00 UTC daily — outside business hours, no dependency
+on any specific market's peak traffic window. Vercel Cron always
+invokes via **GET**, and automatically sends `Authorization: Bearer
+$CRON_SECRET` on its own scheduled invocations whenever a `CRON_SECRET`
+env var is set on the project — this is Vercel's documented mechanism
+for securing cron endpoints, and it matches `isValidCronAuthorization`'s
+expectation (`Authorization: Bearer <secret>`) exactly, so no code
+change was needed to wire this up. The secret itself is never written
+to `vercel.json` or any tracked file — only the path/schedule are.
+Only `DAILY_TECHNICAL_AUDIT` is scheduled this round; every other job
+type remains dispatchable only via the Admin "Run now" button until a
+later, separately-approved activation step.
+
+**Not yet activated, and why**:
+- `DAILY_SEARCH_CONSOLE_SYNC` / `DAILY_ANALYTICS_SYNC` /
+  `WEEKLY_PAGESPEED_AUDIT` / `WEEKLY_KEYWORD_ANALYSIS` — each depends
+  entirely on a provider that's still `NOT_CONFIGURED`. Running them
+  today is *safe* (they honestly report zero counts, never fabricate
+  data — see "Reliability" above) but genuinely *useless*: a cron
+  firing on a schedule to do nothing every time. Activate each
+  together with its provider (§27's measurement plan), not before.
+- `WEEKLY_SEO_OPPORTUNITY_ANALYSIS` / `WEEKLY_CONTENT_DECAY_ANALYSIS` —
+  same reasoning: both are entirely downstream of
+  `syncSearchConsole()`, so with GSC `NOT_CONFIGURED` they always find
+  zero opportunities. Safe, but not useful yet — activate together
+  with Search Console.
+- `WEEKLY_EXECUTIVE_REPORT` — **the one exception**: unlike the others,
+  its metrics come from `GrowthAnalyticsService` (real first-party
+  sessions/leads/organic-search-leads/proposals/WhatsApp/AI-assisted/
+  won counts — all real today, with zero external providers), plus the
+  real recommendation queue and job history. It is genuinely useful
+  *today*, not just safe. It was deliberately **not** included in this
+  activation round (this step is scoped to exactly
+  `DAILY_TECHNICAL_AUDIT`) — it's the natural next candidate for a
+  dedicated, separately-approved activation step, not bundled in here.
+
+Once `DAILY_TECHNICAL_AUDIT`'s schedule is confirmed to be firing
+reliably (watch `/admin/seo`'s "Recent Job Runs"/"Job Schedule &
+Freshness"), the next steps in order are: (a) activate
+`WEEKLY_EXECUTIVE_REPORT`'s cron entry, then (b) configure
+`GOOGLE_SEARCH_CONSOLE_*`/`GA4_*`/`PAGESPEED_API_KEY`/`SERP_PROVIDER`+
+`SERP_API_KEY` one at a time (§27), activating each corresponding
+sync/analysis job's cron entry only once its connection shows real
+`CONNECTED` state in `/admin/seo`.
 
 ### Known limitations (Phase 12)
 
