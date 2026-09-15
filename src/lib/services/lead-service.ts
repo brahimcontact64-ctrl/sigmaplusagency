@@ -6,8 +6,11 @@ import { buildStructuredBrief, type BriefInput } from "./structured-brief";
 import { getBudgetRange, getBudgetAmounts } from "@/config/budget-ranges";
 import { sanitizeUtmValue, sanitizeUrlValue } from "@/lib/attribution/sanitize-utm";
 import { sendInternalLeadNotification, sendClientConfirmationEmail } from "@/lib/notifications/lead-notification-service";
-import type { Attribution, Lead, LeadSource, PreferredContactMethod, IdentityConflictMetadata } from "@/domain/lead";
-import type { ProjectRequest, StructuredBrief } from "@/domain/project-request";
+import { forwardLeadToMagicFlux } from "@/lib/integrations/magicflux";
+import { buildMagicFluxPayload, mapInquiryServiceToProjectType, type InquiryService, type UrgencyLevel, type PurchaseIntentLevel } from "@/domain/project-inquiry";
+import type { Attribution, Lead, LeadSource, PreferredContactMethod, IdentityConflictMetadata, MagicFluxForwardMetadata } from "@/domain/lead";
+import type { ProjectRequest, StructuredBrief, ProjectTimeline } from "@/domain/project-request";
+import type { CurrencyCode } from "@/lib/money";
 
 export type SubmitContactInput = {
   name: string;
@@ -349,6 +352,151 @@ export async function submitProjectRequest(
     await sendLeadNotifications(repo, lead, lead.publicReference, brief);
 
     return { success: true, reference: lead.publicReference, leadId: lead.id, projectRequestId: projectRequest.id, brief };
+  } catch (error) {
+    return toFailure(error);
+  }
+}
+
+export type SubmitProjectInquiryInput = {
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  service: InquiryService;
+  projectDescription: string;
+  budgetRange: string;
+  budgetCurrency: CurrencyCode;
+  desiredStart: ProjectTimeline;
+  urgency: UrgencyLevel;
+  purchaseIntent: PurchaseIntentLevel;
+  locale: Locale;
+  analyticsSessionId?: string;
+} & Attribution;
+
+/**
+ * Best-effort, non-blocking MagicFlux forward (brief §3/§6): always
+ * runs strictly AFTER the lead is already safely persisted, and its
+ * outcome never changes what the customer sees — a MagicFlux delivery
+ * failure is an internal operational signal (logged + recorded as a
+ * non-PII activity), never a reason to tell the visitor their inquiry
+ * wasn't received, since it genuinely was.
+ */
+async function forwardToMagicFlux(repo: LeadRepository, lead: Lead, reference: string, input: SubmitProjectInquiryInput, submissionNonce: string): Promise<void> {
+  try {
+    const budgetRangeConfig = getBudgetRange(input.budgetRange);
+    const budgetAmounts = budgetRangeConfig ? getBudgetAmounts(budgetRangeConfig, input.budgetCurrency) : undefined;
+
+    const payload = buildMagicFluxPayload({
+      name: input.name,
+      email: input.email,
+      phone: input.phone,
+      company: input.company,
+      service: input.service,
+      projectDescription: input.projectDescription,
+      budgetRangeId: input.budgetRange,
+      budgetMin: budgetAmounts?.min,
+      budgetMax: budgetAmounts?.max,
+      budgetCurrency: input.budgetCurrency,
+      urgency: input.urgency,
+      purchaseIntent: input.purchaseIntent,
+      desiredStart: input.desiredStart,
+      locale: input.locale,
+      reference,
+      submittedAt: new Date().toISOString(),
+    });
+
+    const result = await forwardLeadToMagicFlux(payload, submissionNonce);
+    if (result.outcome === "SKIPPED") return;
+
+    await repo.createActivity(lead.id, "magicflux_forwarded", {
+      outcome: result.outcome,
+      executionId: result.executionId,
+      errorReason: result.errorReason,
+    } satisfies MagicFluxForwardMetadata);
+  } catch (error) {
+    console.error("[lead-service] MagicFlux forward dispatch failed (non-fatal):", error);
+  }
+}
+
+/**
+ * The real MagicFlux AI Lead Qualification inquiry form's submission
+ * path (distinct from Contact and the full Project Builder — see
+ * domain/project-inquiry.ts). Creates/reuses a Lead through the exact
+ * same identity/dedup model as every other surface, persists a minimal
+ * ProjectRequest so this inquiry shows up in /admin/leads like any
+ * other, sends the existing best-effort email notifications, and only
+ * then forwards a normalized payload to MagicFlux — never the other
+ * order, and a MagicFlux outcome never affects this function's return
+ * value.
+ */
+export async function submitProjectInquiry(
+  input: SubmitProjectInquiryInput,
+  submissionNonce: string,
+  repo: LeadRepository = getLeadRepository(),
+): Promise<SubmitResult> {
+  try {
+    const { lead, isNew } = await findOrCreateLead(repo, {
+      name: input.name,
+      email: input.email,
+      phone: input.phone,
+      company: input.company,
+      language: input.locale,
+      source: "magicflux_inquiry",
+      attribution: {
+        landingPage: input.landingPage,
+        referrer: input.referrer,
+        utmSource: input.utmSource,
+        utmMedium: input.utmMedium,
+        utmCampaign: input.utmCampaign,
+        utmContent: input.utmContent,
+        utmTerm: input.utmTerm,
+      },
+    });
+
+    if (isNew) await repo.createActivity(lead.id, "lead_created", { via: "magicflux_inquiry" });
+    await repo.createActivity(lead.id, "project_request_submitted", { via: "magicflux_inquiry" });
+
+    const projectType = mapInquiryServiceToProjectType(input.service);
+    const budgetRangeConfig = getBudgetRange(input.budgetRange);
+    const budgetAmounts = budgetRangeConfig ? getBudgetAmounts(budgetRangeConfig, input.budgetCurrency) : undefined;
+
+    const brief = await buildStructuredBrief(
+      {
+        projectType,
+        goals: [],
+        capabilities: [],
+        platforms: [],
+        businessState: "new-idea",
+        timeline: input.desiredStart,
+        budgetRange: input.budgetRange,
+        budgetCurrency: input.budgetCurrency,
+        message: input.projectDescription,
+      },
+      input.locale,
+    );
+
+    await repo.createProjectRequest({
+      leadId: lead.id,
+      projectType,
+      goals: [],
+      capabilities: [],
+      platforms: [],
+      businessState: "new-idea",
+      timeline: input.desiredStart,
+      budgetRange: input.budgetRange,
+      budgetCurrency: input.budgetCurrency,
+      budgetMinAmount: budgetAmounts?.min,
+      budgetMaxAmount: budgetAmounts?.max,
+      message: input.projectDescription,
+      structuredBrief: brief,
+      locale: input.locale,
+    } satisfies Omit<ProjectRequest, "id" | "createdAt">);
+
+    await attachAnalyticsSession(input.analyticsSessionId, lead.id);
+    await sendLeadNotifications(repo, lead, lead.publicReference, brief);
+    await forwardToMagicFlux(repo, lead, lead.publicReference, input, submissionNonce);
+
+    return { success: true, reference: lead.publicReference, leadId: lead.id };
   } catch (error) {
     return toFailure(error);
   }

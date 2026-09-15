@@ -50,3 +50,17 @@ export async function buildContactWhatsAppUrl(
   });
   return getEffectiveWhatsAppUrl(message);
 }
+
+/** Same idea for the MagicFlux project-inquiry form — a plain, translated service label rather than the full structured brief, since AI qualification (not this WhatsApp continuation) is what actually reads the full detail. */
+export async function buildProjectInquiryWhatsAppUrl(
+  params: { name: string; service: string; reference: string },
+  locale: Locale,
+): Promise<string> {
+  const t = await getTranslations({ locale, namespace: "projectInquiry" });
+  const message = t("whatsappSummary", {
+    name: params.name,
+    service: t(`form.serviceOptions.${params.service}` as never),
+    reference: params.reference,
+  });
+  return getEffectiveWhatsAppUrl(message);
+}

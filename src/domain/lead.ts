@@ -18,7 +18,7 @@ export const LEAD_STATUSES = [
 ] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
-export const LEAD_SOURCES = ["contact_form", "project_builder"] as const;
+export const LEAD_SOURCES = ["contact_form", "project_builder", "magicflux_inquiry"] as const;
 export type LeadSource = (typeof LEAD_SOURCES)[number];
 
 export const PREFERRED_CONTACT_METHODS = ["whatsapp", "phone", "email"] as const;
@@ -67,8 +67,27 @@ export const LEAD_ACTIVITY_TYPES = [
    * IdentityConflictMetadata below — never a raw email or phone value.
    */
   "identity_conflict_detected",
+  /**
+   * MagicFlux AI Lead Qualification bridge — recorded only for a real
+   * SENT or FAILED forward attempt (never for SKIPPED/not-configured,
+   * matching the internal_notification_sent convention above). Purely
+   * an internal traceability signal ("did this lead actually reach
+   * MagicFlux") — never exposed to the customer, never used to
+   * duplicate MagicFlux's own Hot/Warm/Cold classification or routing
+   * inside Sigma Plus. `metadata` must only ever contain the safe
+   * fields on MagicFluxForwardMetadata below — never the payload sent,
+   * which contains the lead's own PII.
+   */
+  "magicflux_forwarded",
 ] as const;
 export type LeadActivityType = (typeof LEAD_ACTIVITY_TYPES)[number];
+
+/** The ONLY shape allowed as metadata on a `magicflux_forwarded` activity. */
+export type MagicFluxForwardMetadata = {
+  outcome: "SENT" | "FAILED";
+  executionId?: string;
+  errorReason?: string;
+};
 
 /**
  * Optional, structured LOST reasons (Phase 9 §19) — never required

@@ -237,6 +237,59 @@
     },
     "whatsappSummary": "Hi SIGMA+, I just submitted the contact form.\n\nName: {name}\nProject type: {projectType}\nReference: {reference}"
   },
+  "projectInquiry": {
+    "title": "Start Your Project",
+    "subtitle": "Share a few details about what you need. Our team reviews every request — a quick, structured brief helps us get back to you faster.",
+    "whatsappAlternative": "Prefer to chat now? WhatsApp us",
+    "form": {
+      "name": "Full name",
+      "email": "Email",
+      "phone": "Phone / WhatsApp (optional)",
+      "company": "Company / brand (optional)",
+      "service": "Service required",
+      "serviceOptions": {
+        "business-website": "Business website",
+        "ecommerce": "E-commerce",
+        "mobile-app": "Mobile application",
+        "web-app": "Web application",
+        "ai-automation": "AI / Automation",
+        "other": "Other"
+      },
+      "projectDescription": "Project description",
+      "projectDescriptionHint": "What are you trying to build or solve?",
+      "budget": "Approximate budget",
+      "desiredStart": "Desired start date / timeframe",
+      "urgency": "Urgency",
+      "urgencyOptions": {
+        "urgent": "Urgent — need to start immediately",
+        "soon": "Soon — within a few weeks",
+        "flexible": "No rush — flexible timing"
+      },
+      "purchaseIntent": "Where are you in your decision?",
+      "purchaseIntentOptions": {
+        "exploring": "Exploring options",
+        "comparing": "Comparing providers",
+        "ready-to-discuss": "Ready to discuss",
+        "ready-to-start": "Ready to start"
+      },
+      "submit": "Send project request",
+      "submitting": "Sending...",
+      "requiredError": "This field is required."
+    },
+    "success": {
+      "title": "Thank you.",
+      "description": "We received your project request and our team will review it shortly.",
+      "cta": "Continue on WhatsApp"
+    },
+    "errors": {
+      "validation_error": "Some fields are invalid. Please check the form.",
+      "rate_limited": "Too many attempts in a short time. Please try again in a few minutes, or reach us directly on WhatsApp.",
+      "db_unavailable": "Our saving system is temporarily unavailable. Your request was not saved — please try again, or contact us directly on WhatsApp so nothing is lost.",
+      "maintenance": "We're temporarily pausing new submissions for scheduled maintenance. Please try again shortly, or reach us directly on WhatsApp.",
+      "unexpected": "Something went wrong and your request was not saved. Please try again or reach us directly on WhatsApp."
+    },
+    "whatsappSummary": "Hi SIGMA+, I just submitted a project request.\n\nName: {name}\nService: {service}\nReference: {reference}"
+  },
   "notFound": {
     "title": "Page not found",
     "description": "The page you're looking for doesn't exist or has moved.",

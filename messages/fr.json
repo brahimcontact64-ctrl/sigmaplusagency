@@ -237,6 +237,59 @@
     },
     "whatsappSummary": "Bonjour SIGMA+, je viens de soumettre le formulaire de contact.\n\nNom: {name}\nType de projet: {projectType}\nRéférence: {reference}"
   },
+  "projectInquiry": {
+    "title": "Démarrer votre projet",
+    "subtitle": "Partagez quelques détails sur votre besoin. Notre équipe examine chaque demande — un brief structuré nous permet de vous répondre plus vite.",
+    "whatsappAlternative": "Envie d'en discuter maintenant ? WhatsApp",
+    "form": {
+      "name": "Nom complet",
+      "email": "Email",
+      "phone": "Téléphone / WhatsApp (optionnel)",
+      "company": "Entreprise / marque (optionnel)",
+      "service": "Service souhaité",
+      "serviceOptions": {
+        "business-website": "Site web professionnel",
+        "ecommerce": "E-commerce",
+        "mobile-app": "Application mobile",
+        "web-app": "Application web",
+        "ai-automation": "IA / Automatisation",
+        "other": "Autre"
+      },
+      "projectDescription": "Description du projet",
+      "projectDescriptionHint": "Que cherchez-vous à construire ou à résoudre ?",
+      "budget": "Budget approximatif",
+      "desiredStart": "Date de démarrage souhaitée",
+      "urgency": "Urgence",
+      "urgencyOptions": {
+        "urgent": "Urgent — besoin de démarrer immédiatement",
+        "soon": "Bientôt — dans quelques semaines",
+        "flexible": "Pas pressé — horaires flexibles"
+      },
+      "purchaseIntent": "Où en êtes-vous dans votre décision ?",
+      "purchaseIntentOptions": {
+        "exploring": "J'explore les options",
+        "comparing": "Je compare les prestataires",
+        "ready-to-discuss": "Prêt à en discuter",
+        "ready-to-start": "Prêt à démarrer"
+      },
+      "submit": "Envoyer la demande",
+      "submitting": "Envoi...",
+      "requiredError": "Ce champ est obligatoire."
+    },
+    "success": {
+      "title": "Merci.",
+      "description": "Nous avons bien reçu votre demande de projet, notre équipe l'examinera sous peu.",
+      "cta": "Continuer sur WhatsApp"
+    },
+    "errors": {
+      "validation_error": "Certains champs sont invalides. Merci de vérifier le formulaire.",
+      "rate_limited": "Trop de tentatives en peu de temps. Merci de réessayer dans quelques minutes, ou contactez-nous directement sur WhatsApp.",
+      "db_unavailable": "Notre système d'enregistrement est temporairement indisponible. Votre demande n'a pas été enregistrée — merci de réessayer, ou de nous contacter directement sur WhatsApp pour ne rien perdre.",
+      "maintenance": "Nous suspendons temporairement les nouveaux envois pour une maintenance planifiée. Merci de réessayer bientôt, ou de nous contacter directement sur WhatsApp.",
+      "unexpected": "Une erreur est survenue et votre demande n'a pas été enregistrée. Merci de réessayer ou de nous contacter directement sur WhatsApp."
+    },
+    "whatsappSummary": "Bonjour SIGMA+, je viens de soumettre une demande de projet.\n\nNom: {name}\nService: {service}\nRéférence: {reference}"
+  },
   "notFound": {
     "title": "Page introuvable",
     "description": "La page que vous cherchez n'existe pas ou a été déplacée.",

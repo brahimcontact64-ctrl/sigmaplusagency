@@ -237,6 +237,59 @@
     },
     "whatsappSummary": "Hallo SIGMA+, ich habe gerade das Kontaktformular abgeschickt.\n\nName: {name}\nProjektart: {projectType}\nReferenz: {reference}"
   },
+  "projectInquiry": {
+    "title": "Ihr Projekt starten",
+    "subtitle": "Teilen Sie uns ein paar Details zu Ihrem Vorhaben mit. Unser Team prüft jede Anfrage — ein strukturiertes Briefing hilft uns, schneller zu antworten.",
+    "whatsappAlternative": "Lieber gleich chatten? WhatsApp",
+    "form": {
+      "name": "Vollständiger Name",
+      "email": "E-Mail",
+      "phone": "Telefon / WhatsApp (optional)",
+      "company": "Unternehmen / Marke (optional)",
+      "service": "Gewünschte Leistung",
+      "serviceOptions": {
+        "business-website": "Business-Website",
+        "ecommerce": "E-Commerce",
+        "mobile-app": "Mobile App",
+        "web-app": "Webanwendung",
+        "ai-automation": "KI / Automatisierung",
+        "other": "Sonstiges"
+      },
+      "projectDescription": "Projektbeschreibung",
+      "projectDescriptionHint": "Was möchten Sie umsetzen oder lösen?",
+      "budget": "Ungefähres Budget",
+      "desiredStart": "Gewünschter Starttermin",
+      "urgency": "Dringlichkeit",
+      "urgencyOptions": {
+        "urgent": "Dringend — sofortiger Start nötig",
+        "soon": "Bald — innerhalb weniger Wochen",
+        "flexible": "Keine Eile — flexibler Zeitrahmen"
+      },
+      "purchaseIntent": "Wo stehen Sie in Ihrer Entscheidung?",
+      "purchaseIntentOptions": {
+        "exploring": "Ich sondiere die Optionen",
+        "comparing": "Ich vergleiche Anbieter",
+        "ready-to-discuss": "Bereit für ein Gespräch",
+        "ready-to-start": "Bereit zu starten"
+      },
+      "submit": "Anfrage senden",
+      "submitting": "Wird gesendet...",
+      "requiredError": "Dieses Feld ist erforderlich."
+    },
+    "success": {
+      "title": "Vielen Dank.",
+      "description": "Wir haben Ihre Projektanfrage erhalten, unser Team wird sie in Kürze prüfen.",
+      "cta": "Auf WhatsApp fortsetzen"
+    },
+    "errors": {
+      "validation_error": "Einige Felder sind ungültig. Bitte überprüfen Sie das Formular.",
+      "rate_limited": "Zu viele Versuche in kurzer Zeit. Bitte versuchen Sie es in ein paar Minuten erneut oder schreiben Sie uns direkt auf WhatsApp.",
+      "db_unavailable": "Unser Speichersystem ist vorübergehend nicht verfügbar. Ihre Anfrage wurde nicht gespeichert — bitte versuchen Sie es erneut oder kontaktieren Sie uns direkt auf WhatsApp, damit nichts verloren geht.",
+      "maintenance": "Wir pausieren neue Einsendungen vorübergehend für geplante Wartungsarbeiten. Bitte versuchen Sie es bald erneut oder schreiben Sie uns direkt auf WhatsApp.",
+      "unexpected": "Etwas ist schiefgelaufen und Ihre Anfrage wurde nicht gespeichert. Bitte versuchen Sie es erneut oder schreiben Sie uns direkt auf WhatsApp."
+    },
+    "whatsappSummary": "Hallo SIGMA+, ich habe gerade eine Projektanfrage abgeschickt.\n\nName: {name}\nLeistung: {service}\nReferenz: {reference}"
+  },
   "notFound": {
     "title": "Seite nicht gefunden",
     "description": "Die gesuchte Seite existiert nicht oder wurde verschoben.",
